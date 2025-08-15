@@ -1,0 +1,4 @@
+[submodule "ImSharp"]
+	path = ImSharp
+	url = git@github.com:Ottermandias/ImSharp.git
+	branch = gc1.88

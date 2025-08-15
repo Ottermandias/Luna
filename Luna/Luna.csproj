@@ -1,0 +1,39 @@
+<Project Sdk="Dalamud.NET.Sdk/13.0.0">
+    <PropertyGroup>
+        <RootNamespace>Luna</RootNamespace>
+        <AssemblyName>Luna</AssemblyName>
+        <FileVersion>1.0.0.0</FileVersion>
+        <AssemblyVersion>1.0.0.0</AssemblyVersion>
+        <Product>Luna</Product>
+        <Copyright>Copyright © 2025</Copyright>
+        <WarningLevel>4</WarningLevel>
+        <OutputPath>bin\$(Configuration)\</OutputPath>
+
+        <LangVersion>preview</LangVersion>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <Deterministic>true</Deterministic>
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+        <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    </PropertyGroup>
+
+    <PropertyGroup>
+        <DefineConstants>PROFILING</DefineConstants>
+        <DefineConstants>HAS_NEWTONSOFT</DefineConstants>
+        <Use_DalamudPackager>false</Use_DalamudPackager>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <Compile Include="..\ImSharp\ImSharp\**\*.cs" Link="ImSharp/%(RecursiveDir)%(FileName)%(Extension)" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <Reference Remove="Dalamud.Bindings.ImGuizmo" />
+        <Reference Remove="Dalamud.Bindings.ImPlot" />
+
+        <PackageReference Include="JetBrains.Annotations" Version="2024.2.0" />
+        <PackageReference Include="Microsoft.Extensions.Logging" Version="9.0" />
+        <PackageReference Include="Serilog.Extensions.Logging" Version="9.0" />
+        <PackageReference Include="System.IO.Hashing" Version="9.0" />
+    </ItemGroup>
+</Project>

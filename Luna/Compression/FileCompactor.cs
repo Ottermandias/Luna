@@ -1,0 +1,231 @@
+using Microsoft.Extensions.Logging;
+
+namespace Luna;
+
+/// <summary> A class to handle transparent Windows compression schemes. </summary>
+public sealed class FileCompactor(ILogger logger) : IDisposable, IService
+{
+    public readonly bool CanCompact = !Dalamud.Utility.Util.IsWine();
+
+    /// <summary> Whether to use file system compression at all. </summary>
+    public bool Enabled
+    {
+        get;
+        set
+        {
+            logger.LogInformation(
+                "File System Compression was {State}{CanCompact}.", value ? "enabled" : "disabled",
+                CanCompact ? string.Empty : " but was not available");
+            field = CanCompact && value;
+        }
+    }
+
+    private readonly Dictionary<string, int> _clusterSizes = new(8, StringComparer.Ordinal);
+
+    private Task?                    _massCompact;
+    private CancellationTokenSource? _cancellation;
+
+    /// <summary> Check if a mass compact operation is currently running. </summary>
+    public bool MassCompactRunning
+        => _massCompact is { IsCompleted: false };
+
+    /// <summary> The file currently being compacted, if any. </summary>
+    public FileInfo? CurrentFile { get; private set; }
+
+    /// <summary> The index of the file currently being compacted for Progress. </summary>
+    public int CurrentIndex { get; private set; }
+
+    /// <summary> The total number of files in the current mass compact operation. </summary>
+    public int TotalFiles { get; private set; }
+
+    /// <inheritdoc/>
+    public void Dispose()
+        => CancelMassCompact();
+
+    /// <summary> Cancel the current mass compact operation if one is running. </summary>
+    public void CancelMassCompact()
+        => _cancellation?.Cancel();
+
+    /// <summary> Start a new mass compact operation on a set of files. </summary>
+    /// <param name="files"> The set of files we want to compact. </param>
+    /// <param name="algorithm"> The compression algorithm to use. Use None to decompress files instead. </param>
+    /// <param name="logFileNotFound"> Whether files that were listed but then could not be found during the iteration should incur errors in the log. </param>
+    /// <returns> If the task could successfully be started. </returns>
+    public bool StartMassCompact(IEnumerable<FileInfo> files, CompressionAlgorithm algorithm, bool logFileNotFound)
+    {
+        if (!CanCompact)
+            return false;
+
+        if (MassCompactRunning)
+        {
+            logger.LogError("Triggered Mass Compact of files while it was already running.");
+            return false;
+        }
+
+        _cancellation = new CancellationTokenSource();
+        var token = _cancellation.Token;
+        _massCompact = Task.Run(() =>
+        {
+            TotalFiles   = 1;
+            CurrentIndex = 0;
+            CurrentFile  = null;
+            var list = files.ToList();
+            TotalFiles = list.Count;
+            logger.LogInformation(
+                "Starting Mass {Algorithm} for {TotalFiles} files.",
+                algorithm is CompressionAlgorithm.None ? "Decompact" : $"Compact with {algorithm}", TotalFiles);
+            for (; CurrentIndex < list.Count; ++CurrentIndex)
+            {
+                if (token.IsCancellationRequested)
+                    return;
+
+                CurrentFile = list[CurrentIndex];
+                if (algorithm is CompressionAlgorithm.None)
+                    DecompactFile(CurrentFile.FullName, logFileNotFound);
+                else
+                    CompactFile(CurrentFile.FullName, algorithm, logFileNotFound);
+            }
+        }, token);
+        return true;
+    }
+
+    /// <summary> Get the actual file size of a file on disk. </summary>
+    /// <param name="filePath"> The path to the file. </param>
+    /// <returns> The actual file size considering compression and clustering. </returns>
+    public long GetFileSizeOnDisk(string filePath)
+    {
+        if (!CanCompact)
+            return new FileInfo(filePath).Length;
+
+        var size = Interop.GetCompressedFileSize(filePath);
+        if (size < 0)
+            return new FileInfo(filePath).Length;
+
+        var clusterSize = GetClusterSize(filePath);
+        if (clusterSize == -1)
+            return size;
+
+        return Interop.RoundToCluster(size, clusterSize);
+    }
+
+    /// <summary> Write bytes and conditionally compact the file afterwards. </summary>
+    /// <param name="filePath"> The file to write to. </param>
+    /// <param name="decompressedFile"> The data to write. </param>
+    public void WriteAllBytes(string filePath, byte[] decompressedFile)
+    {
+        File.WriteAllBytes(filePath, decompressedFile);
+
+        if (Enabled)
+            CompactFile(filePath);
+    }
+
+    /// <summary> Asynchronously write bytes and conditionally compact the file afterwards. </summary>
+    /// <param name="filePath"> The file to write to. </param>
+    /// <param name="decompressedFile"> The data to write. </param>
+    /// <param name="token"> A cancellation token. </param>
+    public async Task WriteAllBytesAsync(string filePath, byte[] decompressedFile, CancellationToken token = default)
+    {
+        await File.WriteAllBytesAsync(filePath, decompressedFile, token);
+
+        if (Enabled && !token.IsCancellationRequested)
+            CompactFile(filePath);
+    }
+
+    /// <summary> Get the cluster size for a drive root. </summary>
+    private int GetClusterSize(string filePath)
+    {
+        if (!File.Exists(filePath))
+            return -1;
+
+        var root = Path.GetPathRoot(filePath) ?? string.Empty;
+        if (root.Length == 0)
+            return -1;
+
+        if (!_clusterSizes.TryGetValue(root, out var size))
+        {
+            var result = Interop.GetDiskFreeSpaceW(root, out var sectorsPerCluster, out var bytesPerSector, out _, out _);
+            if (result == 0)
+                return -1;
+
+            size = (int)(sectorsPerCluster * bytesPerSector);
+            logger.LogTrace("Cluster size for root {Root} is {Size}.", root, size);
+            _clusterSizes.Add(root, size);
+        }
+
+        return size;
+    }
+
+    /// <summary> Try to decompact a file. </summary>
+    private bool DecompactFile(string filePath, bool logFileNotFound = true)
+    {
+        try
+        {
+            Interop.DecompactFile(filePath);
+            return true;
+        }
+        catch (FileNotFoundException ex)
+        {
+            if (logFileNotFound)
+                logger.LogError(ex, "Unexpected problem when compacting file {FilePath}.", filePath);
+            return false;
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Unexpected problem when compacting file {FilePath}.", filePath);
+            return false;
+        }
+    }
+
+    /// <summary> Try to compact a file with a given algorithm. </summary>
+    private bool CompactFile(string filePath, CompressionAlgorithm algorithm = CompressionAlgorithm.Xpress8K, bool logFileNotFound = true)
+    {
+        try
+        {
+            var oldSize     = new FileInfo(filePath).Length;
+            var clusterSize = GetClusterSize(filePath);
+
+            var minFileSize = algorithm switch
+            {
+                CompressionAlgorithm.None      => clusterSize,
+                CompressionAlgorithm.Lznt1     => clusterSize,
+                CompressionAlgorithm.Xpress4K  => Math.Max(clusterSize, 4 * 1024),
+                CompressionAlgorithm.Lzx       => clusterSize,
+                CompressionAlgorithm.Xpress8K  => Math.Max(clusterSize, 8 * 1024),
+                CompressionAlgorithm.XPress16K => Math.Max(clusterSize, 16 * 1024),
+                _                              => throw new ArgumentOutOfRangeException(nameof(algorithm), algorithm, null),
+            };
+
+            if (oldSize < minFileSize)
+            {
+                logger.LogTrace("File {FilePath} is smaller than cluster size ({ClusterSize}), it will not be compacted.", filePath,
+                    minFileSize);
+                return false;
+            }
+
+
+            if (Interop.IsCompactedFile(filePath, algorithm))
+            {
+                logger.LogTrace("File {FilePath} is already compacted with {Algorithm}.", filePath, algorithm);
+                return true;
+            }
+
+
+            Interop.CompactFile(filePath, algorithm);
+            logger.LogTrace(
+                "Compacted {FilePath} from {OldSize} bytes to {NewSize} bytes.", filePath, oldSize,
+                new Lazy<string>(() => GetFileSizeOnDisk(filePath).ToString()));
+            return true;
+        }
+        catch (FileNotFoundException ex)
+        {
+            if (logFileNotFound)
+                logger.LogError(ex, "Unexpected problem when compacting file {FilePath}.", filePath);
+            return false;
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Unexpected problem when compacting file {FilePath}.", filePath);
+            return false;
+        }
+    }
+}
