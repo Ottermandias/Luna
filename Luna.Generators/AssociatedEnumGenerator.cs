@@ -121,7 +121,7 @@ public sealed class AssociatedEnumGenerator : IIncrementalGenerator
             string? backwardName    = null;
             var     forwardDefault  = string.Empty;
             var     backwardDefault = string.Empty;
-            var     @namespace      = enumSymbol.ContainingNamespace.Name;
+            var     @namespace      = Utility.GetFullNamespace(enumSymbol);
             var     @class          = $"{enumName}Extensions";
 
             if (arguments[0].Value is string f)

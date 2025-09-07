@@ -1,4 +1,4 @@
-﻿namespace Luna.Utility;
+﻿namespace Luna;
 
 /// <summary> A simple wrapper disposable that sets a bool on creation and resets it on disposal. </summary>
 /// <remarks> Use with using. </remarks>

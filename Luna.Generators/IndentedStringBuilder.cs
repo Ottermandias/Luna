@@ -130,12 +130,18 @@ public class IndentedStringBuilder
     /// <param name="rhsType"> The name of the type on the right side. </param>
     /// <param name="lhsValue"> The field name of the type on the left side, if empty the left side will be compared itself. </param>
     /// <param name="rhsValue"> The field name of the type on the right side, if empty the right side will be compared itself. </param>
-    public IndentedStringBuilder AppendComparisonOperator(string @operator, string lhsType, string rhsType, string lhsValue, string rhsValue)
-        => GeneratedAttribute()
+    /// <param name="priority"> The overload resolution priority. Omitted if 0. </param>
+    public IndentedStringBuilder AppendComparisonOperator(string @operator, string lhsType, string rhsType, string lhsValue, string rhsValue,
+        int priority = 0)
+    {
+        if (priority is not 0)
+            AppendLine($"[global::System.Runtime.CompilerServices.OverloadResolutionPriority({priority})]");
+        return GeneratedAttribute()
             .Append("public static bool operator ").Append(@operator).Append('(').Append(lhsType).Append(" lhs, ").Append(rhsType)
             .AppendLine(" rhs)")
             .Append("    => lhs").AppendIfNonEmpty(lhsValue, ".").Append(' ').Append(@operator).Append(" rhs").AppendIfNonEmpty(rhsValue, ".")
             .AppendLine(';');
+    }
 
     /// <summary> Append a full arithmetic operator method. </summary>
     /// <param name="operator"> The operator to use, e.g. '+'. </param>
@@ -150,7 +156,8 @@ public class IndentedStringBuilder
             .Append("public static ").Append(returnType).Append(" operator ").Append(@operator).Append('(').Append(lhsType).Append(" lhs, ")
             .Append(rhsType)
             .AppendLine(" rhs)")
-            .Append("    => new(lhs").AppendIfNonEmpty(lhsValue, ".").Append(' ').Append(@operator).Append(" rhs").AppendIfNonEmpty(rhsValue, ".")
+            .Append("    => new(lhs").AppendIfNonEmpty(lhsValue, ".").Append(' ').Append(@operator).Append(" rhs")
+            .AppendIfNonEmpty(rhsValue, ".")
             .AppendLine(");");
 
     private IndentedStringBuilder AppendIfNonEmpty(string text, string pre = "", string post = "")

@@ -87,7 +87,7 @@ public sealed class NamedEnumGenerator : IIncrementalGenerator
         var members     = new List<(string, string)>(enumMembers.Length);
         var methodName  = "ToName";
         var unknownName = "Unknown";
-        var @namespace  = enumSymbol.ContainingNamespace.Name;
+        var @namespace  = Utility.GetFullNamespace(enumSymbol);
         var @class      = $"{enumName}Extensions";
         var utf8        = true;
         var utf16       = true;

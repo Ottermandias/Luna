@@ -27,6 +27,8 @@ internal readonly record struct StrongTypeData
     public readonly bool           ConversionToBase;
     public readonly bool           NewtonsoftConverter;
     public readonly bool           SystemConverter;
+    public readonly bool           HasZero;
+    public readonly bool           HasOne;
 
 
     public StrongTypeData(INamedTypeSymbol name, INamedTypeSymbol baseType, string @namespace, ulong flags, Accessibility accessibility,
@@ -50,6 +52,8 @@ internal readonly record struct StrongTypeData
         ConversionToBase           = flags >> 12 is not 0;
         NewtonsoftConverter        = flags >> 13 is not 0;
         SystemConverter            = flags >> 14 is not 0;
+        HasZero                    = flags >> 15 is not 0;
+        HasOne                     = flags >> 16 is not 0;
 
         if (ComparableSelf)
             EquatableSelf = true;
@@ -79,9 +83,11 @@ public sealed class StrongTypeGenerator : IIncrementalGenerator
         .AppendLine("EquatableSelf              = 1 << 0,")
         .AppendLine("/// <summary> Whether the strong type is equatable to its base type, including equality operators. </summary>")
         .AppendLine("EquatableBase              = 1 << 1,")
-        .AppendLine("/// <summary> Whether the strong type is comparable to itself, including comparison operators, also implies <see cref=\"EquatableSelf\"/>. </summary>")
+        .AppendLine(
+            "/// <summary> Whether the strong type is comparable to itself, including comparison operators, also implies <see cref=\"EquatableSelf\"/>. </summary>")
         .AppendLine("ComparableSelf             = 1 << 2,")
-        .AppendLine("/// <summary> Whether the strong type is comparable to its base type, including comparison operators, also implies <see cref=\"EquatableBase\"/>. </summary>")
+        .AppendLine(
+            "/// <summary> Whether the strong type is comparable to its base type, including comparison operators, also implies <see cref=\"EquatableBase\"/>. </summary>")
         .AppendLine("ComparableBase             = 1 << 3,")
         .AppendLine("/// <summary> Whether the strong type supports increment operators (++). </summary>")
         .AppendLine("Incrementable              = 1 << 4,")
@@ -93,11 +99,14 @@ public sealed class StrongTypeGenerator : IIncrementalGenerator
         .AppendLine("AdditionBase               = 1 << 7,")
         .AppendLine("/// <summary> Whether the strong type supports subtraction with itself (with itself as a return type). </summary>")
         .AppendLine("SubtractionSelf            = 1 << 8,")
-        .AppendLine("/// <summary> Whether the strong type supports subtraction with its base type (with itself as a return type, only one direction). </summary>")
+        .AppendLine(
+            "/// <summary> Whether the strong type supports subtraction with its base type (with itself as a return type, only one direction). </summary>")
         .AppendLine("SubtractionBase            = 1 << 9,")
-        .AppendLine("/// <summary> Whether the strong type can be implicitly converted from its base type. Otherwise it will still support explicit conversion. </summary>")
+        .AppendLine(
+            "/// <summary> Whether the strong type can be implicitly converted from its base type. Otherwise it will still support explicit conversion. </summary>")
         .AppendLine("ImplicitConversionFromBase = 1 << 10,")
-        .AppendLine("/// <summary> Whether the strong type can be explicitly converted back to its base type. Ignored if <see cref=\"ImplicitConversionToBase\"/> is set. </summary>")
+        .AppendLine(
+            "/// <summary> Whether the strong type can be explicitly converted back to its base type. Ignored if <see cref=\"ImplicitConversionToBase\"/> is set. </summary>")
         .AppendLine("ExplicitConversionToBase   = 1 << 11,")
         .AppendLine("/// <summary> Whether the strong type can be implicitly converted back to its base type. </summary>")
         .AppendLine("ImplicitConversionToBase   = 1 << 12,")
@@ -105,10 +114,14 @@ public sealed class StrongTypeGenerator : IIncrementalGenerator
         .AppendLine("NewtonsoftConverter        = 1 << 13,")
         .AppendLine("/// <summary> Whether the strong type contains and applies a System.Text.Json Converter. </summary>")
         .AppendLine("SystemConverter            = 1 << 14,")
+        .AppendLine("/// <summary> Whether the strong type contains a Zero entry. </summary>")
+        .AppendLine("HasZero                    = 1 << 15,")
+        .AppendLine("/// <summary> Whether the strong type contains a One entry. </summary>")
+        .AppendLine("HasOne                     = 1 << 16,")
         .AppendLine()
         .AppendLine("/// <summary> The default functionality for a basic type. </summary>")
         .AppendLine(
-            "Default = EquatableSelf | EquatableBase | ComparableBase | ComparableSelf | Incrementable | Decrementable | AdditionBase | SubtractionBase | ImplicitConversionFromBase | ExplicitConversionToBase,")
+            "Default = EquatableSelf | EquatableBase | ComparableBase | ComparableSelf | Incrementable | Decrementable | AdditionBase | SubtractionBase | ImplicitConversionFromBase | ExplicitConversionToBase | HasZero,")
         .CloseBlock().AppendLine()
         .AppendLine()
         .AppendLine("/// <summary> Create a strongly typed ID type struct. </summary>")
@@ -285,9 +298,9 @@ public sealed class StrongTypeGenerator : IIncrementalGenerator
                 .AppendLine("public override int GetHashCode()")
                 .Append("    => ").Append(strongType.FieldName).AppendLine(".GetHashCode();")
                 .AppendLine()
-                .AppendComparisonOperator("==", strongType.Name.Name, strongType.Name.Name, strongType.FieldName, strongType.FieldName)
+                .AppendComparisonOperator("==", strongType.Name.Name, strongType.Name.Name, strongType.FieldName, strongType.FieldName, 100)
                 .AppendLine()
-                .AppendComparisonOperator("!=", strongType.Name.Name, strongType.Name.Name, strongType.FieldName, strongType.FieldName)
+                .AppendComparisonOperator("!=", strongType.Name.Name, strongType.Name.Name, strongType.FieldName, strongType.FieldName, 100)
                 .AppendLine();
         }
 
@@ -298,13 +311,17 @@ public sealed class StrongTypeGenerator : IIncrementalGenerator
                 .Append("public bool Equals(").AppendObject(strongType.BaseType.FullyQualified).AppendLine(" other)")
                 .Append("    => ").Append(strongType.FieldName).Append(".Equals(other").AppendLine(");")
                 .AppendLine()
-                .AppendComparisonOperator("==", strongType.Name.Name, strongType.BaseType.FullyQualified, strongType.FieldName, string.Empty)
+                .AppendComparisonOperator("==", strongType.Name.Name, strongType.BaseType.FullyQualified, strongType.FieldName, string.Empty,
+                    50)
                 .AppendLine()
-                .AppendComparisonOperator("!=", strongType.Name.Name, strongType.BaseType.FullyQualified, strongType.FieldName, string.Empty)
+                .AppendComparisonOperator("!=", strongType.Name.Name, strongType.BaseType.FullyQualified, strongType.FieldName, string.Empty,
+                    50)
                 .AppendLine()
-                .AppendComparisonOperator("==", strongType.BaseType.FullyQualified, strongType.Name.Name, string.Empty, strongType.FieldName)
+                .AppendComparisonOperator("==", strongType.BaseType.FullyQualified, strongType.Name.Name, string.Empty, strongType.FieldName,
+                    50)
                 .AppendLine()
-                .AppendComparisonOperator("!=", strongType.BaseType.FullyQualified, strongType.Name.Name, string.Empty, strongType.FieldName)
+                .AppendComparisonOperator("!=", strongType.BaseType.FullyQualified, strongType.Name.Name, string.Empty, strongType.FieldName,
+                    50)
                 .AppendLine();
 
         if (strongType.ComparableSelf)
@@ -313,13 +330,13 @@ public sealed class StrongTypeGenerator : IIncrementalGenerator
                 .Append("public int CompareTo(").Append(strongType.Name.Name).AppendLine(" other)")
                 .Append("    => ").Append(strongType.FieldName).Append(".CompareTo(other.").Append(strongType.FieldName).AppendLine(");")
                 .AppendLine()
-                .AppendComparisonOperator(">", strongType.Name.Name, strongType.Name.Name, strongType.FieldName, strongType.FieldName)
+                .AppendComparisonOperator(">", strongType.Name.Name, strongType.Name.Name, strongType.FieldName, strongType.FieldName, 100)
                 .AppendLine()
-                .AppendComparisonOperator("<", strongType.Name.Name, strongType.Name.Name, strongType.FieldName, strongType.FieldName)
+                .AppendComparisonOperator("<", strongType.Name.Name, strongType.Name.Name, strongType.FieldName, strongType.FieldName, 100)
                 .AppendLine()
-                .AppendComparisonOperator(">=", strongType.Name.Name, strongType.Name.Name, strongType.FieldName, strongType.FieldName)
+                .AppendComparisonOperator(">=", strongType.Name.Name, strongType.Name.Name, strongType.FieldName, strongType.FieldName, 100)
                 .AppendLine()
-                .AppendComparisonOperator("<=", strongType.Name.Name, strongType.Name.Name, strongType.FieldName, strongType.FieldName)
+                .AppendComparisonOperator("<=", strongType.Name.Name, strongType.Name.Name, strongType.FieldName, strongType.FieldName, 100)
                 .AppendLine();
 
         if (strongType.ComparableBase)
@@ -328,21 +345,25 @@ public sealed class StrongTypeGenerator : IIncrementalGenerator
                 .Append("public int CompareTo(").AppendObject(strongType.BaseType.FullyQualified).AppendLine(" other)")
                 .Append("    => ").Append(strongType.FieldName).AppendLine(".CompareTo(other);")
                 .AppendLine()
-                .AppendComparisonOperator(">", strongType.Name.Name, strongType.BaseType.FullyQualified, strongType.FieldName, string.Empty)
+                .AppendComparisonOperator(">", strongType.Name.Name, strongType.BaseType.FullyQualified, strongType.FieldName, string.Empty, 50)
                 .AppendLine()
-                .AppendComparisonOperator("<", strongType.Name.Name, strongType.BaseType.FullyQualified, strongType.FieldName, string.Empty)
+                .AppendComparisonOperator("<", strongType.Name.Name, strongType.BaseType.FullyQualified, strongType.FieldName, string.Empty, 50)
                 .AppendLine()
-                .AppendComparisonOperator(">=", strongType.Name.Name, strongType.BaseType.FullyQualified, strongType.FieldName, string.Empty)
+                .AppendComparisonOperator(">=", strongType.Name.Name, strongType.BaseType.FullyQualified, strongType.FieldName, string.Empty,
+                    50)
                 .AppendLine()
-                .AppendComparisonOperator("<=", strongType.Name.Name, strongType.BaseType.FullyQualified, strongType.FieldName, string.Empty)
+                .AppendComparisonOperator("<=", strongType.Name.Name, strongType.BaseType.FullyQualified, strongType.FieldName, string.Empty,
+                    50)
                 .AppendLine()
-                .AppendComparisonOperator(">", strongType.BaseType.FullyQualified, strongType.Name.Name, string.Empty, strongType.FieldName)
+                .AppendComparisonOperator(">", strongType.BaseType.FullyQualified, strongType.Name.Name, string.Empty, strongType.FieldName, 50)
                 .AppendLine()
-                .AppendComparisonOperator("<", strongType.BaseType.FullyQualified, strongType.Name.Name, string.Empty, strongType.FieldName)
+                .AppendComparisonOperator("<", strongType.BaseType.FullyQualified, strongType.Name.Name, string.Empty, strongType.FieldName, 50)
                 .AppendLine()
-                .AppendComparisonOperator(">=", strongType.BaseType.FullyQualified, strongType.Name.Name, string.Empty, strongType.FieldName)
+                .AppendComparisonOperator(">=", strongType.BaseType.FullyQualified, strongType.Name.Name, string.Empty, strongType.FieldName,
+                    50)
                 .AppendLine()
-                .AppendComparisonOperator("<=", strongType.BaseType.FullyQualified, strongType.Name.Name, string.Empty, strongType.FieldName)
+                .AppendComparisonOperator("<=", strongType.BaseType.FullyQualified, strongType.Name.Name, string.Empty, strongType.FieldName,
+                    50)
                 .AppendLine();
 
         sb.GeneratedAttribute()
@@ -402,6 +423,14 @@ public sealed class StrongTypeGenerator : IIncrementalGenerator
                 .Append("static ").AppendObject(strongType.BaseType.FullyQualified).Append(" global::System.Numerics.IAdditiveIdentity<")
                 .Append(strongType.Name.Name).Append(", ").AppendObject(strongType.BaseType.FullyQualified).AppendLine(">.AdditiveIdentity")
                 .AppendLine("    => default;")
+                .AppendLine();
+
+        if (strongType.HasZero)
+            sb.Append("public static readonly ").Append(strongType.Name.Name).AppendLine(" Zero = new(0);")
+                .AppendLine();
+
+        if (strongType.HasOne)
+            sb.Append("public static readonly ").Append(strongType.Name.Name).AppendLine(" One = new(1);")
                 .AppendLine();
 
         if (strongType.SubtractionSelf)
