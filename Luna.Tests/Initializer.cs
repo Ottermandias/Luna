@@ -2,7 +2,7 @@
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 
-namespace Luna.Generators.Tests;
+namespace Luna.Tests;
 
 public static class ModuleInitializer
 {

@@ -62,7 +62,7 @@ public sealed class NamedEnumGenerator : IIncrementalGenerator
 
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
-        Utility.AddTagEnums(ref context, NamedEnumAttribute, nameof(NamedEnumAttribute));
+        Utility.AddTagAttributes(ref context, NamedEnumAttribute, nameof(NamedEnumAttribute));
         Utility.Generate(ref context, nameof(NamedEnumAttribute), static (ctx, _) => GetEnumToGenerate(ctx.SemanticModel, ctx.TargetNode),
             static (spc, source) => Execute(source, spc));
     }

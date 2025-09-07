@@ -1,4 +1,6 @@
-﻿namespace Luna.Generators.Tests;
+﻿using Luna.Generators;
+
+namespace Luna.Tests;
 
 public class NamedEnumTests
 {

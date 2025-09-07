@@ -11,7 +11,7 @@ public static partial class TestExtensions
     public static global::Test2 ToTest2(this global::Test value)
         => value switch
         {
-            global::Test.A => global::Test2.A,
+            global::Test.A => global::Test2.B,
             global::Test.B => global::Test2.B,
             _ => default,
         };

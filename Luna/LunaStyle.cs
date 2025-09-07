@@ -1,52 +1,10 @@
 using Dalamud.Interface;
 using Dalamud.Interface.ImGuiNotification;
-using Luna.Generators;
 
 namespace Luna;
 
-[NamedEnum]
-public enum TestEnum
-{
-    [Name("ABC")]
-    A,
-    [Name("DEF")]
-    B,
-    [Name(Omit: true)]
-    C,
-
-    GHI,
-}
-
-[AssociatedEnum(typeof(B), ForwardDefaultValue: nameof(B.A), BackwardMethod: "BackToA", BackwardDefaultValue: nameof(A.C))]
-[DataEnum(typeof(Type), "MyType", Nullable: true)]
-public enum A
-{
-    [Associate(nameof(B.B))]
-    A,
-    [Associate(nameof(B.A))]
-    B,
-    [Associate(Omit: true)]
-    C,
-    [Data("MyType", "typeof(int)")]
-    D,
-}
-
-public enum B
-{
-    A,
-    B,
-    D,
-}
-
 public static class LunaStyle
 {
-    public static void Test()
-    {
-        TestEnum.A.ToName();
-        A.A.ToB();
-        A.A.MyType();
-    }
-
     /// <summary> The icon that should be used for deletion buttons. </summary>
     public static readonly AwesomeIcon DeleteIcon = FontAwesomeIcon.Trash;
 
