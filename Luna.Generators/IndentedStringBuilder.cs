@@ -156,9 +156,8 @@ public class IndentedStringBuilder
             .Append("public static ").Append(returnType).Append(" operator ").Append(@operator).Append('(').Append(lhsType).Append(" lhs, ")
             .Append(rhsType)
             .AppendLine(" rhs)")
-            .Append("    => new(lhs").AppendIfNonEmpty(lhsValue, ".").Append(' ').Append(@operator).Append(" rhs")
-            .AppendIfNonEmpty(rhsValue, ".")
-            .AppendLine(");");
+            .Append("    => new((").Append(returnType).Append(") (lhs").AppendIfNonEmpty(lhsValue, ".").Append(' ').Append(@operator).Append(" rhs").AppendIfNonEmpty(rhsValue, ".")
+            .AppendLine("));");
 
     private IndentedStringBuilder AppendIfNonEmpty(string text, string pre = "", string post = "")
         => text.Length > 0 ? Append(pre).Append(text).Append(post) : this;
