@@ -1,5 +1,6 @@
 using Dalamud.Interface;
 using Dalamud.Plugin;
+using Dalamud.Plugin.Services;
 using Microsoft.Extensions.Logging;
 
 namespace Luna;
@@ -18,8 +19,9 @@ public sealed unsafe class ImSharpDalamudContext : IRequiredService, IDisposable
     /// </summary>
     /// <param name="pluginInterface"> The plugin interface for the shared data store. </param>
     /// <param name="uiBuilder"> The uiBuilder to set up the <see cref="ImSharpPerFrame.OnUpdate"/> and fetch the <see cref="IUiBuilder.FontMono"/> when it is ready. </param>
+    /// <param name="framework"> The framework to ensure the <see cref="IUiBuilder.FontMono"/> is fetched from the main thread. </param>
     /// <param name="logger"> The logger to set up for ImSharp. </param>
-    public ImSharpDalamudContext(IDalamudPluginInterface pluginInterface, IUiBuilder uiBuilder, ILogger logger)
+    public ImSharpDalamudContext(IDalamudPluginInterface pluginInterface, IUiBuilder uiBuilder, IFramework framework, ILogger logger)
     {
         _contextTag      = $"ImSharp.Context.V{ImSharpContext.CurrentVersion}";
         _pluginInterface = pluginInterface;
@@ -32,7 +34,7 @@ public sealed unsafe class ImSharpDalamudContext : IRequiredService, IDisposable
         var holder = pluginInterface.GetOrCreateData(_contextTag, IReadOnlyList<nint> () =>
         {
             created = true;
-            return new ContextHolder(uiBuilder);
+            return new ContextHolder(uiBuilder, framework);
         });
         var context = (ImSharpContext*)holder[0];
         // ReSharper disable once ConvertIfStatementToConditionalTernaryExpression
@@ -119,9 +121,9 @@ public sealed unsafe class ImSharpDalamudContext : IRequiredService, IDisposable
     {
         private nint _context = (nint)ImSharpContext.SetupDefault();
 
-        public ContextHolder(IUiBuilder uiBuilder)
+        public ContextHolder(IUiBuilder uiBuilder, IFramework framework)
         {
-            uiBuilder.WaitForUi().ContinueWith(_ => ((ImSharpContext*)_context)->MonoFont = uiBuilder.FontMono.Handle);
+            uiBuilder.WaitForUi().ContinueWith(_ => framework.RunOnFrameworkThread(() => ((ImSharpContext*)_context)->MonoFont = uiBuilder.FontMono.Handle).Wait());
         }
 
         public void Dispose()

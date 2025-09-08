@@ -29,6 +29,7 @@ public class ServiceManager : IDisposable
 
         // Add logging services and self.
         _collection.AddSingleton(ServiceDescriptor.Singleton(typeof(ILogger<>), typeof(Logger<>)));
+        _collection.AddSingleton<ILogger>(_logger);
         _collection.AddSingleton(_logger);
         _collection.AddSingleton(this);
     }
@@ -59,17 +60,22 @@ public class ServiceManager : IDisposable
     /// <summary> Create the provider and ensure that all services implementing <see cref="IRequiredService"/> that have been registered are created. </summary>
     public void EnsureRequiredServices()
     {
-        Provider ??= _collection.BuildServiceProvider(new ServiceProviderOptions
-        {
-            ValidateOnBuild = true,
-            ValidateScopes  = false,
-        });
-
+        BuildProvider();
         foreach (var service in _collection)
         {
             if (service.ServiceType.IsAssignableTo(typeof(IRequiredService)))
                 Provider!.GetRequiredService(service.ServiceType);
         }
+    }
+
+    /// <summary> Create the provider. </summary>
+    public void BuildProvider()
+    {
+        Provider ??= _collection.BuildServiceProvider(new ServiceProviderOptions
+        {
+            ValidateOnBuild = true,
+            ValidateScopes  = false,
+        });
     }
 
     /// <summary> Add a specific type as a singleton to the collection. </summary>
@@ -102,6 +108,19 @@ public class ServiceManager : IDisposable
     public void AddIServices(Assembly assembly)
     {
         var iType = typeof(IService);
+        foreach (var type in assembly.ExportedTypes.Where(t => t is { IsInterface: false, IsAbstract: false } && iType.IsAssignableFrom(t)))
+        {
+            if (_collection.All(t => t.ServiceType != type))
+                AddSingleton(type);
+        }
+    }
+
+    /// <summary> Add all services from an assembly implementing <see cref="TInterface"/> and that are neither interfaces nor abstract to the collection. </summary>
+    /// <typeparam name="TInterface"> The interface to check for. </typeparam>
+    /// <param name="assembly"> The assembly to fetch the services from. </param>
+    public void AddIServices<TInterface>(Assembly assembly)
+    {
+        var iType = typeof(TInterface);
         foreach (var type in assembly.ExportedTypes.Where(t => t is { IsInterface: false, IsAbstract: false } && iType.IsAssignableFrom(t)))
         {
             if (_collection.All(t => t.ServiceType != type))
