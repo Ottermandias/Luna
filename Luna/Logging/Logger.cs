@@ -1,6 +1,5 @@
 using Microsoft.Extensions.Logging;
 using Serilog.Events;
-using Serilog.Extensions.Logging;
 
 // ReSharper disable MethodOverloadWithOptionalParameter
 
@@ -10,8 +9,6 @@ namespace Luna;
 /// <typeparam name="T"> Unused type for dependency injection. </typeparam>
 public class Logger<T> : ILogger<T>, Serilog.ILogger
 {
-    private readonly ILogger<T> _microsoftLogger;
-
     /// <summary> Get the loggers prefix. </summary>
     public string GlobalPrefix
         => Logger.GlobalPrefix;
@@ -31,7 +28,6 @@ public class Logger<T> : ILogger<T>, Serilog.ILogger
         Logger.GlobalPluginName   ??= pluginName ?? Assembly.GetCallingAssembly().GetName().Name ?? "Unknown";
         Logger.GlobalPluginLogger ??= Serilog.Log.ForContext("Dalamud.PluginName", Logger.GlobalPluginName);
         Logger.GlobalPrefix       ??= $"[{Logger.GlobalPluginName}] ";
-        _microsoftLogger          =   new SerilogLoggerFactory(Logger.GlobalPluginLogger).CreateLogger<T>();
     }
 
     /// <summary> The supported log levels. </summary>
@@ -198,21 +194,154 @@ public class Logger<T> : ILogger<T>, Serilog.ILogger
     public void Write(LogEvent logEvent)
         => MainLogger.Write(logEvent);
 
-    /// <inheritdoc/>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static readonly ConcurrentDictionary<string, string> DestructureDictionary = [];
+    private static readonly ConcurrentDictionary<string, string> StringifyDictionary   = [];
+    private static readonly CachingMessageTemplateParser         MessageTemplateParser = new();
+
+    private readonly EventIdPropertyCache _eventIdPropertyCache = new();
+
+
     public void Log<TState>(Microsoft.Extensions.Logging.LogLevel logLevel, EventId eventId, TState state, Exception? exception,
         Func<TState, Exception?, string> formatter)
-        => _microsoftLogger.Log(logLevel, eventId, state, exception, formatter);
+    {
+        if (logLevel is Microsoft.Extensions.Logging.LogLevel.None)
+            return;
 
-    /// <inheritdoc/>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        var level = ToSerilogLevel(logLevel);
+        if (!MainLogger.IsEnabled(level))
+            return;
+
+        LogEvent? @event = null;
+        try
+        {
+            @event = PrepareWrite(level, eventId, state, exception, formatter);
+        }
+        catch (Exception ex)
+        {
+            MainLogger.Error(ex, "Failed to write event: {Exception}", ex);
+        }
+
+        if (@event is not null)
+            MainLogger.Write(@event);
+    }
+
+    private LogEvent PrepareWrite<TState>(LogEventLevel level, EventId eventId, TState state, Exception? exception,
+        Func<TState, Exception?, string> formatter)
+    {
+        string? messageTemplate = null;
+
+        var properties = new Dictionary<string, LogEventPropertyValue>();
+
+        if (state is IEnumerable<KeyValuePair<string, object?>> structure)
+        {
+            foreach (var property in structure)
+            {
+                if (property is { Key: "{OriginalFormat}", Value: string value })
+                {
+                    messageTemplate = value;
+                }
+                else if (property.Key.StartsWith('@'))
+                {
+                    if (MainLogger.BindProperty(GetKeyWithoutFirstSymbol(DestructureDictionary, property.Key), property.Value, true,
+                            out var destructured))
+                        properties[destructured.Name] = destructured.Value;
+                }
+                else if (property.Key.StartsWith('$'))
+                {
+                    if (MainLogger.BindProperty(GetKeyWithoutFirstSymbol(StringifyDictionary, property.Key), property.Value?.ToString(),
+                            true, out var stringified))
+                        properties[stringified.Name] = stringified.Value;
+                }
+                else
+                {
+                    // Simple micro-optimization for the most common and reliably scalar values; could go further here.
+                    if (property.Value is null or string or int or long && LogEventProperty.IsValidName(property.Key))
+                        properties[property.Key] = new ScalarValue(property.Value);
+                    else if (MainLogger.BindProperty(property.Key, property.Value, false, out var bound))
+                        properties[bound.Name] = bound.Value;
+                }
+            }
+
+            var stateType     = state.GetType();
+            var stateTypeInfo = stateType.GetTypeInfo();
+            // Imperfect, but at least eliminates `1 names
+            if (messageTemplate is null && !stateTypeInfo.IsGenericType)
+            {
+                messageTemplate = $"{{{stateType.Name}:l}}";
+                if (MainLogger.BindProperty(stateType.Name, AsLoggableValue(state, formatter), false, out var stateTypeProperty))
+                    properties[stateTypeProperty.Name] = stateTypeProperty.Value;
+            }
+        }
+
+        if (messageTemplate is null)
+        {
+            string? propertyName = null;
+            if (state != null)
+            {
+                propertyName    = "State";
+                messageTemplate = "{State:l}";
+            }
+            // `formatter` was originally accepted as nullable, so despite the new annotation, this check should still
+            // be made.
+            else if (formatter != null!)
+            {
+                propertyName    = "Message";
+                messageTemplate = "{Message:l}";
+            }
+
+            if (propertyName is not null)
+                if (MainLogger.BindProperty(propertyName, AsLoggableValue(state, formatter!), false, out var property))
+                    properties[property.Name] = property.Value;
+        }
+
+        // The overridden `!=` operator on this type ignores `Name`.
+        if (eventId.Id is not 0 || eventId.Name is not null)
+            properties["EventId"] = _eventIdPropertyCache.GetOrCreatePropertyValue(in eventId);
+
+        var (traceId, spanId) = Activity.Current is { } activity
+            ? (activity.TraceId, activity.SpanId)
+            : (default(ActivityTraceId), default(ActivitySpanId));
+
+        if (messageTemplate is not null)
+            messageTemplate = GlobalPrefix + messageTemplate;
+
+        var parsedTemplate = messageTemplate != null ? MessageTemplateParser.Parse(messageTemplate) : MessageTemplate.Empty;
+        return LogEvent.UnstableAssembleFromParts(DateTimeOffset.Now, level, exception, parsedTemplate, properties, traceId, spanId);
+    }
+
     public bool IsEnabled(Microsoft.Extensions.Logging.LogLevel logLevel)
-        => _microsoftLogger.IsEnabled(logLevel);
+        => MainLogger.IsEnabled(ToSerilogLevel(logLevel));
 
-    /// <inheritdoc/>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public IDisposable? BeginScope<TState>(TState state) where TState : notnull
-        => _microsoftLogger.BeginScope(state);
+        => null;
+
+    public static LogEventLevel ToSerilogLevel(Microsoft.Extensions.Logging.LogLevel logLevel)
+        => logLevel switch
+        {
+            Microsoft.Extensions.Logging.LogLevel.None        => LevelAlias.Off,
+            Microsoft.Extensions.Logging.LogLevel.Critical    => LogEventLevel.Fatal,
+            Microsoft.Extensions.Logging.LogLevel.Error       => LogEventLevel.Error,
+            Microsoft.Extensions.Logging.LogLevel.Warning     => LogEventLevel.Warning,
+            Microsoft.Extensions.Logging.LogLevel.Information => LogEventLevel.Information,
+            Microsoft.Extensions.Logging.LogLevel.Debug       => LogEventLevel.Debug,
+            _                                                 => LogEventLevel.Verbose,
+        };
+
+    private static object? AsLoggableValue<TState>(TState state, Func<TState, Exception?, string>? formatter)
+    {
+        object? stateObj = null;
+        if (formatter != null)
+            stateObj = formatter(state, null);
+        return stateObj ?? state;
+    }
+
+    private static string GetKeyWithoutFirstSymbol(ConcurrentDictionary<string, string> source, string key)
+    {
+        if (source.TryGetValue(key, out var value))
+            return value;
+
+        return source.Count < 1000 ? source.GetOrAdd(key, k => k[1..]) : key[1..];
+    }
 
 
     [InterpolatedStringHandler]
@@ -522,7 +651,7 @@ public class Logger<T> : ILogger<T>, Serilog.ILogger
 }
 
 /// <summary> An untyped version of <see cref="Logger{T}"/> for when no type is necessary. </summary>
-public sealed class Logger : Logger<object>
+public sealed class Logger(string? pluginName = null) : Logger<object>(pluginName)
 {
     // Keep loggers footprint a bit smaller by keeping those fields static. </summary>
     public new static string          GlobalPluginName   = null!;

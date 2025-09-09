@@ -35,8 +35,7 @@
 
         <PackageReference Include="JetBrains.Annotations" Version="2024.2.0" />
         <PackageReference Include="Microsoft.Extensions.Logging" Version="9.0" />
-        <PackageReference Include="Serilog.Extensions.Logging" Version="9.0" />
-        <PackageReference Include="System.IO.Hashing" Version="9.0" />
+        <PackageReference Include="System.IO.Hashing" Version="9.0.8" />
 
         <ProjectReference Include="..\Luna.Generators\Luna.Generators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
     </ItemGroup>
