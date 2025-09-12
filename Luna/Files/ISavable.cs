@@ -1,4 +1,4 @@
-namespace Luna.Files;
+namespace Luna;
 
 /// <summary> Any file type that we want to save via SaveService needs to implement this. </summary>
 public interface ISavable<in T> where T : BaseFilePathProvider

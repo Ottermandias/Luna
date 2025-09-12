@@ -1,4 +1,4 @@
-namespace Luna.Files;
+namespace Luna;
 
 /// <summary> A service to simplify file-saving and deleting across the application. </summary>
 /// <typeparam name="T"> The type of the provider of file paths for this service. </typeparam>

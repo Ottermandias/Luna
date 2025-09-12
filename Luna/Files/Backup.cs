@@ -6,16 +6,18 @@ public static partial class Backup
     public const int MaxNumBackups = 10;
 
     /// <summary> Create a backup named by ISO 8601 of the current time. </summary>
-    public static void CreatePermanentBackup<T>(Logger<T> logger, DirectoryInfo dir, IReadOnlyCollection<FileInfo> files, string name)
-        => CreateBackupInternal(logger, dir, files, name);
+    public static void CreatePermanentBackup<T>(Logger<T> logger, DirectoryInfo dir, IReadOnlyCollection<FileInfo> files, string name,
+        CancellationToken cancel = default)
+        => CreateBackupInternal(logger, dir, files, name, cancel);
 
     /// <summary> Create a backup named by ISO 8601 of the current time. </summary>
     /// <remarks>
     /// If the newest previously existing backup equals the current state of files, do not create a new backup. <br/>
     /// If the maximum number of backups is exceeded afterward, delete the oldest backup.
     /// </remarks>
-    public static void CreateAutomaticBackup<T>(Logger<T> logger, DirectoryInfo dir, IReadOnlyCollection<FileInfo> files)
-        => CreateBackupInternal(logger, dir, files, null);
+    public static void CreateAutomaticBackup<T>(Logger<T> logger, DirectoryInfo dir, IReadOnlyCollection<FileInfo> files,
+        CancellationToken cancel)
+        => CreateBackupInternal(logger, dir, files, null, cancel);
 
     /// <summary> Check all existing backups for a specific file and try to parse it. </summary>
     /// <typeparam name="T"> The type the file should be converted into. </typeparam>
@@ -66,17 +68,19 @@ public static partial class Backup
         return false;
     }
 
-    private static void CreateBackupInternal<T>(Logger<T> logger, DirectoryInfo dir, IReadOnlyCollection<FileInfo> files, string? name)
+    private static void CreateBackupInternal<T>(Logger<T> logger, DirectoryInfo dir, IReadOnlyCollection<FileInfo> files, string? name,
+        CancellationToken cancel)
     {
         try
         {
             var configDirectory = dir.Parent!.FullName;
             var directory       = CreateBackupDirectory(dir);
+            cancel.ThrowIfCancellationRequested();
             if (name == null)
             {
-                var (newestFile, oldestFile, numFiles) = CheckExistingBackups(directory);
+                var (newestFile, oldestFile, numFiles) = CheckExistingBackups(directory, cancel);
                 var newBackupName = Path.Combine(directory.FullName, $"{DateTime.Now:yyyyMMddHHmmss}.zip");
-                if (newestFile == null || CheckNewestBackup(logger, newestFile, configDirectory, files.Count))
+                if (newestFile == null || CheckNewestBackup(logger, newestFile, configDirectory, files.Count, cancel))
                 {
                     CreateBackupFile(files, newBackupName, configDirectory);
                     if (numFiles > MaxNumBackups)
@@ -114,7 +118,7 @@ public static partial class Backup
     /// Only keep MaxNumBackups at once, and delete the oldest if the number would be exceeded.
     /// Return the newest backup.
     /// </summary>
-    private static (FileInfo? Newest, FileInfo? Oldest, int Count) CheckExistingBackups(DirectoryInfo backupDirectory)
+    private static (FileInfo? Newest, FileInfo? Oldest, int Count) CheckExistingBackups(DirectoryInfo backupDirectory, CancellationToken cancel)
     {
         var       count  = 0;
         FileInfo? newest = null;
@@ -129,6 +133,7 @@ public static partial class Backup
 
             if ((newest?.CreationTimeUtc ?? DateTime.MinValue) < time)
                 newest = file;
+            cancel.ThrowIfCancellationRequested();
         }
 
         return (newest, oldest, count);
@@ -145,7 +150,8 @@ public static partial class Backup
     /// Compare the newest backup against the currently existing files.
     /// If there are any differences, return true, and if they are completely identical, return false.
     /// </summary>
-    private static bool CheckNewestBackup<T>(Logger<T> logger, FileInfo newestFile, string configDirectory, int fileCount)
+    private static bool CheckNewestBackup<T>(Logger<T> logger, FileInfo newestFile, string configDirectory, int fileCount,
+        CancellationToken cancel)
     {
         try
         {
@@ -169,7 +175,13 @@ public static partial class Backup
 
                 if (!Equals(currentData, oldData))
                     return true;
+
+                cancel.ThrowIfCancellationRequested();
             }
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
         }
         catch (Exception e)
         {

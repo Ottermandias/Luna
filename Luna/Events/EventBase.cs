@@ -8,7 +8,6 @@ namespace Luna;
 /// <param name="log"> The logger to use. </param>
 /// <param name="comparer"> An optional comparer to compare priorities. Set to <see cref="Comparer{TPriority}"/> if null. </param>
 public abstract class EventBase<TPriority>(string name, ILogger log, IComparer<TPriority>? comparer = null) : IDisposable, IService
-    where TPriority : IComparable<TPriority>
 {
     /// <summary> The name of the event. </summary>
     public readonly string Name = name;
@@ -143,7 +142,6 @@ public abstract class EventBase<TPriority>(string name, ILogger log, IComparer<T
 /// <param name="comparer"> An optional comparer to compare priorities. Set to <see cref="Comparer{TPriority}"/> if null. </param>
 public abstract class EventBase<TArguments, TPriority>(string name, ILogger log, IComparer<TPriority>? comparer = null) : IDisposable, IService
     where TArguments : allows ref struct
-    where TPriority : IComparable<TPriority>
 {
     /// <summary> The name of the event. </summary>
     public readonly string Name = name;
@@ -152,7 +150,7 @@ public abstract class EventBase<TArguments, TPriority>(string name, ILogger log,
     protected readonly ILogger Log = log;
 
     /// <summary> The list containing the delegates to invoke, ordered by their priority. </summary>
-    protected readonly SortedListAdapter<(Action<TArguments> Subscriber, TPriority Priority)> Event = new([],
+    protected readonly SortedListAdapter<(InAction<TArguments> Subscriber, TPriority Priority)> Event = new([],
         new PriorityComparer(comparer ?? Comparer<TPriority>.Default));
 
     /// <summary> The lock to assure thread-safety. </summary>
@@ -182,7 +180,7 @@ public abstract class EventBase<TArguments, TPriority>(string name, ILogger log,
     /// <summary> Add a new subscriber to the event. </summary>
     /// <param name="subscriber"> The subscriber to add. If a delegate comparing equal to this is already subscribed to the event, it will be moved according to the new priority, but not added in duplicate. </param>
     /// <param name="priority"> The priority used to order the subscribers of this event. </param>
-    public virtual void Subscribe(Action<TArguments> subscriber, TPriority priority)
+    public virtual void Subscribe(InAction<TArguments> subscriber, TPriority priority)
     {
         Lock.EnterWriteLock();
         try
@@ -207,7 +205,7 @@ public abstract class EventBase<TArguments, TPriority>(string name, ILogger log,
 
     /// <summary> Remove an existing subscriber from the event. </summary>
     /// <param name="subscriber"> The subscriber to remove. The first delegate found that compares equal to this is removed. If none is found, nothing is done. </param>
-    public virtual void Unsubscribe(Action<TArguments> subscriber)
+    public virtual void Unsubscribe(InAction<TArguments> subscriber)
     {
         Lock.EnterWriteLock();
         try
@@ -225,7 +223,7 @@ public abstract class EventBase<TArguments, TPriority>(string name, ILogger log,
     }
 
     /// <summary> Enumerate the subscribers within a lock. </summary>
-    protected virtual IEnumerable<Action<TArguments>> Enumerate()
+    protected virtual IEnumerable<InAction<TArguments>> Enumerate()
     {
         // The lock is upgradeable so that a subscriber can remove itself from the list or add another subscriber.
         Lock.EnterUpgradeableReadLock();
@@ -260,13 +258,17 @@ public abstract class EventBase<TArguments, TPriority>(string name, ILogger log,
     }
 
     /// <summary> Convert a priority-comparer to a pair-comparer. </summary>
-    private readonly struct PriorityComparer(IComparer<TPriority> comparer) : IComparer<(Action<TArguments>, TPriority)>
+    private readonly struct PriorityComparer(IComparer<TPriority> comparer) : IComparer<(InAction<TArguments>, TPriority)>
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public int Compare((Action<TArguments>, TPriority) x, (Action<TArguments>, TPriority) y)
+        public int Compare((InAction<TArguments>, TPriority) x, (InAction<TArguments>, TPriority) y)
             => comparer.Compare(x.Item2, y.Item2);
     }
 
     ~EventBase()
         => Dispose(false);
 }
+
+/// <summary> The arguments passed to an event. </summary>
+
+public delegate void InAction<TArguments>(in TArguments arguments) where TArguments : allows ref struct;

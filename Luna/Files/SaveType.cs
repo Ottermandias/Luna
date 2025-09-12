@@ -1,4 +1,4 @@
-namespace Luna.Files;
+namespace Luna;
 
 /// <summary> Different strategies for saving files. </summary>
 public enum SaveType
