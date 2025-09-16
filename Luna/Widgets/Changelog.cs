@@ -72,7 +72,7 @@ public sealed class Changelog : Window
     /// <param name="getConfig"> The function to get the configuration for changelogs from the application. </param>
     /// <param name="setConfig"> The function to set the configuration for changelogs for the application. </param>
     public Changelog(string label, Func<(int, ChangeLogDisplayType)> getConfig, Action<int, ChangeLogDisplayType> setConfig)
-        : base(label, (Dalamud.Bindings.ImGui.ImGuiWindowFlags)(WindowFlags.NoCollapse | WindowFlags.NoResize), true)
+        : base(label, WindowFlags.NoCollapse | WindowFlags.NoResize, true)
     {
         _headerName         = new StringU8(label.Split().FirstOrDefault(string.Empty));
         _getConfig          = getConfig;
@@ -256,7 +256,7 @@ public sealed class Changelog : Window
     /// <inheritdoc cref="RegisterEntry(StringU8,ushort)"/>
     [OverloadResolutionPriority(0)]
     public Changelog RegisterEntry(ReadOnlySpan<byte> text, ushort level = 0)
-        => RegisterImportant(new StringU8(text), level);
+        => RegisterEntry(new StringU8(text), level);
 
     /// <summary> Register a highlighted changelog note that is NOT marked as important for the current version. </summary>
     /// <param name="text"> The text of the note to register. </param>

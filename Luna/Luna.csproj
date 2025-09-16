@@ -37,6 +37,6 @@
         <PackageReference Include="Microsoft.Extensions.Logging" Version="9.0" />
         <PackageReference Include="System.IO.Hashing" Version="9.0.8" />
 
-        <ProjectReference Include="..\Luna.Generators\Luna.Generators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
+        <ProjectReference Include="..\Luna.Generators\Luna.Generators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
     </ItemGroup>
 </Project>
