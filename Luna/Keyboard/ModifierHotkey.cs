@@ -75,6 +75,9 @@ public readonly struct ModifierHotkey(VirtualKey modifier) : IEquatable<Modifier
     public override string ToString()
         => Modifier.GetFancyName();
 
+    /// <summary> Get the fancy name of the modifier as a UTF8 string. </summary>
+    public StringU8 ToName()
+        => KeySelector.FancyNames[Modifier];
 
     /// <summary> Check whether this modifier is currently held according to ImGui. </summary>
     public bool IsActive()

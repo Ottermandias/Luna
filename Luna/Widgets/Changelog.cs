@@ -1,7 +1,6 @@
 using Dalamud.Interface.Utility;
-using Dalamud.Interface.Windowing;
 
-namespace Luna.Widgets;
+namespace Luna;
 
 /// <summary> The choices of displaying the changelog. </summary>
 public enum ChangeLogDisplayType

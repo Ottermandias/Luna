@@ -1,6 +1,6 @@
 using Dalamud.Interface.ImGuiNotification;
 
-namespace Luna.Widgets;
+namespace Luna;
 
 /// <summary> Auxiliary functions to draw some of the support buttons. </summary>
 public static class SupportButton
