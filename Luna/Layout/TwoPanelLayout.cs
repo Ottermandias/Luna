@@ -7,22 +7,22 @@ public class TwoPanelLayout : IUiService
     public bool Resizable { get; init; } = true;
 
     /// <summary> An optional left header of <see cref="Im.ImGuiStyle.FrameHeight"/>, which is drawn to a specific width after the panel may have been resized. </summary>
-    public IHeader LeftHeader { get; init; } = EmptyHeader.Instance;
+    public IHeader LeftHeader { get; init; } = HeaderEmpty.Instance;
 
     /// <summary> An optional right header of <see cref="Im.ImGuiStyle.FrameHeight"/>, which is drawn to the remainder of the available content region. </summary>
-    public IHeader RightHeader { get; init; } = EmptyHeader.Instance;
+    public IHeader RightHeader { get; init; } = HeaderEmpty.Instance;
 
     /// <summary> An optional left footer of <see cref="Im.ImGuiStyle.FrameHeight"/>, which is drawn to a specific width after the panel may have been resized. </summary>
-    public IHeader LeftFooter { get; init; } = EmptyHeader.Instance;
+    public IFooter LeftFooter { get; init; } = HeaderEmpty.Instance;
 
     /// <summary> An optional right footer of <see cref="Im.ImGuiStyle.FrameHeight"/>, which is drawn to the remainder of the available content region. </summary>
-    public IHeader RightFooter { get; init; } = EmptyHeader.Instance;
+    public IFooter RightFooter { get; init; } = HeaderEmpty.Instance;
 
     /// <summary> The left panel drawn within a child managed by this layout using the panel's <see cref="IPanel.Id"/>. </summary>
-    public IPanel LeftPanel { get; init; } = new BasePanel("l"u8);
+    public IPanel LeftPanel { get; init; } = new PanelBase("l"u8);
 
     /// <summary> The right panel drawn within a child managed by this layout using the panel's <see cref="IPanel.Id"/>. </summary>
-    public IPanel RightPanel { get; init; } = new BasePanel("r"u8);
+    public IPanel RightPanel { get; init; } = new PanelBase("r"u8);
 
     /// <summary> The label that informs the ID of the entire panel layout. </summary>
     public virtual ReadOnlySpan<byte> Label

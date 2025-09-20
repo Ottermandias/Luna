@@ -1,5 +1,3 @@
-using Dalamud.Interface.Utility;
-
 namespace Luna;
 
 /// <summary> A wrapper to combine a textual user input and a compiled regex. </summary>

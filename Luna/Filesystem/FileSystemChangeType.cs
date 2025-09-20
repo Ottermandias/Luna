@@ -24,6 +24,9 @@ public enum FileSystemChangeType
     /// <summary> A folder was partially merged into another folder. </summary>
     PartialMerge,
 
+    /// <summary> The filesystem is being reloaded. </summary>
+    ReloadStarting,
+
     /// <summary> The filesystem was reloaded completely. </summary>
     Reload,
 

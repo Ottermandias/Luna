@@ -12,12 +12,12 @@ public static class EnumerableExtensions
     public static IEnumerable<int> WithoutValue<T>(this IEnumerable<(int Index, T Value)> list)
         => list.Select(x => x.Index);
 
-    /// <summary> Find the index of the first object fulfilling predicate's criteria in <paramref name="array"/>. </summary>
+    /// <summary> Find the index of the first object fulfilling <paramref name="predicate"/>'s criteria in <paramref name="array"/>. </summary>
     /// <returns> -1 if no object is found, otherwise the index. </returns>
-    public static int IndexOf<T>(this IEnumerable<T> array, Predicate<T> predicate)
+    public static int IndexOf<T>(this IEnumerable<T> array, Predicate<T> predicate, int from = 0)
     {
-        var i = 0;
-        foreach (var obj in array)
+        var i = from;
+        foreach (var obj in array.Skip(from))
         {
             if (predicate(obj))
                 return i;
@@ -30,10 +30,10 @@ public static class EnumerableExtensions
 
     /// <summary> Find the index of the first occurrence of <paramref name="needle"/> in <paramref name="array"/>. </summary>
     /// <returns> -1 if <paramref name="needle"/> is not contained, otherwise its index. </returns>
-    public static int IndexOf<T>(this IEnumerable<T> array, T needle) where T : notnull
+    public static int IndexOf<T>(this IEnumerable<T> array, T needle, int from = 0) where T : notnull
     {
-        var i = 0;
-        foreach (var obj in array)
+        var i = from;
+        foreach (var obj in array.Skip(from))
         {
             if (needle.Equals(obj))
                 return i;
