@@ -1,26 +1,5 @@
 namespace Luna;
 
-public class FileSystemSelectorPanel : IPanel, IDisposable
-{
-    public          StringU8                      Label { get; init; } = new("Selector"u8);
-    public readonly FileSystemSelectorContextMenu ContextMenu;
-    public ReadOnlySpan<byte> Id
-        => Label;
-
-    public FileSystemSelectorPanel(BaseFileSystem fileSystem)
-    {
-        ContextMenu = new(this, fileSystem);
-    }
-
-    public void Dispose()
-    { }
-
-    public void Draw()
-    {
-        ContextMenu.DrawMainContext();
-    }
-}
-
 /// <summary> The different context menu entries for a file system selector. Contains a main context menu, a folder context menu and a data context menu. </summary>
 /// <param name="fileSystem"> The file system used. </param>
 public sealed class FileSystemSelectorContextMenu(FileSystemSelectorPanel parent, BaseFileSystem fileSystem)

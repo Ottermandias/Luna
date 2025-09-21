@@ -6,6 +6,12 @@ public interface IFileSystemFolder : IFileSystemNode
     /// <summary> Get whether the folder is currently expanded/open. </summary>
     public bool IsExpanded { get; }
 
+    /// <summary> The total number of descendants of this folder. </summary>
+    public int TotalDescendants { get; }
+
+    /// <summary> The total number of nodes containing data that descend from this folder. </summary>
+    public int TotalDataNodes { get; }
+
     /// <summary> Get the direct children of this folder. </summary>
     public IReadOnlyList<IFileSystemNode> Children { get; }
 

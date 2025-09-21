@@ -5,10 +5,10 @@ namespace Luna;
 internal sealed class FileSystemFolder(FileSystemIdentifier identifier)
     : FileSystemNode(identifier), IFileSystemFolder
 {
-    /// <summary> The total number of descendants of this folder. </summary>
+    /// <inheritdoc/>
     public int TotalDescendants { get; internal set; }
 
-    /// <summary> The total number of nodes containing data that descend from this folder. </summary>
+    /// <inheritdoc/>
     public int TotalDataNodes { get; internal set; }
 
     /// <summary> All direct children of this folder. </summary>

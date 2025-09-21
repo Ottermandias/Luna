@@ -29,7 +29,7 @@ public class FileSystemSelection : IDisposable, IUiService
     protected IFileSystemValue[]? SelectedValues;
 
     /// <summary> Event invoked whenever the selection changes. </summary>
-    public readonly SelectionChangedEvent SelectionChanged;
+    public readonly SelectionChangedEvent Changed;
 
     /// <summary> Get the current selection in selection order. </summary>
     public IReadOnlyList<IFileSystemNode> Selection
@@ -40,8 +40,8 @@ public class FileSystemSelection : IDisposable, IUiService
     /// <param name="event"> The event to invoke when the selection changes. </param>
     public FileSystemSelection(BaseFileSystem fileSystem, SelectionChangedEvent @event)
     {
-        FileSystem       = fileSystem;
-        SelectionChanged = @event;
+        FileSystem = fileSystem;
+        Changed    = @event;
         FileSystem.Changed.Subscribe(OnFileSystemChanged, uint.MaxValue);
     }
 
@@ -93,7 +93,7 @@ public class FileSystemSelection : IDisposable, IUiService
                 case IFileSystemData d:   SelectedData.Add(d); break;
             }
 
-            SelectionChanged.Invoke(new SelectionChangedEvent.Arguments(node, null));
+            Changed.Invoke(new SelectionChangedEvent.Arguments(node, null));
             return true;
         }
 
@@ -107,7 +107,7 @@ public class FileSystemSelection : IDisposable, IUiService
         Selected.Add(data);
         OrderedSelection.Add(data);
         SelectedData.Add(data);
-        SelectionChanged.Invoke(new SelectionChangedEvent.Arguments(node, null));
+        Changed.Invoke(new SelectionChangedEvent.Arguments(node, null));
         return true;
     }
 
@@ -133,7 +133,7 @@ public class FileSystemSelection : IDisposable, IUiService
             case IFileSystemData d:   SelectedData.Remove(d); break;
         }
 
-        SelectionChanged.Invoke(new SelectionChangedEvent.Arguments(null, node));
+        Changed.Invoke(new SelectionChangedEvent.Arguments(null, node));
         return true;
     }
 
@@ -160,7 +160,7 @@ public class FileSystemSelection : IDisposable, IUiService
                 if (SelectedPaths is { Length: > 0 })
                     foreach (var path in SelectedPaths)
                     {
-                        if (FileSystem.FindNode(path) is IFileSystemFolder folder)
+                        if (FileSystem.Find(path, out var node) && node is IFileSystemFolder folder)
                             Select(folder);
                     }
 
