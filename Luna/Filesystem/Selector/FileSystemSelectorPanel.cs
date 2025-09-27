@@ -1,6 +1,8 @@
 namespace Luna;
 
-public class FileSystemSelectorPanel : IPanel, IDisposable
+public abstract class FileSystemSelectorPanel<TCache, TCacheNode> : IPanel, IDisposable
+    where TCache : FileSystemSelectorCache<TCacheNode>
+    where TCacheNode : FileSystemCacheNodeBase<TCacheNode>
 {
     public          StringU8                      Label { get; init; } = new("Selector"u8);
     public readonly FileSystemSelectorContextMenu ContextMenu;
@@ -19,6 +21,10 @@ public class FileSystemSelectorPanel : IPanel, IDisposable
     public void Draw()
     {
         ContextMenu.DrawMainContext();
-        CacheManager.Instance.GetOrCreateCache();
+        var cache = CacheManager.Instance.GetOrCreateCache(Im.Id.Current, CreateCache);
+        var color = 0xFFFFFFFF;
+        TreeLine.Draw(cache.FlatList, color);
     }
+
+    protected abstract TCache CreateCache();
 }

@@ -4,7 +4,7 @@ namespace Luna;
 public interface IFileSystemFolder : IFileSystemNode
 {
     /// <summary> Get whether the folder is currently expanded/open. </summary>
-    public bool IsExpanded { get; }
+    public bool Expanded { get; }
 
     /// <summary> The total number of descendants of this folder. </summary>
     public int TotalDescendants { get; }

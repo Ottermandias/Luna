@@ -14,6 +14,12 @@ public static class LunaStyle
     /// <summary> The icon that should be used for buttons to add folders to a filesystem. </summary>
     public static readonly AwesomeIcon AddFolderIcon = FontAwesomeIcon.FolderPlus;
 
+    /// <summary> The icon that should be used for incognito toggle checkboxes when the incognito state is currently on. </summary>
+    public static readonly AwesomeIcon IncognitoOn = FontAwesomeIcon.EyeSlash;
+
+    /// <summary> The icon that should be used for incognito toggle checkboxes when the incognito state is currently off. </summary>
+    public static readonly AwesomeIcon IncognitoOff = FontAwesomeIcon.Eye;
+
     /// <summary> The default color for error borders in inputs. </summary>
     public static readonly Rgba32 ErrorBorderColor = 0xFF4040F0;
 

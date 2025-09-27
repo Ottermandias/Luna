@@ -27,6 +27,8 @@
         <Compile Include="..\ImSharp\ImSharp\**\*.cs" Link="ImSharp/%(RecursiveDir)%(FileName)%(Extension)" />
         <Compile Remove="..\ImSharp\ImSharp\obj\**\*.cs" />
         <Compile Remove="..\ImSharp\ImSharp\temp\**\*.cs" />
+        <Compile Remove="Filesystem\Selector\**" />
+        <EmbeddedResource Remove="Filesystem\Selector\**" />
     </ItemGroup>
 
     <ItemGroup>

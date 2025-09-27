@@ -13,7 +13,7 @@ public enum FileSystemChangeType
     FolderAdded,
 
     /// <summary> A new non-folder object was added. </summary>
-    LeafAdded,
+    DataAdded,
 
     /// <summary> An arbitrary object was moved. </summary>
     ObjectMoved,
@@ -31,5 +31,8 @@ public enum FileSystemChangeType
     Reload,
 
     /// <summary> The <see cref="PathFlags.Locked"/> state of an object was changed. </summary>
-    AllowsDragDropChange,
+    LockedChange,
+
+    /// <summary> The <see cref="PathFlags.Expanded"/> state of an object was changed. </summary>
+    ExpandedChange,
 }

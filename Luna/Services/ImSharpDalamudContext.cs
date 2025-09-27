@@ -21,13 +21,15 @@ public sealed unsafe class ImSharpDalamudContext : IRequiredService, IDisposable
     /// <param name="uiBuilder"> The uiBuilder to set up the <see cref="ImSharpPerFrame.OnUpdate"/> and fetch the <see cref="IUiBuilder.FontMono"/> when it is ready. </param>
     /// <param name="framework"> The framework to ensure the <see cref="IUiBuilder.FontMono"/> is fetched from the main thread. </param>
     /// <param name="logger"> The logger to set up for ImSharp. </param>
-    public ImSharpDalamudContext(IDalamudPluginInterface pluginInterface, IUiBuilder uiBuilder, IFramework framework, ILogger logger)
+    /// <param name="services"> The service provider for the cache manager. </param>
+    public ImSharpDalamudContext(IDalamudPluginInterface pluginInterface, IUiBuilder uiBuilder, IFramework framework, ILogger logger, IServiceProvider services)
     {
         _contextTag      = $"ImSharp.Context.V{ImSharpContext.CurrentVersion}";
         _pluginInterface = pluginInterface;
         _uiBuilder       = uiBuilder;
 
         ImSharpConfiguration.SetLogger(logger);
+        CacheManager.Instance.ServiceProvider = services;
 
         _uiBuilder.Draw += ImSharpPerFrame.OnUpdate;
         var created = false;

@@ -12,7 +12,7 @@ public class BaseFileSystem(FileSystemChanged @event, DataNodePathChange dataCha
     /// <summary> The event invoked when a data node updates its full path with a new value. </summary>
     public readonly DataNodePathChange DataNodeChanged = dataChangeEvent;
 
-    /// <summary> The root folder in which this file system is contained. </summary>
+    /// <inheritdoc cref="Root"/>
     private readonly FileSystemFolder _root = FileSystemNode.CreateRoot();
 
     /// <summary> The continuous id counter that is incremented and applied whenever a new node is created. </summary>
@@ -25,6 +25,10 @@ public class BaseFileSystem(FileSystemChanged @event, DataNodePathChange dataCha
     public bool Equal(ReadOnlySpan<char> lhs, ReadOnlySpan<char> rhs)
         => _nameComparer.BaseComparer.Compare(lhs, rhs) is 0;
 
+    /// <summary> The root folder in which this file system is contained. </summary>
+    public IFileSystemFolder Root
+        => _root;
+
     /// <summary> Change the lock state of an item and invoke a change for it if it actually changes. </summary>
     /// <returns> True on change, false if nothing changed. </returns>
     public bool ChangeLockState(IFileSystemNode node, bool value)
@@ -33,7 +37,19 @@ public class BaseFileSystem(FileSystemChanged @event, DataNodePathChange dataCha
             return false;
 
         ((FileSystemNode)node).SetLocked(value);
-        Changed.Invoke(new FileSystemChanged.Arguments(FileSystemChangeType.AllowsDragDropChange, node, null, null));
+        Changed.Invoke(new FileSystemChanged.Arguments(FileSystemChangeType.LockedChange, node, null, null));
+        return true;
+    }
+
+    /// <summary> Change the lock state of an item and invoke a change for it if it actually changes. </summary>
+    /// <returns> True on change, false if nothing changed. </returns>
+    public bool ChangeExpandedState(IFileSystemFolder folder, bool value)
+    {
+        if (folder.Expanded == value)
+            return false;
+
+        ((FileSystemFolder)folder).SetExpanded(value);
+        Changed.Invoke(new FileSystemChanged.Arguments(FileSystemChangeType.ExpandedChange, folder, null, null));
         return true;
     }
 
@@ -86,7 +102,7 @@ public class BaseFileSystem(FileSystemChanged @event, DataNodePathChange dataCha
 
         ++_idCounter;
         data.Node = node;
-        Changed.Invoke(new FileSystemChanged.Arguments(FileSystemChangeType.LeafAdded, node, null, parent));
+        Changed.Invoke(new FileSystemChanged.Arguments(FileSystemChangeType.DataAdded, node, null, parent));
         return (node, idx);
     }
 
