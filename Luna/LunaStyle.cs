@@ -53,4 +53,14 @@ public static class LunaStyle
         ImEx.Icon.Draw(HelpMarker, color.CheckDefault(ImGuiColor.TextDisabled));
         return Im.Item.Hovered(HoveredFlags.AllowWhenDisabled);
     }
+
+    /// <summary> Draw a full GUID in mono font that can be copied on click. </summary>
+    /// <param name="id"> The GUID to draw. </param>
+    public static void DrawGuid(Guid id)
+    {
+        using (Im.Font.PushMono())
+        {
+            ImEx.CopyOnClickSelectable($"{id}");
+        }
+    }
 }
