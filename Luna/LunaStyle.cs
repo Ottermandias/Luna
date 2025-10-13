@@ -58,9 +58,26 @@ public static class LunaStyle
     /// <param name="id"> The GUID to draw. </param>
     public static void DrawGuid(Guid id)
     {
+        Span<byte> span = stackalloc byte[37];
+        span[^1] = 0;
+        if (!id.TryFormat(span, out var count) || count is not 36)
+            return;
+
         using (Im.Font.PushMono())
         {
-            ImEx.CopyOnClickSelectable($"{id}");
+            if (Im.Selectable(span))
+            {
+                try
+                {
+                    Im.Clipboard.Set(span);
+                }
+                catch
+                {
+                    // ignored
+                }
+            }
         }
+
+        Im.Tooltip.OnHover("Click to copy to clipboard."u8);
     }
 }
