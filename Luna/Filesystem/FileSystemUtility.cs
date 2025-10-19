@@ -11,6 +11,40 @@ public static class FileSystemUtility
     public static string FixName(this string name)
         => FixName(name.AsSpan()).ToString();
 
+    /// <summary> Given a full path string, return the base name and folder to save. </summary>
+    /// <param name="fullPath"> The full filesystem path of a node. </param>
+    /// <param name="dataName"> The name of the data object to validate the base name. </param>
+    /// <param name="folder"> The returned folder name or the empty string if the node does not lie in a folder. </param>
+    /// <returns>
+    ///   The base name, which is empty if the node's display name corresponds to <paramref name="dataName"/>
+    ///   after fixing the latter and removing duplicate markers from the former,
+    ///   and otherwise the display name stripped of its duplicate markers.
+    /// </returns>
+    public static ReadOnlySpan<char> GetBaseName(this ReadOnlySpan<char> fullPath, ReadOnlySpan<char> dataName, out ReadOnlySpan<char> folder)
+    {
+        
+        var nodeName = fullPath;
+        folder = ReadOnlySpan<char>.Empty;
+
+        var nameIdx = fullPath.LastIndexOf('/');
+        if (nameIdx >= 0)
+        {
+            folder = nodeName[..nameIdx];
+            ++nameIdx;
+            nodeName   = nameIdx == fullPath.Length ? ReadOnlySpan<char>.Empty : nodeName[nameIdx..];
+        }
+
+        var fixedData = dataName.FixName();
+        if (fixedData.SequenceEqual(nodeName))
+            return ReadOnlySpan<char>.Empty;
+
+        IsDuplicateName(nodeName, out nodeName, out _);
+        if (fixedData.SequenceEqual(nodeName))
+            return ReadOnlySpan<char>.Empty;
+
+        return nodeName;
+    }
+
     /// <inheritdoc cref="FixName(string)"/>
     public static ReadOnlySpan<char> FixName(this ReadOnlySpan<char> name)
     {

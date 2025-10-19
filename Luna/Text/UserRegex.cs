@@ -63,7 +63,7 @@ public struct UserRegex
         bool change;
         var  text       = regex.Text;
         var  drawBorder = !failureColor.IsTransparent && text.Length > 0 && regex.Regex == null;
-        using (new Im.ColorStyleDisposable().PushBorder(ImStyleBorder.Frame, failureColor, Im.Style.GlobalScale, drawBorder))
+        using (ImStyleBorder.Frame.Push(failureColor, Im.Style.GlobalScale, drawBorder))
         {
             if (width != 0)
                 Im.Item.SetNextWidth(width);

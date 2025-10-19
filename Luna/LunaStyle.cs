@@ -20,6 +20,9 @@ public static class LunaStyle
     /// <summary> The icon that should be used for incognito toggle checkboxes when the incognito state is currently off. </summary>
     public static readonly AwesomeIcon IncognitoOff = FontAwesomeIcon.Eye;
 
+    /// <summary> The icon that should be used to show a tagging system or preconfigured tags. </summary>
+    public static readonly AwesomeIcon TagsMarker = FontAwesomeIcon.Tags;
+
     /// <summary> The default color for error borders in inputs. </summary>
     public static readonly Rgba32 ErrorBorderColor = 0xFF4040F0;
 
