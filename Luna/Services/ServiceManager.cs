@@ -19,11 +19,10 @@ public class ServiceManager : IDisposable
     /// <summary> The base service provider after setup. </summary>
     public ServiceProvider? Provider { get; private set; }
 
-    /// <summary> Create a 
-    /// 
-    /// </summary>
-    /// <param name="logger"></param>
-    public ServiceManager(Logger logger)
+    /// <summary> Create a service manager. </summary>
+    /// <param name="logger"> The logger to use. </param>
+    /// <param name="name"> The name for the window system if requested. Requires IUiBuilder to be available. </param>
+    public ServiceManager(Logger logger, string? name = null)
     {
         _logger = logger;
 
@@ -32,6 +31,8 @@ public class ServiceManager : IDisposable
         _collection.AddSingleton<ILogger>(_logger);
         _collection.AddSingleton(_logger);
         _collection.AddSingleton(this);
+        if (name is not null)
+            _collection.AddSingleton(WindowSystem.Factory(name));
     }
 
     /// <summary> Get all services that implement a specific interface or class. </summary>

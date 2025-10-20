@@ -23,8 +23,14 @@ public static class LunaStyle
     /// <summary> The icon that should be used to show a tagging system or preconfigured tags. </summary>
     public static readonly AwesomeIcon TagsMarker = FontAwesomeIcon.Tags;
 
+    /// <summary> The icon that should be used to show favorites. </summary>
+    public static readonly AwesomeIcon FavoriteIcon = FontAwesomeIcon.Star;
+
     /// <summary> The default color for error borders in inputs. </summary>
     public static readonly Rgba32 ErrorBorderColor = 0xFF4040F0;
+
+    /// <summary> The color for activated favorites icons. </summary>
+    public static readonly Rgba32 FavoriteColor = new Vector4(1, 1, 0, 1);
 
     /// <summary> Get the icon and color associated with a specific notification type. </summary>
     /// <param name="notification"> The notification type. </param>

@@ -1,10 +1,9 @@
 using Dalamud.Bindings.ImGui;
-using Dalamud.Interface.Windowing;
 
 namespace Luna;
 
 /// <summary> Wrapper to avoid Dalamud.Bindings.Imgui as much as possible while still using <see cref="WindowSystem"/>. </summary>
-public abstract class Window : Dalamud.Interface.Windowing.Window
+public abstract class Window : Dalamud.Interface.Windowing.Window, IUiService
 {
     /// <inheritdoc/>
     protected Window(string name, WindowFlags flags = WindowFlags.None, bool forceMainWindow = false)
