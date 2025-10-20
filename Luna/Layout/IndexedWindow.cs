@@ -15,11 +15,7 @@ public abstract class IndexedWindow : Window
 
     /// <inheritdoc cref="Window"/>
     /// <remarks> Also adds itself to the parent window system, and is removed from it on closure. </remarks>
-    protected IndexedWindow(WindowSystem windowSystem,
-        string name,
-        int index,
-        WindowFlags flags = WindowFlags.None,
-        bool forceMainWindow = false)
+    protected IndexedWindow(string name, int index, WindowFlags flags = WindowFlags.None, bool forceMainWindow = false)
         : base($"{name}{index}", flags, forceMainWindow)
     {
         Name  = name;
