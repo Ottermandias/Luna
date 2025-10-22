@@ -88,14 +88,17 @@ public class MessageService(Logger log, IChatGui chat, INotificationManager noti
         {
             var notificationMessage = message.NotificationMessage;
             if (notificationMessage.Length > 0)
-                NotificationManager.AddNotification(new Dalamud.Interface.ImGuiNotification.Notification()
+            {
+                var notification = NotificationManager.AddNotification(new Dalamud.Interface.ImGuiNotification.Notification()
                 {
-                    Content         = message.NotificationMessage,
+                    Content         = notificationMessage,
                     Title           = message.NotificationTitle,
                     Type            = message.NotificationType,
                     Minimized       = false,
                     InitialDuration = message.NotificationDuration,
                 });
+                notification.DrawActions += message.OnNotificationActions;
+            }
         }
 
         // Write the message to chat if set up to do so and the message supports it.

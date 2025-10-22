@@ -147,7 +147,7 @@ public sealed class NamedEnumGenerator : IIncrementalGenerator
             sb.AppendLine("/// <summary> Efficiently get a human-readable display name for this value. </summary>");
             if (namedEnum.Utf16)
                 sb.Append("/// <remarks> For a UTF8 representation of the name, use <see cref=\"")
-                    .AppendObject($"{namedEnum.Class}.{namedEnum.MethodName}").AppendLine("U8\"/>. </remarks>");
+                    .Append($"{namedEnum.Class}.{namedEnum.MethodName}").AppendLine("U8\"/>. </remarks>");
             sb.GeneratedAttribute()
                 .Append("public static string ").Append(namedEnum.MethodName).Append("(this ").AppendObject(namedEnum.Name.FullyQualified)
                 .Indent()
@@ -171,7 +171,7 @@ public sealed class NamedEnumGenerator : IIncrementalGenerator
             sb.AppendLine("/// <summary> Efficiently get a human-readable display name for this value. </summary>");
             if (namedEnum.Utf8)
                 sb.Append("/// <remarks> For a UTF16 representation of the name, use <see cref=\"")
-                    .AppendObject($"{namedEnum.Class}.{namedEnum.MethodName}").AppendLine("\"/>. </remarks>");
+                    .Append($"{namedEnum.Class}.{namedEnum.MethodName}").AppendLine("\"/>. </remarks>");
             sb.GeneratedAttribute()
                 .Append("public static ReadOnlySpan<byte> ").Append(namedEnum.MethodName).Append("U8(this ")
                 .AppendObject(namedEnum.Name.FullyQualified)

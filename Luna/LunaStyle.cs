@@ -26,6 +26,12 @@ public static class LunaStyle
     /// <summary> The icon that should be used to show favorites. </summary>
     public static readonly AwesomeIcon FavoriteIcon = FontAwesomeIcon.Star;
 
+    /// <summary> The icon that should be used to show buttons opening folders. </summary>
+    public static readonly AwesomeIcon FolderIcon = FontAwesomeIcon.Folder;
+
+    /// <summary> The icon that should be used to show reloading or refreshing. </summary>
+    public static readonly AwesomeIcon RefreshIcon = FontAwesomeIcon.Recycle;
+
     /// <summary> The default color for error borders in inputs. </summary>
     public static readonly Rgba32 ErrorBorderColor = 0xFF4040F0;
 

@@ -1,5 +1,6 @@
 using Dalamud.Game.Text.SeStringHandling;
 using Dalamud.Interface.ImGuiNotification;
+using Dalamud.Interface.ImGuiNotification.EventArgs;
 
 namespace Luna;
 
@@ -41,4 +42,8 @@ public interface IMessage
 
     /// <summary> The tooltip shown in the notification log window when hovering over the message. </summary>
     public StringU8 StoredTooltip { get; }
+
+    /// <summary> Will be subscribed to <see cref="IActiveNotification.DrawActions"/> when a notification is created. </summary>
+    /// <param name="args"> The arguments passed by the event. </param>
+    public void OnNotificationActions(INotificationDrawArgs args);
 }

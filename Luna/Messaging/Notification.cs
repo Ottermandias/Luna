@@ -1,5 +1,6 @@
 using Dalamud.Game.Text.SeStringHandling;
 using Dalamud.Interface.ImGuiNotification;
+using Dalamud.Interface.ImGuiNotification.EventArgs;
 
 namespace Luna;
 
@@ -30,6 +31,10 @@ public class Notification : IMessage
 
     /// <inheritdoc/>
     public StringU8 StoredTooltip { get; }
+
+    /// <inheritdoc/>
+    public void OnNotificationActions(INotificationDrawArgs args)
+    {}
 
     /// <summary> Create a new notification with the given message. </summary>
     /// <param name="content"> The message to display in the notification and write to log.  </param>

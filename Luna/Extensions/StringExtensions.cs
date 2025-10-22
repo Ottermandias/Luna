@@ -1,3 +1,5 @@
+using System.Collections.Frozen;
+
 namespace Luna;
 
 public static class StringExtensions
@@ -22,10 +24,46 @@ public static class StringExtensions
             span = stackalloc char[1024];
             if (!data.TryFormat(span, out written, format, provider))
                 return false;
-
-            return ((ReadOnlySpan<char>)span[..written]).Contains(needle, comparison);
         }
 
-        return ((ReadOnlySpan<char>)span[..written]).Contains(needle, comparison);
+        return span[..written].Contains(needle, comparison);
     }
+
+    /// <summary> Remove all characters that are invalid in a windows path from the given string. </summary>
+    /// <param name="s"> The input string. </param>
+    /// <returns> The string with all invalid characters omitted. </returns>
+    public static string RemoveInvalidPathSymbols(this ReadOnlySpan<char> s)
+    {
+        var buffer = s.Length >= 1024 ? new char[s.Length] : stackalloc char[1024];
+        var index  = 0;
+        foreach (var character in s)
+        {
+            if (!InvalidPathCharacters.Contains(character))
+                buffer[index++] = character;
+        }
+
+        return new string(buffer[..index]);
+    }
+
+    /// <summary> Remove all characters that are invalid in a windows file name from the given string. </summary>
+    /// <param name="s"> The input string. </param>
+    /// <returns> The string with all invalid characters omitted. </returns>
+    public static string RemoveInvalidFileNameSymbols(this ReadOnlySpan<char> s)
+    {
+        var buffer = s.Length >= 1024 ? new char[s.Length] : stackalloc char[1024];
+        var index  = 0;
+        foreach (var character in s)
+        {
+            if (!InvalidFileNameCharacters.Contains(character))
+                buffer[index++] = character;
+        }
+
+        return new string(buffer[..index]);
+    }
+
+    /// <summary> A set of all UTF16 characters invalid in file names. </summary>
+    public static readonly FrozenSet<char> InvalidFileNameCharacters = Path.GetInvalidFileNameChars().ToFrozenSet();
+
+    /// <summary> A set of all UTF16 characters invalid in paths. </summary>
+    public static readonly FrozenSet<char> InvalidPathCharacters = Path.GetInvalidPathChars().ToFrozenSet();
 }
