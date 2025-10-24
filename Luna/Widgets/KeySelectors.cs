@@ -10,7 +10,7 @@ public static class KeySelector
 
     /// <summary> Get the fancy name of a key as a UTF8 string. </summary>
     public static FrozenDictionary<VirtualKey, StringU8> FancyNames
-        => _fancyNames ??= Enum.GetValues<VirtualKey>().ToFrozenDictionary(v => v, v => new StringU8(v.GetFancyName()));
+        => _fancyNames ??= Enum.GetValues<VirtualKey>().Distinct().ToFrozenDictionary(v => v, v => new StringU8(v.GetFancyName()));
 
     /// <summary> Regular combo to select a Dalamud virtual key from the given list of available keys. </summary>
     /// <param name="label"> The label for the combo as text. If this is a UTF8 string, it HAS to be null-terminated. </param>
