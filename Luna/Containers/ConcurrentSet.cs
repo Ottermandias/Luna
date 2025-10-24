@@ -1,7 +1,10 @@
 ﻿namespace Luna;
 
 /// <summary> An easy implementation of ConcurrentSet </summary>
-public sealed class ConcurrentSet<T> : ConcurrentDictionary<T, NullValue> where T : notnull
+/// <param name="comparer"> The comparer the set uses to compare its values. If this is null, the default comparer will be used. </param>
+public sealed class ConcurrentSet<T>(IEqualityComparer<T>? comparer = null)
+    : ConcurrentDictionary<T, NullValue>(comparer), IReadOnlyCollection<T>
+    where T : notnull
 {
     public new IEnumerator<T> GetEnumerator()
         => Keys.GetEnumerator();
