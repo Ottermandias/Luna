@@ -22,7 +22,8 @@ public sealed unsafe class ImSharpDalamudContext : IRequiredService, IDisposable
     /// <param name="framework"> The framework to ensure the <see cref="IUiBuilder.FontMono"/> is fetched from the main thread. </param>
     /// <param name="logger"> The logger to set up for ImSharp. </param>
     /// <param name="services"> The service provider for the cache manager. </param>
-    public ImSharpDalamudContext(IDalamudPluginInterface pluginInterface, IUiBuilder uiBuilder, IFramework framework, ILogger logger, IServiceProvider services)
+    public ImSharpDalamudContext(IDalamudPluginInterface pluginInterface, IUiBuilder uiBuilder, IFramework framework, ILogger logger,
+        IServiceProvider services)
     {
         _contextTag      = $"ImSharp.Context.V{ImSharpContext.CurrentVersion}";
         _pluginInterface = pluginInterface;
@@ -111,6 +112,10 @@ public sealed unsafe class ImSharpDalamudContext : IRequiredService, IDisposable
         table.DrawColumn("MonoFont"u8);
         table.NextColumn();
         dynamisIpc.DrawPointerChecked(ImSharpConfiguration.Context->MonoFont);
+
+        table.DrawColumn("DefaultFont"u8);
+        table.NextColumn();
+        dynamisIpc.DrawPointerChecked(ImSharpConfiguration.Context->DefaultFont);
     }
 
     /// <summary> A utility class that can be shared through Dalamud's data store. </summary>
@@ -125,7 +130,11 @@ public sealed unsafe class ImSharpDalamudContext : IRequiredService, IDisposable
 
         public ContextHolder(IUiBuilder uiBuilder, IFramework framework)
         {
-            uiBuilder.WaitForUi().ContinueWith(_ => framework.RunOnFrameworkThread(() => ((ImSharpContext*)_context)->MonoFont = uiBuilder.FontMono.Handle).Wait());
+            uiBuilder.WaitForUi().ContinueWith(_ => framework.RunOnFrameworkThread(() =>
+            {
+                ((ImSharpContext*)_context)->MonoFont    = uiBuilder.FontMono.Handle;
+                ((ImSharpContext*)_context)->DefaultFont = uiBuilder.FontDefault.Handle;
+            }).Wait());
         }
 
         public void Dispose()

@@ -1,5 +1,3 @@
-using System.Collections.Frozen;
-
 namespace Luna;
 
 public static class StringExtensions
@@ -29,41 +27,41 @@ public static class StringExtensions
         return span[..written].Contains(needle, comparison);
     }
 
-    /// <summary> Remove all characters that are invalid in a windows path from the given string. </summary>
-    /// <param name="s"> The input string. </param>
-    /// <returns> The string with all invalid characters omitted. </returns>
-    public static string RemoveInvalidPathSymbols(this ReadOnlySpan<char> s)
+    /// <summary> Normalize for nicer names, and remove invalid symbols or invalid paths, trim whitespace from the start and end. </summary>
+    /// <param name="s"> The string to normalize. </param>
+    /// <param name="onlyAscii"> Whether only ASCII symbols are allowed in the resulting string. </param>
+    /// <param name="replacement"> The replacement string for each replaced invalid symbol. </param>
+    /// <returns> A string KC-normalized, trimmed and with all invalid symbols replaced by <paramref cref="replacement"/>. This string can be empty. </returns>
+    public static string ReplaceBadXivSymbols(this string s, bool onlyAscii, string replacement = "_")
     {
-        var buffer = s.Length >= 1024 ? new char[s.Length] : stackalloc char[1024];
-        var index  = 0;
-        foreach (var character in s)
+        switch (s)
         {
-            if (!InvalidPathCharacters.Contains(character))
-                buffer[index++] = character;
+            case ".":  return replacement;
+            case "..": return replacement + replacement;
         }
 
-        return new string(buffer[..index]);
-    }
-
-    /// <summary> Remove all characters that are invalid in a windows file name from the given string. </summary>
-    /// <param name="s"> The input string. </param>
-    /// <returns> The string with all invalid characters omitted. </returns>
-    public static string RemoveInvalidFileNameSymbols(this ReadOnlySpan<char> s)
-    {
-        var buffer = s.Length >= 1024 ? new char[s.Length] : stackalloc char[1024];
-        var index  = 0;
-        foreach (var character in s)
+        var           normalized               = s.Normalize(NormalizationForm.FormKC);
+        StringBuilder sb                       = new(normalized.Length);
+        var           encounteredNonWhiteSpace = false;
+        foreach (var c in normalized)
         {
-            if (!InvalidFileNameCharacters.Contains(character))
-                buffer[index++] = character;
+            if (!encounteredNonWhiteSpace)
+            {
+                if (char.IsWhiteSpace(c))
+                    continue;
+
+                encounteredNonWhiteSpace = true;
+            }
+
+            if (c.IsInvalidInFileName() || onlyAscii && c.IsInvalidAscii())
+                sb.Append(replacement);
+            else
+                sb.Append(c);
         }
 
-        return new string(buffer[..index]);
+        while (sb.Length != 0 && char.IsWhiteSpace(sb[^1]))
+            --sb.Length;
+
+        return sb.ToString();
     }
-
-    /// <summary> A set of all UTF16 characters invalid in file names. </summary>
-    public static readonly FrozenSet<char> InvalidFileNameCharacters = Path.GetInvalidFileNameChars().ToFrozenSet();
-
-    /// <summary> A set of all UTF16 characters invalid in paths. </summary>
-    public static readonly FrozenSet<char> InvalidPathCharacters = Path.GetInvalidPathChars().ToFrozenSet();
 }

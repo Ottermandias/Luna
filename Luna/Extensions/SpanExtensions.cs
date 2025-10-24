@@ -1,3 +1,5 @@
+using System.Collections.Frozen;
+
 namespace Luna;
 
 public static class SpanExtensions
@@ -79,4 +81,36 @@ public static class SpanExtensions
     /// <inheritdoc cref="WriteHexByteDiff(ReadOnlySpan{byte},ReadOnlySpan{byte})"/>
     public static string WriteHexByteDiff(this Span<byte> bytes, ReadOnlySpan<byte> diff)
         => ((ReadOnlySpan<byte>)bytes).WriteHexByteDiff(diff);
+
+    /// <summary> Remove all characters that are invalid in a windows path from the given string. </summary>
+    /// <param name="s"> The input string. </param>
+    /// <returns> The string with all invalid characters omitted. </returns>
+    public static string RemoveInvalidPathSymbols(this ReadOnlySpan<char> s)
+    {
+        var buffer = s.Length >= 1024 ? new char[s.Length] : stackalloc char[1024];
+        var index  = 0;
+        foreach (var character in s)
+        {
+            if (!character.IsInvalidInPath())
+                buffer[index++] = character;
+        }
+
+        return new string(buffer[..index]);
+    }
+
+    /// <summary> Remove all characters that are invalid in a windows file name from the given string. </summary>
+    /// <param name="s"> The input string. </param>
+    /// <returns> The string with all invalid characters omitted. </returns>
+    public static string RemoveInvalidFileNameSymbols(this ReadOnlySpan<char> s)
+    {
+        var buffer = s.Length >= 1024 ? new char[s.Length] : stackalloc char[1024];
+        var index  = 0;
+        foreach (var character in s)
+        {
+            if (!character.IsInvalidInFileName())
+                buffer[index++] = character;
+        }
+
+        return new string(buffer[..index]);
+    }
 }
