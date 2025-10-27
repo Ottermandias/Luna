@@ -1,16 +1,14 @@
 namespace Luna;
 
 /// <summary> The base file system class. </summary>
-/// <param name="event"> The event to invoke when anything in the file system changes. </param>
-/// <param name="dataChangeEvent"> The event to invoke when a data node updates and changes its full path. </param>
 /// <param name="comparer"> The comparer to use to compare names with. </param>
-public class BaseFileSystem(FileSystemChanged @event, DataNodePathChange dataChangeEvent, IComparer<ReadOnlySpan<char>>? comparer = null)
+public class BaseFileSystem(string name, Logger log, IComparer<ReadOnlySpan<char>>? comparer = null)
 {
     /// <summary> The event invoked when anything in the file system changes. </summary>
-    public readonly FileSystemChanged Changed = @event;
+    public readonly FileSystemChanged Changed = new($"{name}Changed", log);
 
     /// <summary> The event invoked when a data node updates its full path with a new value. </summary>
-    public readonly DataNodePathChange DataNodeChanged = dataChangeEvent;
+    public readonly DataNodePathChange DataNodeChanged = new($"{name}DataNodeChanged", log);
 
     /// <inheritdoc cref="Root"/>
     private readonly FileSystemFolder _root = FileSystemNode.CreateRoot();
@@ -28,6 +26,15 @@ public class BaseFileSystem(FileSystemChanged @event, DataNodePathChange dataCha
     /// <summary> The root folder in which this file system is contained. </summary>
     public IFileSystemFolder Root
         => _root;
+
+    /// <summary> Clear all nodes from the file system and reset the identifier counter. </summary>
+    public void Clear()
+    {
+        _root.Children.Clear();
+        _root.TotalDataNodes   = 0;
+        _root.TotalDescendants = 0;
+        _idCounter             = FileSystemIdentifier.Zero;
+    }
 
     /// <summary> Change the lock state of an item and invoke a change for it if it actually changes. </summary>
     /// <returns> True on change, false if nothing changed. </returns>
@@ -112,7 +119,7 @@ public class BaseFileSystem(FileSystemChanged @event, DataNodePathChange dataCha
     /// <param name="name"> The base name to assign the data node. </param>
     /// <param name="data"> The data object associated with the node. </param>
     /// <returns> The newly created data node and its index in <paramref name="parent"/>. </returns>
-    public (IFileSystemData, int) CreateDuplicateLeaf<T>(IFileSystemFolder parent, ReadOnlySpan<char> name, T data)
+    public (IFileSystemData, int) CreateDuplicateDataNode<T>(IFileSystemFolder parent, ReadOnlySpan<char> name, T data)
         where T : class, IFileSystemValue<T>
     {
         name = name.FixName();
@@ -219,6 +226,47 @@ public class BaseFileSystem(FileSystemChanged @event, DataNodePathChange dataCha
 
                 Changed.Invoke(new FileSystemChanged.Arguments(FileSystemChangeType.ObjectMoved, node, oldParent, folder));
                 return;
+            case Result.ItemExists:
+                throw new Exception(
+                    $"Could not create {newPath} for {oldPath}: A pre-existing folder contained an object of the same name as a required folder.");
+        }
+    }
+
+    /// <summary> Move and rename a node to a new path, appending duplicate numbering to the new name if necessary. </summary>
+    /// <param name="node"> The node to move. </param>
+    /// <param name="newPath"> The new path to move the node to. </param>
+    /// <exception cref="Exception"> Throws if the new path is empty, not all folders in the path could be found/created or the node could not be named. </exception>
+    public void RenameAndMoveWithDuplicates(IFileSystemNode node, string newPath)
+    {
+        if (newPath.Length is 0)
+            throw new Exception($"Could not change path of {node.FullPath} to an empty path.");
+
+        var oldPath = node.FullPath;
+        if (newPath == oldPath)
+            return;
+
+        var (res, folder) = CreateAllFoldersAndFile(newPath, out var fileName);
+        var oldParent = node.Parent;
+        switch (res)
+        {
+            case Result.Success:
+                MoveChild((FileSystemNode)node, folder, out _, out _, fileName); // Can not fail since the parent folder is new.
+                Changed.Invoke(new FileSystemChanged.Arguments(FileSystemChangeType.ObjectMoved, node, oldParent, folder));
+                break;
+            case Result.SuccessNothingDone:
+                while (true)
+                {
+                    res = MoveChild((FileSystemNode)node, folder, out _, out _, fileName);
+                    // The other failure results can not happen in this case.
+                    if (res is Result.ItemExists)
+                    {
+                        fileName = fileName.IncrementDuplicate();
+                        continue;
+                    }
+
+                    Changed.Invoke(new FileSystemChanged.Arguments(FileSystemChangeType.ObjectMoved, node, oldParent, folder));
+                    return;
+                }
             case Result.ItemExists:
                 throw new Exception(
                     $"Could not create {newPath} for {oldPath}: A pre-existing folder contained an object of the same name as a required folder.");
@@ -744,7 +792,10 @@ public class BaseFileSystem(FileSystemChanged @event, DataNodePathChange dataCha
 
         switch (node)
         {
-            case IFileSystemData n: DataNodeChanged.Invoke(new DataNodePathChange.Arguments(n, oldPath)); break;
+            case IFileSystemData n:
+                if (n.Value.Path.UpdateByNode(this, n))
+                    DataNodeChanged.Invoke(new DataNodePathChange.Arguments(n, oldPath));
+                break;
             case FileSystemFolder f:
             {
                 foreach (var child in f.Children)
@@ -777,7 +828,10 @@ public class BaseFileSystem(FileSystemChanged @event, DataNodePathChange dataCha
 
         switch (node)
         {
-            case IFileSystemData n: DataNodeChanged.Invoke(new DataNodePathChange.Arguments(n, oldPath)); break;
+            case IFileSystemData n:
+                if (n.Value.Path.UpdateByNode(this, n))
+                    DataNodeChanged.Invoke(new DataNodePathChange.Arguments(n, oldPath));
+                break;
             case FileSystemFolder f:
             {
                 foreach (var child in f.Children)

@@ -319,7 +319,7 @@ public sealed class Changelog : Window
     {
         try
         {
-            if (!Im.Item.Clicked(MouseButton.Right))
+            if (!Im.Item.RightClicked())
                 return;
 
             var sb = new StringBuilder(1024 * 64);

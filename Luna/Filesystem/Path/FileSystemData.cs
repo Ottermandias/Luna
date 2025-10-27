@@ -13,7 +13,7 @@ internal sealed class FileSystemData<TValue>(FileSystemIdentifier identifier, TV
     /// <inheritdoc/>
     public override string FullPath
     {
-        get => Value.FullPath;
-        internal set => Value.FullPath = value;
+        get => Value.Path.CurrentPath;
+        internal set => Value.Path.CurrentPath = value;
     }
 }

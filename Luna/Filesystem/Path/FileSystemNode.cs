@@ -23,8 +23,8 @@ internal abstract class FileSystemNode(FileSystemIdentifier identifier) : IFileS
     /// <inheritdoc/>
     public bool Locked
     {
-        get => !Flags.HasFlag(PathFlags.Locked);
-        set => Flags = value ? Flags & ~PathFlags.Locked : Flags | PathFlags.Locked;
+        get => Flags.HasFlag(PathFlags.Locked);
+        set => Flags = value ? Flags | PathFlags.Locked : Flags & ~PathFlags.Locked;
     }
 
     /// <inheritdoc/>
