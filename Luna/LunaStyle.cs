@@ -32,6 +32,18 @@ public static class LunaStyle
     /// <summary> The icon that should be used to show reloading or refreshing. </summary>
     public static readonly AwesomeIcon RefreshIcon = FontAwesomeIcon.Recycle;
 
+    /// <summary> The icon that should be used for buttons that expand something that is currently collapsed downwards. </summary>
+    public static readonly AwesomeIcon ExpandDownIcon = FontAwesomeIcon.CaretDown;
+
+    /// <summary> The icon that should be used for buttons that collapse something that is currently expanded downwards. </summary>
+    public static readonly AwesomeIcon CollapseUpIcon = FontAwesomeIcon.CaretUp;
+
+    /// <summary> The icon that should be used for buttons that expand something that is currently collapsed rightwards. </summary>
+    public static readonly AwesomeIcon ExpandRightIcon = FontAwesomeIcon.CaretRight;
+
+    /// <summary> The icon that should be used for buttons that collapse something that is currently expanded rightwards. </summary>
+    public static readonly AwesomeIcon CollapseLeftIcon = FontAwesomeIcon.CaretLeft;
+
     /// <summary> The default color for error borders in inputs. </summary>
     public static readonly Rgba32 ErrorBorderColor = 0xFF4040F0;
 
