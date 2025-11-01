@@ -11,6 +11,9 @@ public static class LunaStyle
     /// <summary> The icon that should be used for help- or tooltip markers, generally with the disabled text color. </summary>
     public static readonly AwesomeIcon HelpMarker = FontAwesomeIcon.InfoCircle;
 
+    /// <summary> The icon that should be used for buttons to add new objects to a list. </summary>
+    public static readonly AwesomeIcon AddObjectIcon = FontAwesomeIcon.Plus;
+
     /// <summary> The icon that should be used for buttons to add folders to a filesystem. </summary>
     public static readonly AwesomeIcon AddFolderIcon = FontAwesomeIcon.FolderPlus;
 
