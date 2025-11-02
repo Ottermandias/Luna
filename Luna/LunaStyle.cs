@@ -5,6 +5,9 @@ namespace Luna;
 
 public static class LunaStyle
 {
+    /// <summary> The icon that should be used for generic save buttons. </summary>
+    public static readonly AwesomeIcon SaveIcon = FontAwesomeIcon.Save;
+
     /// <summary> The icon that should be used for deletion buttons. </summary>
     public static readonly AwesomeIcon DeleteIcon = FontAwesomeIcon.Trash;
 
