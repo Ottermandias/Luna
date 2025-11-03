@@ -119,9 +119,13 @@ public class ServiceManager : IDisposable
     /// <param name="assembly"> The assembly to fetch the services from. </param>
     public void AddIServices(Assembly assembly)
     {
-        var iType = typeof(IService);
+        var iType       = typeof(IService);
+        var excludeType = typeof(IConstructedService);
         foreach (var type in assembly.ExportedTypes.Where(t => t is { IsInterface: false, IsAbstract: false } && iType.IsAssignableFrom(t)))
         {
+            if (excludeType.IsAssignableFrom(type))
+                continue;
+
             if (_collection.All(t => t.ServiceType != type))
                 AddSingleton(type);
         }

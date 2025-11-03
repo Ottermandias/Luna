@@ -53,4 +53,7 @@ public interface IApiService : IService;
 /// <summary> A marker for UI specific services. </summary>
 public interface IUiService : IService;
 
+/// <summary> A marker for implementations of <see cref="IService"/> that should not be registered to a service provider. </summary>
+public interface IConstructedService : IService;
+
 

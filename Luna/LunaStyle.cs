@@ -50,6 +50,9 @@ public static class LunaStyle
     /// <summary> The icon that should be used for buttons that collapse something that is currently expanded rightwards. </summary>
     public static readonly AwesomeIcon CollapseLeftIcon = FontAwesomeIcon.CaretLeft;
 
+    /// <summary> The icon that should be used for buttons that export to files. </summary>
+    public static readonly AwesomeIcon FileExportIcon = FontAwesomeIcon.FileExport;
+
     /// <summary> The default color for error borders in inputs. </summary>
     public static readonly Rgba32 ErrorBorderColor = 0xFF4040F0;
 

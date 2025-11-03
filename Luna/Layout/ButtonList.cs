@@ -18,12 +18,14 @@ public readonly struct ButtonList() : IReadOnlyList<BaseButton>
     {
         var idx = _buttons.IndexOf(p => ReferenceEquals(p.Button, button));
         if (idx < 0)
+        {
             _buttons.Add((button, priority));
-        else if (_buttons[idx].Priority == priority)
-            return;
-
-        _buttons.RemoveAt(idx);
-        _buttons.Add((button, priority));
+        }
+        else if (_buttons[idx].Priority != priority)
+        {
+            _buttons.RemoveAt(idx);
+            _buttons.Add((button, priority));
+        }
     }
 
     /// <summary> Remove a button by reference equality. </summary>
@@ -51,7 +53,6 @@ public readonly struct ButtonList() : IReadOnlyList<BaseButton>
     public BaseButton this[int index]
         => _buttons[index].Button;
 }
-
 
 /// <summary>
 ///   A weighted list of unique buttons with priorities that are passed an argument.

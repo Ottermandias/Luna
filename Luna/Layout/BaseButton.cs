@@ -29,6 +29,13 @@ public abstract class BaseButton
         get => false;
     }
 
+    /// <summary> Whether the button is visible at all. </summary>
+    public virtual bool IsVisible
+    {
+        [MethodImpl(ImSharpConfiguration.Inl)]
+        get => true;
+    }
+
     /// <summary> The action invoked when the button is clicked. </summary>
     [MethodImpl(ImSharpConfiguration.Inl)]
     public virtual void OnClick()
@@ -49,6 +56,9 @@ public abstract class BaseButton
     /// <returns> True if the button was clicked in this frame and <see cref="OnClick"/> was invoked. </returns>
     public virtual bool DrawButton(Vector2 size)
     {
+        if (!IsVisible)
+            return false;
+
         PreDraw();
         var ret = ImEx.Button(Label, disabled: !Enabled, size: size);
         if (HasTooltip && Im.Item.Hovered(HoveredFlags.AllowWhenDisabled))
@@ -68,8 +78,38 @@ public abstract class BaseButton
     /// <returns> True if the menu item was clicked in this frame and <see cref="OnClick"/> was invoked. </returns>
     public virtual bool DrawMenuItem()
     {
+        if (!IsVisible)
+            return false;
+
         PreDraw();
         var ret = Im.Menu.Item(Label, enabled: Enabled);
+        if (HasTooltip && Im.Item.Hovered(HoveredFlags.AllowWhenDisabled))
+        {
+            using var tt = Im.Tooltip.Begin();
+            DrawTooltip();
+        }
+
+        PostDraw();
+        if (ret)
+            OnClick();
+
+        return ret;
+    }
+
+    /// <summary> The method to draw this button as a tab bar button. </summary>
+    /// <returns> True if the button was clicked in this frame and <see cref="OnClick"/> was invoked. </returns>
+    public virtual bool DrawTabBarButton(Im.TabBarDisposable tabBar, TabItemFlags flags = TabItemFlags.None)
+    {
+        if (!IsVisible)
+            return false;
+
+        PreDraw();
+        bool ret;
+        using (Im.Disabled(!Enabled))
+        {
+            ret = tabBar.Button(Label);
+        }
+
         if (HasTooltip && Im.Item.Hovered(HoveredFlags.AllowWhenDisabled))
         {
             using var tt = Im.Tooltip.Begin();
