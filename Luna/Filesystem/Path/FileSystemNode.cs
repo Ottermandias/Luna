@@ -22,10 +22,11 @@ internal abstract class FileSystemNode(FileSystemIdentifier identifier) : IFileS
 
     /// <inheritdoc/>
     public bool Locked
-    {
-        get => Flags.HasFlag(PathFlags.Locked);
-        set => Flags = value ? Flags | PathFlags.Locked : Flags & ~PathFlags.Locked;
-    }
+        => Flags.HasFlag(PathFlags.Locked);
+
+    /// <inheritdoc/>
+    public bool Selected
+        => Flags.HasFlag(PathFlags.Selected);
 
     /// <inheritdoc/>
     IFileSystemFolder? IFileSystemNode.Parent
@@ -55,6 +56,11 @@ internal abstract class FileSystemNode(FileSystemIdentifier identifier) : IFileS
     /// <param name="value"> Whether the node should be locked or not. </param>
     internal void SetLocked(bool value)
         => Flags = value ? Flags | PathFlags.Locked : Flags & ~PathFlags.Locked;
+
+    /// <summary> Set this node to be selected or not. </summary>
+    /// <param name="value"> Whether the node should be selected or not. </param>
+    internal void SetSelected(bool value)
+        => Flags = value ? Flags | PathFlags.Selected : Flags & ~PathFlags.Selected;
 
     /// <summary> Update the depth of this node according to its current parent. </summary>
     internal virtual void UpdateDepth()

@@ -1,7 +1,7 @@
 namespace Luna;
 
 /// <summary> An interface for different sort modes that can be used with a file system. </summary>
-public interface ISortMode
+public interface ISortMode : IEquatable<ISortMode>
 {
     /// <summary> The display name of the sort mode for combo selection. </summary>
     public ReadOnlySpan<byte> Name { get; }
@@ -37,6 +37,10 @@ public interface ISortMode
 
     /// <summary> See <see cref="InverseInternalOrderT.Description"/>. </summary>
     public static readonly ISortMode InverseInternalOrder = new InverseInternalOrderT();
+
+    /// <inheritdoc/>
+    bool IEquatable<ISortMode>.Equals(ISortMode? other)
+        => GetType() == other?.GetType();
 
     private struct FoldersFirstT : ISortMode
     {

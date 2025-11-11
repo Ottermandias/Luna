@@ -32,4 +32,7 @@ public interface IFileSystemNode
 
     /// <summary> Whether this node is locked. The meaning of this depends on the view implementation. </summary>
     public bool Locked { get; }
+
+    /// <summary> Whether this node is selected. The meaning of this depends on the view implementation. </summary>
+    public bool Selected { get; }
 }

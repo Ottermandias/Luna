@@ -12,4 +12,7 @@ public enum PathFlags : byte
 
     /// <summary> The node is currently expanded. </summary>
     Expanded = 0x02,
+
+    /// <summary> The node is currently selected. </summary>
+    Selected = 0x04,
 }

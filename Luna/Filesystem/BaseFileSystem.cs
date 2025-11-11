@@ -48,16 +48,64 @@ public class BaseFileSystem(string name, Logger log, IComparer<ReadOnlySpan<char
         return true;
     }
 
-    /// <summary> Change the lock state of an item and invoke a change for it if it actually changes. </summary>
+    public bool ChangeSelectedState(IFileSystemNode node, bool value)
+    {
+        if (node.Selected == value)
+            return false;
+
+        ((FileSystemNode)node).SetSelected(value);
+        Changed.Invoke(new FileSystemChanged.Arguments(FileSystemChangeType.LockedChange, node, null, null));
+        return true;
+    }
+
+    /// <summary> Change the expanded state of an item and invoke a change for it if it actually changes. </summary>
     /// <returns> True on change, false if nothing changed. </returns>
     public bool ChangeExpandedState(IFileSystemFolder folder, bool value)
     {
-        if (folder.Expanded == value)
+        if (folder.Expanded == value || folder.IsRoot)
             return false;
 
         ((FileSystemFolder)folder).SetExpanded(value);
         Changed.Invoke(new FileSystemChanged.Arguments(FileSystemChangeType.ExpandedChange, folder, null, null));
         return true;
+    }
+
+    /// <summary> Expand all ancestors of a particular node. </summary>
+    /// <param name="node"> The node to make visible. </param>
+    /// <returns> True if any ancestor was expanded that was collapsed before. </returns>
+    public bool ExpandAllAncestors(IFileSystemNode node)
+    {
+        if (node.IsRoot)
+            return false;
+
+        var parent     = node.Parent;
+        var anyChanges = false;
+        while (parent != Root)
+            anyChanges |= ChangeExpandedState(parent!, true);
+        return anyChanges;
+    }
+
+    /// <summary> Expand all descendants of a particular folder and itself. </summary>
+    /// <param name="node"> The folder. </param>
+    /// <returns> True if any folder was expanded that was collapsed before. </returns>
+    public bool ExpandAllDescendants(IFileSystemFolder node)
+    {
+        var result = ChangeExpandedState(node, true);
+        foreach (var folder in node.GetSubFolders())
+            result |= ExpandAllDescendants(folder);
+        return result;
+    }
+
+    /// <summary> Collapse all descendants of a particular folder and itself. </summary>
+    /// <param name="node"> The folder. </param>
+    /// <returns> True if any folder was collapsed that was expanded before. </returns>
+    /// <remarks> This will not collapse the root folder if this is passed as <paramref name="node"/>, but all other folders. </remarks>
+    public bool CollapseAllDescendants(IFileSystemFolder node)
+    {
+        var result = ChangeExpandedState(node, false);
+        foreach (var folder in node.GetSubFolders())
+            result |= CollapseAllDescendants(folder);
+        return result;
     }
 
     /// <summary> Find a specific child by its path from Root. </summary>

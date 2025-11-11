@@ -35,4 +35,7 @@ public enum FileSystemChangeType
 
     /// <summary> The <see cref="PathFlags.Expanded"/> state of an object was changed. </summary>
     ExpandedChange,
+
+    /// <summary> The <see cref="PathFlags.Selected"/> state of an object was changed. </summary>
+    SelectedChange,
 }
