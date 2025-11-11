@@ -12,7 +12,7 @@ public abstract class BaseButton
 
     /// <summary> Draw the interior part of a tooltip. This is invoked when the item is hovered, regardless of whether it is disabled, and is already inside a tooltip context. </summary>
     /// <remarks> If you use this, ensure that <see cref="HasTooltip"/> returns true. </remarks>
-    public virtual void DrawTooltip()
+    protected virtual void DrawTooltip()
     { }
 
     /// <summary> Whether the button is enabled. If false, the button is drawn in a disabled state and cannot be clicked. </summary>
@@ -43,12 +43,12 @@ public abstract class BaseButton
 
     /// <summary> Invoked before the button is drawn but on the same ID stack level as the button. </summary>
     [MethodImpl(ImSharpConfiguration.Inl)]
-    public virtual void PreDraw()
+    protected virtual void PreDraw()
     { }
 
     /// <summary> Invoked after the button and its tooltip (if any) have been drawn. </summary>
     [MethodImpl(ImSharpConfiguration.Inl)]
-    public virtual void PostDraw()
+    protected virtual void PostDraw()
     { }
 
     /// <summary> The method to draw the button to a specific size. </summary>
@@ -132,7 +132,7 @@ public abstract class BaseButton<T>
 
     /// <summary> Draw the interior part of a tooltip. This is invoked when the item is hovered, regardless of whether it is disabled, and is already inside a tooltip context. </summary>
     /// <remarks> If you use this, ensure that <see cref="HasTooltip"/> returns true. </remarks>
-    public virtual void DrawTooltip(in T data)
+    protected virtual void DrawTooltip(in T data)
     { }
 
     /// <summary> Whether the button is enabled. If false, the button is drawn in a disabled state and cannot be clicked. </summary>
@@ -154,12 +154,12 @@ public abstract class BaseButton<T>
 
     /// <summary> Invoked before the button is drawn but on the same ID stack level as the button. </summary>
     [MethodImpl(ImSharpConfiguration.Inl)]
-    public virtual void PreDraw(in T data)
+    protected virtual void PreDraw(in T data)
     { }
 
     /// <summary> Invoked after the button and its tooltip (if any) have been drawn. </summary>
     [MethodImpl(ImSharpConfiguration.Inl)]
-    public virtual void PostDraw(in T data)
+    protected virtual void PostDraw(in T data)
     { }
 
     /// <summary> The method to draw the button to a specific size. </summary>
@@ -184,21 +184,21 @@ public abstract class BaseButton<T>
     }
 
     /// <summary> The method to draw this button as a menu item. </summary>
-    /// <param name="data"> The arguments to be passed to the button. </param>
+    /// <param name="folder"> The arguments to be passed to the button. </param>
     /// <returns> True if the menu item was clicked in this frame and <see cref="OnClick"/> was invoked. </returns>
-    public virtual bool DrawMenuItem(in T data)
+    public virtual bool DrawMenuItem(in T folder)
     {
-        PreDraw(data);
-        var ret = Im.Menu.Item(Label(data), enabled: Enabled(data));
+        PreDraw(folder);
+        var ret = Im.Menu.Item(Label(folder), enabled: Enabled(folder));
         if (HasTooltip && Im.Item.Hovered(HoveredFlags.AllowWhenDisabled))
         {
             using var tt = Im.Tooltip.Begin();
-            DrawTooltip(data);
+            DrawTooltip(folder);
         }
 
-        PostDraw(data);
+        PostDraw(folder);
         if (ret)
-            OnClick(data);
+            OnClick(folder);
 
         return ret;
     }
