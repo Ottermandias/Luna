@@ -185,7 +185,7 @@ public abstract class EventBase<TArguments, TPriority>(string name, ILogger log,
         Lock.EnterWriteLock();
         try
         {
-            var idx  = Event.List.IndexOf(p => p.Subscriber.Equals(subscriber));
+            var idx  = Event.List.IndexOf(p => p.Subscriber == subscriber);
             var pair = (subscriber, priority);
             if (idx >= 0)
             {
@@ -210,7 +210,7 @@ public abstract class EventBase<TArguments, TPriority>(string name, ILogger log,
         Lock.EnterWriteLock();
         try
         {
-            var idx = Event.List.IndexOf(p => p.Subscriber.Equals(subscriber));
+            var idx = Event.List.IndexOf(p => p.Subscriber == subscriber);
             if (idx < 0)
                 return;
 
