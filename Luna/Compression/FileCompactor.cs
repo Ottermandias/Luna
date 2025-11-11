@@ -14,7 +14,7 @@ public sealed class FileCompactor(ILogger logger) : IDisposable, IService
         set
         {
             logger.LogInformation(
-                "File System Compression was {State}{CanCompact}.", value ? "enabled" : "disabled",
+                "File System Compression was {State:l}{CanCompact:l}.", value ? "enabled" : "disabled",
                 CanCompact ? string.Empty : " but was not available");
             field = CanCompact && value;
         }

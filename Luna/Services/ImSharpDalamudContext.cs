@@ -42,9 +42,9 @@ public sealed unsafe class ImSharpDalamudContext : IRequiredService, IDisposable
         var context = (ImSharpContext*)holder[0];
         // ReSharper disable once ConvertIfStatementToConditionalTernaryExpression
         if (created)
-            logger.LogDebug("Created new ImSharp Context at 0x{Context:X} with tag {Tag}.", (nint)context, _contextTag);
+            logger.LogDebug("Created new ImSharp Context at 0x{Context:X} with tag {Tag:l}.", (nint)context, _contextTag);
         else
-            logger.LogDebug("Shared existing ImSharp Context at 0x{Context:X} with tag {Tag}.", (nint)context, _contextTag);
+            logger.LogDebug("Shared existing ImSharp Context at 0x{Context:X} with tag {Tag:l}.", (nint)context, _contextTag);
         ImSharpConfiguration.SetContext(context);
     }
 
