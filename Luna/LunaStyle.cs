@@ -53,6 +53,12 @@ public static class LunaStyle
     /// <summary> The icon that should be used for buttons that export to files. </summary>
     public static readonly AwesomeIcon FileExportIcon = FontAwesomeIcon.FileExport;
 
+    /// <summary> The icon that should be used for things that are locked or write-protected. </summary>
+    public static readonly AwesomeIcon LockedIcon = FontAwesomeIcon.Lock;
+
+    /// <summary> The icon that should be used for things that are unlocked.</summary>
+    public static readonly AwesomeIcon UnlockedIcon = FontAwesomeIcon.LockOpen;
+
     /// <summary> The default color for error borders in inputs. </summary>
     public static readonly Rgba32 ErrorBorderColor = 0xFF4040F0;
 

@@ -564,7 +564,8 @@ public class BaseFileSystem(string name, Logger log, IComparer<ReadOnlySpan<char
             return Result.ItemExists;
 
         RemoveChild(oldParent, node, Search(oldParent, node.Name));
-        newIdx = ~newIdx;
+        newIdx      = ~newIdx;
+        node.Parent = newParent;
         UpdateFullPath(node, actualNewName, false);
         SetChild(newParent, node, newIdx);
         return Result.Success;

@@ -12,7 +12,7 @@ public abstract class BaseButton
 
     /// <summary> Draw the interior part of a tooltip. This is invoked when the item is hovered, regardless of whether it is disabled, and is already inside a tooltip context. </summary>
     /// <remarks> If you use this, ensure that <see cref="HasTooltip"/> returns true. </remarks>
-    protected virtual void DrawTooltip()
+    public virtual void DrawTooltip()
     { }
 
     /// <summary> Whether the button is enabled. If false, the button is drawn in a disabled state and cannot be clicked. </summary>
@@ -125,6 +125,7 @@ public abstract class BaseButton
 }
 
 /// <summary> A basic class for handling button behavior with arguments. </summary>
+/// <typeparam name="T"> The type of the data passed to the button methods. </typeparam>
 public abstract class BaseButton<T>
 {
     /// <summary> The label to display on the button or menu item, or the ID if no visible label is needed. </summary>
@@ -132,7 +133,7 @@ public abstract class BaseButton<T>
 
     /// <summary> Draw the interior part of a tooltip. This is invoked when the item is hovered, regardless of whether it is disabled, and is already inside a tooltip context. </summary>
     /// <remarks> If you use this, ensure that <see cref="HasTooltip"/> returns true. </remarks>
-    protected virtual void DrawTooltip(in T data)
+    public virtual void DrawTooltip(in T data)
     { }
 
     /// <summary> Whether the button is enabled. If false, the button is drawn in a disabled state and cannot be clicked. </summary>

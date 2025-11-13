@@ -13,7 +13,7 @@ public sealed class CreateFolderButton(BaseFileSystem fileSystem) : BaseIconButt
         => LunaStyle.AddFolderIcon;
 
     /// <inheritdoc/>
-    protected override void DrawTooltip()
+    public override void DrawTooltip()
         => Im.Text("Create a new, empty folder. Can contain '/' to create a directory structure."u8);
 
     /// <inheritdoc/>

@@ -9,7 +9,7 @@ public sealed class DissolveFolderButton(BaseFileSystem fileSystem) : BaseButton
         => "Dissolve Folder"u8;
 
     /// <inheritdoc/>
-    protected override void DrawTooltip(in IFileSystemFolder _)
+    public override void DrawTooltip(in IFileSystemFolder _)
         => Im.Text("Remove this folder and move all its children to its parent-folder, if possible."u8);
 
     /// <inheritdoc/>

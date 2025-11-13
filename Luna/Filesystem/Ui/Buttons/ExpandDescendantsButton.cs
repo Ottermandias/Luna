@@ -17,6 +17,6 @@ public sealed class ExpandDescendantsButton(BaseFileSystem fileSystem) : BaseBut
         => true;
 
     /// <inheritdoc/>
-    protected override void DrawTooltip(in IFileSystemFolder _)
+    public override void DrawTooltip(in IFileSystemFolder _)
         => Im.Text("Successively expand all folders that descend from this folder, including itself."u8);
 }

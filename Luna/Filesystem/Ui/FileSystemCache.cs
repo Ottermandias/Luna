@@ -1,5 +1,3 @@
-using Dalamud.Bindings.ImGui;
-
 namespace Luna;
 
 public abstract class FileSystemCache : BasicCache
@@ -16,6 +14,9 @@ public abstract class FileSystemCache : BasicCache
     internal           StringU8                                          DraggedNodeString = StringU8.Empty;
     internal           IFileSystemNode?                                  DraggedNode;
 
+    public IReadOnlyList<IFlattenedTreeNode> Visible
+        => VisibleNodes;
+
     public FileSystemCache(FileSystemDrawer drawer)
     {
         Parent = drawer;
@@ -27,7 +28,7 @@ public abstract class FileSystemCache : BasicCache
 
     public Vector4 LineColor { get; set; } = Vector4.One;
 
-    protected sealed class FileSystemTreeNode(FileSystemCache cache, IFileSystemNode parentNode, IFileSystemNodeCache nodeData)
+    internal sealed class FileSystemTreeNode(FileSystemCache cache, IFileSystemNode parentNode, IFileSystemNodeCache nodeData)
         : IFlattenedTreeNode
     {
         public int ParentIndex      { get; set; }
