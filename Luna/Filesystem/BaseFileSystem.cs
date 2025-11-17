@@ -1,23 +1,39 @@
 namespace Luna;
 
 /// <summary> The base file system class. </summary>
-/// <param name="comparer"> The comparer to use to compare names with. </param>
-public class BaseFileSystem(string name, Logger log, IComparer<ReadOnlySpan<char>>? comparer = null)
+public class BaseFileSystem
 {
     /// <summary> The event invoked when anything in the file system changes. </summary>
-    public readonly FileSystemChanged Changed = new($"{name}Changed", log);
+    public readonly FileSystemChanged Changed;
 
     /// <summary> The event invoked when a data node updates its full path with a new value. </summary>
-    public readonly DataNodePathChange DataNodeChanged = new($"{name}DataNodeChanged", log);
+    public readonly DataNodePathChange DataNodeChanged;
 
     /// <inheritdoc cref="Root"/>
     private readonly FileSystemFolder _root = FileSystemNode.CreateRoot();
+
+    /// <inheritdoc cref="FileSystemSelection"/>
+    /// <remarks> No disposal necessary since its lifetime is the same as that of the parent it is subscribed to. </remarks>
+    public readonly FileSystemSelection Selection;
 
     /// <summary> The continuous id counter that is incremented and applied whenever a new node is created. </summary>
     private FileSystemIdentifier _idCounter = FileSystemIdentifier.Zero;
 
     /// <summary> The name comparer that compares two nodes by their names only. </summary>
-    private readonly NameComparer _nameComparer = new(comparer ?? new OrdinalSpanComparer());
+    private readonly NameComparer _nameComparer;
+
+    /// <summary> The base file system class. </summary>
+    /// <param name="name"> The name of this file system used for the events and logging. </param>
+    /// <param name="log"> A logger. </param>
+    /// <param name="allowsMultiSelection"> Whether this file system allows multiple nodes to be selected at the same time. </param>
+    /// <param name="comparer"> The comparer to use to compare names with. </param>
+    public BaseFileSystem(string name, Logger log, bool allowsMultiSelection, IComparer<ReadOnlySpan<char>>? comparer = null)
+    {
+        Changed         = new FileSystemChanged($"{name}Changed", log);
+        DataNodeChanged = new DataNodePathChange($"{name}DataNodeChanged", log);
+        Selection       = new FileSystemSelection(this, allowsMultiSelection);
+        _nameComparer   = new NameComparer(comparer ?? new OrdinalSpanComparer());
+    }
 
     /// <summary> Check whether two strings are equal according to this file system's comparer. </summary>
     public bool Equal(ReadOnlySpan<char> lhs, ReadOnlySpan<char> rhs)
@@ -26,15 +42,6 @@ public class BaseFileSystem(string name, Logger log, IComparer<ReadOnlySpan<char
     /// <summary> The root folder in which this file system is contained. </summary>
     public IFileSystemFolder Root
         => _root;
-
-    /// <summary> Clear all nodes from the file system and reset the identifier counter. </summary>
-    public void Clear()
-    {
-        _root.Children.Clear();
-        _root.TotalDataNodes   = 0;
-        _root.TotalDescendants = 0;
-        _idCounter             = FileSystemIdentifier.Zero;
-    }
 
     /// <summary> Change the lock state of an item and invoke a change for it if it actually changes. </summary>
     /// <returns> True on change, false if nothing changed. </returns>
@@ -48,13 +55,16 @@ public class BaseFileSystem(string name, Logger log, IComparer<ReadOnlySpan<char
         return true;
     }
 
-    public bool ChangeSelectedState(IFileSystemNode node, bool value)
+    /// <summary> Change the selected state of an item and invoke a change for it if it actually changes. </summary>
+    /// <returns> True on change, false if nothing changed. </returns>
+    /// <remarks> Called by <see cref="Selection"/> only. </remarks>
+    internal bool ChangeSelectedState(IFileSystemNode node, bool value)
     {
         if (node.Selected == value)
             return false;
 
         ((FileSystemNode)node).SetSelected(value);
-        Changed.Invoke(new FileSystemChanged.Arguments(FileSystemChangeType.LockedChange, node, null, null));
+        Changed.Invoke(new FileSystemChanged.Arguments(FileSystemChangeType.SelectedChange, node, null, null));
         return true;
     }
 
@@ -427,6 +437,15 @@ public class BaseFileSystem(string name, Logger log, IComparer<ReadOnlySpan<char
                 throw new Exception(
                     $"Could not merge {from.FullPath} into {to.FullPath} because all children already existed in the target.");
         }
+    }
+
+    /// <summary> Clear all nodes from the file system and reset the identifier counter. </summary>
+    public virtual void Clear()
+    {
+        _root.Children.Clear();
+        _root.TotalDataNodes   = 0;
+        _root.TotalDescendants = 0;
+        _idCounter             = FileSystemIdentifier.Zero;
     }
 
     #region internal

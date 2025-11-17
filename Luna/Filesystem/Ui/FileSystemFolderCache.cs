@@ -14,18 +14,17 @@ public sealed class FileSystemFolderCache : IFileSystemNodeCache
         => Label = new StringU8(node.Name);
 
     /// <inheritdoc/>
-    public bool Draw(FileSystemCache cache, IFileSystemNode node)
+    public void Draw(FileSystemCache cache, IFileSystemNode node)
     {
         var folder = (IFileSystemFolder)node;
         Im.Tree.SetNextOpen(folder.Expanded);
-        Im.Tree.Node(Label, TreeNodeFlags.NoTreePushOnOpen).Dispose();
-        var ret = Im.Tree.ToggledOpen();
+        var flags = node.Selected ? TreeNodeFlags.NoTreePushOnOpen | TreeNodeFlags.Selected : TreeNodeFlags.NoTreePushOnOpen;
+        ImEx.IconTreeNode(Label, flags, node, out var ret, new LockedIcon(cache.FileSystem)).Dispose();
         if (ret)
             cache.FileSystem.ChangeExpandedState(folder, !folder.Expanded);
+        cache.HandleSelection(node, true);
         DrawContext(cache, folder);
         IFileSystemNodeCache.DragDrop(cache, node);
-
-        return ret;
     }
 
     /// <summary> Draw the context menu based on the cache's folder context. </summary>

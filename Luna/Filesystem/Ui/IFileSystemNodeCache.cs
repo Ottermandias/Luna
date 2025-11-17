@@ -3,9 +3,6 @@ namespace Luna;
 /// <summary> A basic cache node for the flattened file system drawer. </summary>
 public interface IFileSystemNodeCache
 {
-    /// <summary> Used to keep the dragged node alive for one frame longer so that moving things downwards works. </summary>
-    private static bool _keepDragAlive;
-
     /// <summary> Whether this node needs to be updated. </summary>
     /// <remarks> Should be set by the cache that is using it on events that change cached data. </remarks>
     public bool Dirty { get; set; }
@@ -19,9 +16,8 @@ public interface IFileSystemNodeCache
     /// <summary> Draw this node. </summary>
     /// <param name="cache"> The cache that is drawing this node. </param>
     /// <param name="node"> The original file system node that is drawn. </param>
-    /// <returns> True if the drawn node was clicked, false otherwise. </returns>
     /// <remarks> Called inside a <see cref="TreeLine"/>. The drawn object should be a single item for ImGui. </remarks>
-    public bool Draw(FileSystemCache cache, IFileSystemNode node);
+    public void Draw(FileSystemCache cache, IFileSystemNode node);
 
     /// <summary> Draw the drag and drop functionality for file system tree nodes. </summary>
     /// <param name="cache"> The cache that is drawing this node. </param>
@@ -54,7 +50,7 @@ public interface IFileSystemNodeCache
         foreach (var drag in cache.DraggedNodes)
             cache.FileSystem.Move(drag, newParent);
         cache.ClearDragDrop();
-        _keepDragAlive = false;
+        FileSystemCache.KeepDragAlive = false;
     }
 
     /// <summary> Draw the drag and drop source for a node. </summary>
@@ -73,8 +69,8 @@ public interface IFileSystemNodeCache
             if (cache.DraggedNode != node)
                 return;
 
-            if (_keepDragAlive)
-                _keepDragAlive = false;
+            if (FileSystemCache.KeepDragAlive)
+                FileSystemCache.KeepDragAlive = false;
             else
                 cache.ClearDragDrop();
             return;
@@ -87,7 +83,7 @@ public interface IFileSystemNodeCache
             cache.SetDragDrop(node);
         }
 
-        _keepDragAlive = true;
+        FileSystemCache.KeepDragAlive = true;
         Im.Text(cache.DraggedNodeString);
     }
 }

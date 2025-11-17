@@ -87,6 +87,11 @@ public abstract class FileSystemSaver<TSaveService, TProvider> : FileSystemSaver
     /// <returns> The full path to save the file containing all currently empty folders in this file system. </returns>
     protected abstract string EmptyFoldersFile(TProvider provider);
 
+    /// <summary> The file path to save the currently selected nodes. </summary>
+    /// <param name="provider"> The file path provider passed by the save service. </param>
+    /// <returns> The full path to save the file containing all currently selected nodes in this file system. </returns>
+    protected abstract string SelectionFile(TProvider provider);
+
     /// <summary> The file path for an old file system save file to migrate. </summary>
     /// <param name="provider"> The file path provider passed by the save service. </param>
     /// <returns> The full path to the old file system save file. If this is empty, no migration is attempted. </returns>
@@ -118,6 +123,7 @@ public abstract class FileSystemSaver<TSaveService, TProvider> : FileSystemSaver
         HandleEmptyFolders();
         HandleLockedNodes();
         HandleExpandedFolders();
+        HandleSelectedNodes();
     }
 
     /// <summary> Save the corresponding files when the file system changes. </summary>
@@ -130,6 +136,8 @@ public abstract class FileSystemSaver<TSaveService, TProvider> : FileSystemSaver
             case FileSystemChangeType.ObjectRemoved:
                 if (arguments.ChangedObject.Locked)
                     SaveService.DelaySave(new LockedFiles(this));
+                if (arguments.ChangedObject.Selected)
+                    SaveService.DelaySave(new SelectedFiles(this));
                 if (arguments.ChangedObject is IFileSystemFolder folder)
                 {
                     if (folder.Children.Count is 0)
@@ -147,18 +155,22 @@ public abstract class FileSystemSaver<TSaveService, TProvider> : FileSystemSaver
             case FileSystemChangeType.ObjectMoved:
                 if (arguments.ChangedObject.Locked)
                     SaveService.DelaySave(new LockedFiles(this));
+                if (arguments.ChangedObject.Selected)
+                    SaveService.DelaySave(new SelectedFiles(this));
                 SaveService.DelaySave(new EmptyFoldersFiles(this));
                 SaveService.DelaySave(new ExpandedFiles(this));
                 break;
             case FileSystemChangeType.FolderMerged:
             case FileSystemChangeType.PartialMerge:
             case FileSystemChangeType.Reload:
+                SaveService.DelaySave(new SelectedFiles(this));
                 SaveService.DelaySave(new LockedFiles(this));
                 SaveService.DelaySave(new EmptyFoldersFiles(this));
                 SaveService.DelaySave(new ExpandedFiles(this));
                 break;
             case FileSystemChangeType.LockedChange:   SaveService.DelaySave(new LockedFiles(this)); break;
             case FileSystemChangeType.ExpandedChange: SaveService.DelaySave(new ExpandedFiles(this)); break;
+            case FileSystemChangeType.SelectedChange: SaveService.DelaySave(new SelectedFiles(this)); break;
         }
     }
 
@@ -209,6 +221,32 @@ public abstract class FileSystemSaver<TSaveService, TProvider> : FileSystemSaver
         }
 
         Log.Debug($"Could not find node {path} saved as locked.");
+        return false;
+    }
+
+    /// <summary> Apply a selected node saved in the file system by its path. </summary>
+    /// <param name="path"> The path of the selected node. </param>
+    /// <param name="ignoreData"> Whether only folders should be applied. </param>
+    /// <returns> True when the selected node could be applied, false if the node did not exist. </returns>
+    /// <remarks> Logs failures. </remarks>
+    protected bool ApplySelectedNode(string path, bool ignoreData)
+    {
+        if (path.StartsWith(':'))
+        {
+            if (ignoreData)
+                return false;
+
+            var identifier = path.AsSpan(1);
+            if (GetValueFromIdentifier(identifier, out var value))
+                (value.Node as FileSystemNode)?.SetSelected(true);
+        }
+        else if (FileSystem.Find(path, out var node))
+        {
+            ((FileSystemNode)node).SetSelected(true);
+            return true;
+        }
+
+        Log.Debug($"Could not find node {path} saved as selected.");
         return false;
     }
 
@@ -340,6 +378,25 @@ public abstract class FileSystemSaver<TSaveService, TProvider> : FileSystemSaver
             SaveService.DelaySave(new LockedFiles(this));
     }
 
+    private void HandleSelectedNodes()
+    {
+        var selectedNodes = LoadFile(SelectionFile(SaveService.FileNames));
+        var changes       = false;
+        if (_storedSelectedPaths is not null)
+        {
+            changes              = _storedSelectedPaths.Aggregate(changes, (current, path) => current | ApplySelectedNode(path, false));
+            _storedSelectedPaths = null;
+        }
+
+        if (selectedNodes.Version is not CurrentVersion)
+            Log.Error($"Invalid version of selected nodes file {selectedNodes.Version}");
+        else
+            changes = selectedNodes.Nodes.Aggregate(changes, (current, path) => current | !ApplySelectedNode(path, false));
+
+        if (changes)
+            SaveService.DelaySave(new SelectedFiles(this));
+    }
+
     private void HandleExpandedFolders()
     {
         var expandedFolders = LoadFile(ExpandedFile(SaveService.FileNames));
@@ -374,6 +431,27 @@ public abstract class FileSystemSaver<TSaveService, TProvider> : FileSystemSaver
             jWriter.WritePropertyName("Nodes");
             jWriter.WriteStartArray();
             foreach (var node in saver.FileSystem.Root.GetDescendants().Where(n => n.Locked))
+                jWriter.WriteValue(node is IFileSystemData d ? $":{d.Value.Identifier}" : node.FullPath);
+            jWriter.WriteEndArray();
+            jWriter.WriteEndObject();
+        }
+    }
+
+    private readonly struct SelectedFiles(FileSystemSaver<TSaveService, TProvider> saver) : ISavable<TProvider>
+    {
+        public string ToFilePath(TProvider fileNames)
+            => saver.SelectionFile(fileNames);
+
+        public void Save(StreamWriter writer)
+        {
+            using var jWriter = new JsonTextWriter(writer);
+            jWriter.Formatting = Formatting.Indented;
+            jWriter.WriteStartObject();
+            jWriter.WritePropertyName("Version");
+            jWriter.WriteValue(CurrentVersion);
+            jWriter.WritePropertyName("Nodes");
+            jWriter.WriteStartArray();
+            foreach (var node in saver.FileSystem.Selection.OrderedNodes)
                 jWriter.WriteValue(node is IFileSystemData d ? $":{d.Value.Identifier}" : node.FullPath);
             jWriter.WriteEndArray();
             jWriter.WriteEndObject();
@@ -423,6 +501,7 @@ public abstract class FileSystemSaver<TSaveService, TProvider> : FileSystemSaver
     }
 
     private List<string>? _storedLockedPaths;
+    private List<string>? _storedSelectedPaths;
 
     private class MigrationData
     {
