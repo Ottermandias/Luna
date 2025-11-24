@@ -30,7 +30,12 @@ public sealed unsafe class ImSharpDalamudContext : IRequiredService, IDisposable
         _uiBuilder       = uiBuilder;
 
         ImSharpConfiguration.SetLogger(logger);
-        CacheManager.Instance.ServiceProvider = services;
+
+        // Set up the default cache manager.
+        CacheManager.Instance.ServiceProvider =  services;
+        _uiBuilder.DefaultFontChanged         += OnDefaultFontChanged;
+        _uiBuilder.DefaultGlobalScaleChanged  += OnDefaultGlobalScaleChanged;
+        _uiBuilder.DefaultStyleChanged        += OnDefaultStyleChanged;
 
         _uiBuilder.Draw += ImSharpPerFrame.OnUpdate;
         var created = false;
@@ -51,6 +56,9 @@ public sealed unsafe class ImSharpDalamudContext : IRequiredService, IDisposable
     /// <summary> Clear all ImSharp configuration data and relinquish the context from Dalamud's data store.  </summary>
     public void Dispose()
     {
+        _uiBuilder.DefaultFontChanged        -= OnDefaultFontChanged;
+        _uiBuilder.DefaultGlobalScaleChanged -= OnDefaultGlobalScaleChanged;
+        _uiBuilder.DefaultStyleChanged       -= OnDefaultStyleChanged;
         ImSharpConfiguration.SetContext(null);
         ImSharpConfiguration.SetLogger(null);
         _pluginInterface.RelinquishData(_contextTag);
@@ -165,5 +173,17 @@ public sealed unsafe class ImSharpDalamudContext : IRequiredService, IDisposable
 
         public IntPtr this[int index]
             => index is 0 && _context != nint.Zero ? _context : throw new IndexOutOfRangeException();
+    }
+
+    private static void OnDefaultStyleChanged()
+        => CacheManager.Instance.SetFontDirty();
+
+    private static void OnDefaultGlobalScaleChanged()
+        => CacheManager.Instance.SetFontDirty();
+
+    private static void OnDefaultFontChanged()
+    {
+        CacheManager.Instance.SetStyleDirty();
+        CacheManager.Instance.SetColorsDirty();
     }
 }
