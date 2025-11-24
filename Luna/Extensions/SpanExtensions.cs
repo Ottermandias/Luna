@@ -113,4 +113,42 @@ public static class SpanExtensions
 
         return new string(buffer[..index]);
     }
+
+    /// <summary> Trim all whitespace in the front or end of the given byte span and return the resulting span. </summary>
+    /// <param name="span"> The input string. </param>
+    /// <returns> The trimmed span. </returns>
+    public static ReadOnlySpan<byte> Trim(this ReadOnlySpan<byte> span)
+    {
+        var start = 0;
+        var end   = span.Length - 1;
+        while (start <= end && char.IsWhiteSpace((char)span[start]))
+            ++start;
+        while (end >= start && char.IsWhiteSpace((char)span[end]))
+            --end;
+        return span[start..(end + 1)];
+    }
+
+    /// <summary> Trim all whitespace in the front of the given byte span and return the resulting span. </summary>
+    /// <param name="span"> The input string. </param>
+    /// <returns> The trimmed span. </returns>
+    public static ReadOnlySpan<byte> TrimFront(this ReadOnlySpan<byte> span)
+    {
+        var start = 0;
+        var end   = span.Length;
+        while (start < end && char.IsWhiteSpace((char)span[start]))
+            ++start;
+        return span[start..];
+    }
+
+
+    /// <summary> Trim all whitespace in the end of the given byte span and return the resulting span. </summary>
+    /// <param name="span"> The input string. </param>
+    /// <returns> The trimmed span. </returns>
+    public static ReadOnlySpan<byte> TrimEnd(this ReadOnlySpan<byte> span)
+    {
+        var end   = span.Length - 1;
+        while (end >= 0 && char.IsWhiteSpace((char)span[end]))
+            --end;
+        return span[..(end + 1)];
+    }
 }

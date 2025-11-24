@@ -56,14 +56,17 @@ public static class LunaStyle
     /// <summary> The icon that should be used for things that are locked or write-protected. </summary>
     public static readonly AwesomeIcon LockedIcon = FontAwesomeIcon.Lock;
 
-    /// <summary> The icon that should be used for things that are unlocked.</summary>
+    /// <summary> The icon that should be used for things that are unlocked. </summary>
     public static readonly AwesomeIcon UnlockedIcon = FontAwesomeIcon.LockOpen;
 
+    /// <summary> The icon that should be used for buttons that move to the next object. </summary>
+    public static readonly AwesomeIcon NextIcon = FontAwesomeIcon.ArrowCircleRight;
+
     /// <summary> The default color for error borders in inputs. </summary>
-    public static readonly Rgba32 ErrorBorderColor = 0xFF4040F0;
+    public static readonly Vector4 ErrorBorderColor = new Rgba32(0xFF4040F0).ToVector();
 
     /// <summary> The color for activated favorites icons. </summary>
-    public static readonly Rgba32 FavoriteColor = new Vector4(1, 1, 0, 1);
+    public static readonly Vector4 FavoriteColor = new(1, 1, 0, 1);
 
     /// <summary> Get the icon and color associated with a specific notification type. </summary>
     /// <param name="notification"> The notification type. </param>

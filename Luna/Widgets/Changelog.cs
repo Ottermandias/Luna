@@ -1,5 +1,3 @@
-using Dalamud.Interface.Utility;
-
 namespace Luna;
 
 /// <summary> The choices of displaying the changelog. </summary>
@@ -131,7 +129,7 @@ public sealed class Changelog : Window
         Size = Im.Viewport.Main.Size / 2 / Im.Style.GlobalScale;
         if (Size.Value.X < 800)
             Size = Size.Value with { X = 800 };
-        var offset = (Im.Viewport.Main.Size - Size.Value * ImGuiHelpers.GlobalScale) / 2;
+        var offset = (Im.Viewport.Main.Size - Size.Value * Im.Style.GlobalScale) / 2;
         Im.Viewport.Main.SetNextWindowPositionRelative(offset, Condition.Appearing);
     }
 
@@ -139,7 +137,7 @@ public sealed class Changelog : Window
     public override void Draw()
     {
         DrawEntries();
-        var pos = Size!.Value.X * ImGuiHelpers.GlobalScale / 3;
+        var pos = Size!.Value.X * Im.Style.GlobalScale / 3;
         Im.Cursor.X = pos;
         DrawDisplayTypeCombo(pos);
         Im.Cursor.X = pos;

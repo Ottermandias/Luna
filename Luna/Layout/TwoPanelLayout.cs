@@ -54,6 +54,14 @@ public class TwoPanelLayout : IUiService
         }
     }
 
+    /// <summary> Get the minimum width for the left panel. </summary>
+    protected virtual float MinimumWidth
+        => 0;
+
+    /// <summary> Get the maximum width for the left panel. </summary>
+    protected virtual float MaximumWidth
+        => float.MaxValue;
+
     /// <summary> Draw the full layout. </summary>
     public void Draw()
     {
@@ -84,7 +92,7 @@ public class TwoPanelLayout : IUiService
             size.Y -= Im.Style.FrameHeight;
 
         using (var child = Resizable
-                   ? ImEx.ResizableChild(LeftPanel.Id, size, out size, SetSize, size with { X = 0 }, size with { X = float.MaxValue })
+                   ? ImEx.ResizableChild(LeftPanel.Id, size, out size, SetSize, size with { X = MinimumWidth }, size with { X = MaximumWidth })
                    : Im.Child.Begin(LeftPanel.Id, size, true))
         {
             // Draw the child without style variables pushed and restore them afterward.
@@ -130,7 +138,7 @@ public class TwoPanelLayout : IUiService
             Im.Cursor.Y = startCursor + Im.Style.FrameHeight;
         }
 
-        style.Pop().Push(ImStyleSingle.ChildRounding, 0);
+        style.Pop(2).Push(ImStyleSingle.ChildRounding, 0);
 
         // Reduce the height of the child if we have a footer.
         var childSize = Im.ContentRegion.Available;
@@ -142,10 +150,9 @@ public class TwoPanelLayout : IUiService
             if (child)
             {
                 // Draw the child without style variables pushed and restore them afterward.
-                style.Pop(3);
+                style.Pop(2);
                 RightPanel.Draw();
                 style.PushY(ImStyleDouble.ItemSpacing, 0)
-                    .Push(ImStyleDouble.WindowPadding, Vector2.Zero)
                     .Push(ImStyleSingle.ChildRounding, 0);
             }
         }
@@ -154,6 +161,7 @@ public class TwoPanelLayout : IUiService
         if (!RightFooter.Collapsed)
         {
             style.Pop()
+                .Push(ImStyleDouble.WindowPadding, Vector2.Zero)
                 .Push(ImStyleSingle.FrameRounding, 0);
             RightFooter.Draw(Im.ContentRegion.Available);
         }

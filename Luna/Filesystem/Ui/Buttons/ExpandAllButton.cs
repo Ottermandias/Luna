@@ -1,6 +1,6 @@
 namespace Luna;
 
-/// <summary> The button to create a new folder in a given file system. </summary>
+/// <summary> The menu item to expand all folders in the file system. </summary>
 /// <param name="fileSystem"> The file system. </param>
 public sealed class ExpandAllButton(BaseFileSystem fileSystem) : BaseButton
 {

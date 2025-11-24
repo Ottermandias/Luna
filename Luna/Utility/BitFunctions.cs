@@ -48,4 +48,10 @@ public static class BitFunctions
         var high    = (config & ~lowMask) << 1;
         return low | enabled | high;
     }
+
+    /// <summary> Split an uint into its four constituent bytes. </summary>
+    /// <param name="value"> The value. </param>
+    /// <returns> The bytes. </returns>
+    public static (byte Low, byte Mid1, byte Mid2, byte High) SplitBytes(uint value)
+        => ((byte)value, (byte)(value >> 8), (byte)(value >> 16), (byte)(value >> 24));
 }

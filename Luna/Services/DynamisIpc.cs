@@ -1,6 +1,5 @@
 using Dalamud.Plugin;
 using Dalamud.Plugin.Ipc;
-using InteropGenerator.Runtime;
 
 namespace Luna;
 

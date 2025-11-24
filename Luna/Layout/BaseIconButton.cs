@@ -5,6 +5,10 @@ namespace Luna;
 public abstract class BaseIconButton<TIcon> : BaseButton
     where TIcon : IIconStandIn
 {
+    /// <summary> The label used as ID for the button. Leave empty when no ID is required. </summary>
+    public override ReadOnlySpan<byte> Label
+        => StringU8.Empty;
+
     /// <summary> Get the icon to display on the button. </summary>
     public abstract TIcon Icon
     {
@@ -40,6 +44,10 @@ public abstract class BaseIconButton<TIcon> : BaseButton
 public abstract class BaseIconButton<TIcon, TData> : BaseButton<TData>
     where TIcon : IIconStandIn
 {
+    /// <summary> The label used as ID for the button. Leave empty when no ID is required. </summary>
+    public override ReadOnlySpan<byte> Label(in TData _)
+        => StringU8.Empty;
+
     /// <summary> Get the icon to display on the button. </summary>
     public abstract TIcon Icon
     {

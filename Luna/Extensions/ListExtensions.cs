@@ -82,4 +82,20 @@ public static class ListExtensions
         list[idx2] = tmp;
         return true;
     }
+
+    /// <summary> Ensure that a list has at least a certain number of elements, adding default elements if necessary. </summary>
+    /// <typeparam name="T"> The type of the items in the list. </typeparam>
+    /// <param name="list"> The list to manipulate. </param>
+    /// <param name="count"> The minimum number of items that should be available in the list. </param>
+    /// <returns> The number of added default items. </returns>
+    public static int EnsureCount<T>(this IList<T> list, int count)
+    {
+        if (list.Count >= count)
+            return 0;
+
+        var toAdd = count - list.Count;
+        for (var i = 0; i < toAdd; i++)
+            list.Add(default!);
+        return toAdd;
+    }
 }
