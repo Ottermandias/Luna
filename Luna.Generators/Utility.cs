@@ -1,5 +1,6 @@
 using System.Text;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.Text;
 
 namespace Luna.Generators;
@@ -125,4 +126,8 @@ internal static class Utility
             Accessibility.Public               => "public ",
             _                                  => string.Empty,
         };
+
+    /// <summary> Construct a C# string literal of the given value. </summary>
+    public static string ToLiteral(this string input)
+        => SyntaxFactory.LiteralExpression(SyntaxKind.StringLiteralExpression, SyntaxFactory.Literal(input)).ToFullString();
 }
