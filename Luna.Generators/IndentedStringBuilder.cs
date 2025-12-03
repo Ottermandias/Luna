@@ -1,4 +1,5 @@
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Text;
 
 namespace Luna.Generators;
@@ -127,6 +128,10 @@ public class IndentedStringBuilder
         var assemblyName = Assembly.GetAssembly(typeof(IndentedStringBuilder)).GetName();
         return AppendLine($"[GeneratedCode(\"{assemblyName.Name}\", \"{assemblyName.Version}\")]");
     }
+
+    /// <summary> Add an attribute that the given internal attribute shall not be exposed by <see cref="InternalsVisibleToAttribute"/>. </summary>
+    public IndentedStringBuilder EmbeddedAttribute()
+        => this; // TODO net10 AppendLine("[global::Microsoft.CodeAnalysis.Embedded]");
 
     /// <summary> Append a full comparison or equality operator method. </summary>
     /// <param name="operator"> The operator to use, e.g. '=='. </param>
