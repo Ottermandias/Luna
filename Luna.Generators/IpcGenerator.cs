@@ -348,9 +348,9 @@ public sealed class IpcGenerator : IIncrementalGenerator
         var builder = IndentedStringBuilder.CreatePreamble()
             .OpenNamespace(info.DeclaringTypeNamespace);
 
-        builder.GeneratedAttribute();
         builder.AppendLine($"partial {info.DeclaringTypeKind.ToKeyword()} {info.DeclaringType.Name}");
         builder.OpenBlock();
+        builder.GeneratedAttribute();
         builder.AppendLine(
             $"{info.Accessibility.ToModifier()}{(info.IsNew ? "new " : string.Empty)}static partial {info.ReturnType} {info.MethodName}(global::{IDalamudPluginInterfaceName} {info.PluginInterfaceName})");
         builder.AppendLine($"    => new {info.DeclaringType.Name}_{info.MethodName}_SubscriberImplementation({info.PluginInterfaceName});");
@@ -489,9 +489,9 @@ public sealed class IpcGenerator : IIncrementalGenerator
         var builder = IndentedStringBuilder.CreatePreamble()
             .OpenNamespace(info.DeclaringTypeNamespace);
 
-        builder.GeneratedAttribute();
         builder.AppendLine($"partial {info.DeclaringTypeKind.ToKeyword()} {info.DeclaringType.Name}");
         builder.OpenBlock();
+        builder.GeneratedAttribute();
         builder.AppendLine(
             $"{info.Accessibility.ToModifier()}{(info.IsNew ? "new " : string.Empty)}static partial {info.ReturnType} {info.MethodName}(global::{IDalamudPluginInterfaceName} {info.PluginInterfaceName}, {info.ImplementationParameter.Type} {info.ImplementationParameter.Name})");
         builder.AppendLine(
@@ -542,10 +542,10 @@ public sealed class IpcGenerator : IIncrementalGenerator
 
         for (var i = info.Properties.Count; i-- > 0;)
         {
-            if (info.Properties[i].SetIpcName is not null)
+            if (info.Properties[i].SetIpcName.Length > 0)
                 builder.AppendLine($"{setterDecls[i].Name}?.UnregisterAction();");
 
-            if (info.Properties[i].GetIpcName is not null)
+            if (info.Properties[i].GetIpcName.Length > 0)
                 builder.AppendLine($"{getterDecls[i].Name}?.UnregisterFunc();");
         }
 
@@ -593,7 +593,7 @@ public sealed class IpcGenerator : IIncrementalGenerator
     {
         foreach (var property in info.Properties)
         {
-            if (property.GetIpcName is not null)
+            if (property.GetIpcName.Length > 0)
             {
                 var name = AllocateName($"_g{(property.IsIndexer ? "this" : property.Name)}", allNames);
                 AppendDeclaration(builder, provider, getterDecls, info, property.Indices, property.ValueParameter.IpcType, name);
@@ -603,7 +603,7 @@ public sealed class IpcGenerator : IIncrementalGenerator
                 getterDecls.Add((string.Empty, string.Empty));
             }
 
-            if (property.SetIpcName is not null)
+            if (property.SetIpcName.Length > 0)
             {
                 var name = AllocateName($"_s{(property.IsIndexer ? "this" : property.Name)}", allNames);
                 AppendDeclaration(builder, provider, setterDecls, info, property.Indices, $"{property.ValueParameter.IpcType}, object?", name);
@@ -655,7 +655,7 @@ public sealed class IpcGenerator : IIncrementalGenerator
         {
             ++i;
             var indexNames = string.Join(", ", property.Indices.Select(static param => param.Name));
-            if (property.GetIpcName is not null)
+            if (property.GetIpcName.Length > 0)
             {
                 AppendInitialization(builder, provider, getterDecls[i], property.GetIpcName, false, !provider
                     ? string.Empty
@@ -664,7 +664,7 @@ public sealed class IpcGenerator : IIncrementalGenerator
                         : $"{getterDecls[i].Name}.RegisterFunc(() => {property.ValueParameter.GetMarshalExpression($"_impl.{property.Name}")});");
             }
 
-            if (property.SetIpcName is not null)
+            if (property.SetIpcName.Length > 0)
             {
                 AppendInitialization(builder, provider, setterDecls[i], property.SetIpcName, false,
                     !provider
