@@ -165,9 +165,7 @@ public sealed class IpcGenerator : IIncrementalGenerator
         if (!methodSymbol.Parameters[0].Type.Equals(dalamudPluginInterface, SymbolEqualityComparer.Default))
             return null;
 
-        var attributeSymbol = context.SemanticModel.Compilation.GetTypeByMetadataName($"Luna.Generators.{GeneratedIpcSubscriberAttribute}")!;
-        var attribute       = Utility.FindAttribute(methodSymbol, attributeSymbol);
-        var lazy            = (bool)(Utility.GetAttributeNamedArgument(attribute, "LazySubscribers") ?? false);
+        var lazy = (bool)(Utility.GetAttributeNamedArgument(context.Attributes[0], "LazySubscribers") ?? false);
 
         return ParseProviderOrSubscriber(methodSymbol, context.SemanticModel.Compilation, false, lazy, token);
     }
@@ -364,6 +362,7 @@ public sealed class IpcGenerator : IIncrementalGenerator
         PrepareDeclarationLists(info, out var getterDecls, out var setterDecls, out var eventDecls, out var methodDecls);
 
         builder.AppendLine();
+        builder.AppendLine($"// {info.Lazy}");
         builder.GeneratedAttribute();
         builder.AppendLine($"file sealed class {info.DeclaringType.Name}_{info.MethodName}_SubscriberImplementation : {info.ReturnType}");
         builder.OpenBlock();
@@ -392,17 +391,18 @@ public sealed class IpcGenerator : IIncrementalGenerator
                 );
             }
 
-            builder.AppendLine();
-            if (property.GetIpcName.Length > 0
+            if (!info.Lazy
+             && property.GetIpcName.Length > 0
              && property.SetIpcName.Length == 0
              && (info.DeclaringTypeKind is not TypeKind.Class
                  || property.GetAccessibility == property.Accessibility))
             {
-                AppendCall(builder, getterDecls[i], property.GetIpcName, info.Lazy, false, property.ValueParameter, property.Indices,
+                AppendCall(builder, getterDecls[i], property.GetIpcName, false, false, property.ValueParameter, property.Indices,
                     string.Empty);
             }
             else
             {
+                builder.AppendLine();
                 builder.OpenBlock();
                 if (property.GetIpcName.Length > 0)
                 {
@@ -444,7 +444,7 @@ public sealed class IpcGenerator : IIncrementalGenerator
         {
             ++i;
             builder.AppendLine();
-            builder.AppendLine(
+            builder.Append(
                 $"{(info.DeclaringTypeKind is TypeKind.Class ? method.Accessibility.ToModifier() + "override" : "public")} {method.ReturnParameter.Type} {method.Name}({string.Join(", ", method.Parameters.Select(static param => $"{param.Type} {param.Name}"))})");
             AppendCall(builder, methodDecls[i], method.IpcName, info.Lazy, false, method.ReturnParameter, method.Parameters, string.Empty);
         }
@@ -474,12 +474,17 @@ public sealed class IpcGenerator : IIncrementalGenerator
                 builder.AppendLine();
                 builder.OpenBlock();
                 AppendInitialization(builder, false, declaration, ipcName, lazy, string.Empty);
-                builder.AppendLine(@return ? $"{call};" : $"return {call};");
+                builder.AppendLine(@return ? $"return {call};" : $"{call};");
                 builder.CloseBlock().AppendLine();
             }
             else
             {
-                builder.AppendLine($"{(sameLine ? string.Empty : "   ")} => {call};");
+                if (!sameLine)
+                {
+                    builder.AppendLine();
+                    builder.Append("   ");
+                }
+                builder.AppendLine($" => {call};");
             }
         }
     }
