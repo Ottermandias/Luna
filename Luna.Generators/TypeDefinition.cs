@@ -17,7 +17,7 @@ internal readonly record struct TypeDefinition
     {
         FullyQualified = fullName;
         var dot = fullName.LastIndexOf('.');
-        Name           = dot < 0 ? fullName : fullName.Substring(dot + 1);
+        Name = dot < 0 ? fullName : fullName.Substring(dot + 1);
     }
 
     /// <summary> Create a wrapper from a Roslyn named type symbol. </summary>
@@ -25,7 +25,7 @@ internal readonly record struct TypeDefinition
     {
         FullyQualified = type.ToString();
         var dot = FullyQualified.LastIndexOf('.');
-        Name           = dot < 0 ? FullyQualified : FullyQualified.Substring(dot + 1);
+        Name = dot < 0 ? FullyQualified : FullyQualified.Substring(dot + 1);
     }
 
     /// <summary> The fully qualified name, including namespaces and parent types. </summary>
