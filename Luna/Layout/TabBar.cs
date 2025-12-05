@@ -52,17 +52,25 @@ public abstract class TabBar<T>(string barName, Logger log, params IReadOnlyList
         var nextTab = NextTab;
         NextTab = null;
 
+        var setNext = false;
         foreach (var tabData in Tabs.Where(t => t.IsVisible))
         {
-            var flags = tabData.Flags;
-            if (nextTab.HasValue && tabData.Identifier.Equals(nextTab.Value))
-                flags |= TabItemFlags.SetSelected;
+            var enabled = tabData.IsEnabled;
+            var flags   = tabData.Flags;
+            if (enabled && (setNext || nextTab.HasValue && tabData.Identifier.Equals(nextTab.Value)))
+            {
+                flags   |= TabItemFlags.SetSelected;
+                setNext =  false;
+            }
 
+            using var _   = Im.Disabled(!enabled);
             using var tab = tabBar.Item(tabData.Label, flags);
             tabData.PostTabButton();
             if (!tab)
                 continue;
 
+            if (!enabled)
+                setNext = true;
             tabData.DrawContent();
             CurrentTab = tabData.Identifier;
         }

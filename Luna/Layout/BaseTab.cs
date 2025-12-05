@@ -10,6 +10,10 @@ public interface ITab : IUiService
     public bool IsVisible
         => true;
 
+    /// <summary> Whether the tab should be enabled or not. </summary>
+    public bool IsEnabled
+        => true;
+
     /// <summary> Additional flags to control this tabs behavior in the tab bar. </summary>
     public TabItemFlags Flags
         => TabItemFlags.None;
