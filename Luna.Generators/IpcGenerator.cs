@@ -362,7 +362,6 @@ public sealed class IpcGenerator : IIncrementalGenerator
         PrepareDeclarationLists(info, out var getterDecls, out var setterDecls, out var eventDecls, out var methodDecls);
 
         builder.AppendLine();
-        builder.AppendLine($"// {info.Lazy}");
         builder.GeneratedAttribute();
         builder.AppendLine($"file sealed class {info.DeclaringType.Name}_{info.MethodName}_SubscriberImplementation : {info.ReturnType}");
         builder.OpenBlock();
