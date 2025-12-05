@@ -62,11 +62,32 @@ public static class LunaStyle
     /// <summary> The icon that should be used for buttons that move to the next object. </summary>
     public static readonly AwesomeIcon NextIcon = FontAwesomeIcon.ArrowCircleRight;
 
+    /// <summary> The icon that should be used for buttons that open further editing for an object. </summary>
+    public static readonly AwesomeIcon EditIcon = FontAwesomeIcon.Edit;
+
+    /// <summary> The icon that should be used for buttons that open an object in an external editor. </summary>
+    public static readonly AwesomeIcon OpenExternalIcon = FontAwesomeIcon.FileExport;
+
+    /// <summary> The icon that should be used for buttons that interact when being hovered. </summary>
+    public static readonly AwesomeIcon OnHoverIcon = FontAwesomeIcon.Crosshairs;
+
     /// <summary> The default color for error borders in inputs. </summary>
     public static readonly Vector4 ErrorBorderColor = new Rgba32(0xFF4040F0).ToVector();
 
     /// <summary> The color for activated favorites icons. </summary>
     public static readonly Vector4 FavoriteColor = new(1, 1, 0, 1);
+
+    /// <summary> The color for discord. </summary>
+    public static readonly Vector4 DiscordColor     = new(0.45f, 0.55f, 0.85f, 1);
+
+    /// <summary> The default color for the ReniGuide. </summary>
+    public static readonly Vector4 ReniColorButton  = new(0.55f, 0.40f, 0.80f, 1);
+
+    /// <summary> The hovered color for the ReniGuide. </summary>
+    public static readonly Vector4 ReniColorHovered = new(0.69f, 0.44f, 0.69f, 1);
+
+    /// <summary> The active color for the ReniGuide. </summary>
+    public static readonly Vector4 ReniColorActive  = new(0.88f, 0.44f, 0.56f, 1);
 
     /// <summary> Get the icon and color associated with a specific notification type. </summary>
     /// <param name="notification"> The notification type. </param>
