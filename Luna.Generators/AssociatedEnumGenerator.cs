@@ -17,7 +17,7 @@ internal readonly record struct AssociatedEnumData
     public readonly ValueCollection<(string Value, string Name)> Values;
 
     public AssociatedEnumData(string name, string forwardMethod, string backwardMethod, INamedTypeSymbol enumType, string forwardDefault,
-        string backwardDefault, string @namespace, string @class, params IReadOnlyCollection<(string Value, string Name)> values)
+        string backwardDefault, string @namespace, string @class, params IReadOnlyList<(string Value, string Name)> values)
     {
         Name            = new TypeDefinition(name);
         ForwardMethod   = forwardMethod;

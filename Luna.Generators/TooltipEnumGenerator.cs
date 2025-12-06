@@ -17,7 +17,7 @@ internal readonly record struct TooltipEnumData
     public readonly ValueCollection<(string Value, string Name)> Values;
 
     public TooltipEnumData(string name, string methodName, string unknownName, bool utf16, string @namespace, string @class,
-        params IReadOnlyCollection<(string Value, string Name)> values)
+        params IReadOnlyList<(string Value, string Name)> values)
     {
         Name       = new TypeDefinition(name);
         MethodName = methodName;
@@ -133,7 +133,7 @@ public sealed class TooltipEnumGenerator : IIncrementalGenerator
     private static string GenerateExtensionClass(in TooltipEnumData tooltipEnum)
     {
         var sb           = IndentedStringBuilder.CreatePreamble();
-        var stringEnding = tooltipEnum.Utf16 ? "\"," : "\"u8,";
+        var stringEnding = tooltipEnum.Utf16 ? "," : "u8,";
         sb.OpenNamespace(tooltipEnum.Namespace)
             .OpenExtensionClass(tooltipEnum.Class);
         sb.Append("/// <summary> Efficiently get an ").Append(tooltipEnum.Utf16 ? "UTF16" : "UTF8")
@@ -148,11 +148,11 @@ public sealed class TooltipEnumGenerator : IIncrementalGenerator
             .OpenBlock();
         foreach (var (value, tooltip) in tooltipEnum.Values)
         {
-            sb.AppendObject(tooltipEnum.Name.FullyQualified).Append('.').Append(value).Append(" => \"").Append(tooltip)
+            sb.AppendObject(tooltipEnum.Name.FullyQualified).Append('.').Append(value).Append(" => ").AppendLiteral(tooltip)
                 .AppendLine(stringEnding);
         }
 
-        sb.Append("_ => \"").Append(tooltipEnum.Unknown).Append(stringEnding).AppendLine()
+        sb.Append("_ => ").AppendLiteral(tooltipEnum.Unknown).Append(stringEnding).AppendLine()
             .CloseBlock().Append(';').AppendLine().Unindent();
         sb.CloseAllBlocks();
         return sb.ToString();

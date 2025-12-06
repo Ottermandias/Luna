@@ -1,5 +1,7 @@
+using System.Collections.Immutable;
 using System.Text;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.Text;
 
 namespace Luna.Generators;
@@ -47,6 +49,15 @@ internal static class Utility
     public static AttributeData? FindAttribute(Compilation compilation, ISymbol symbol, string attributeName)
         => FindAttribute(symbol, compilation.GetTypeByMetadataName(attributeName));
 
+    /// <summary> Find the first attribute matching the given attribute name in a collection. </summary>
+    /// <param name="compilation"> The compilation to fetch the type by its name. </param>
+    /// <param name="attributes"> The collection in which the attribute is searched for. </param>
+    /// <param name="attributeName"> The fully qualified name of the attribute's type. </param>
+    /// <returns> The attribute data if it could be found. </returns>
+    /// <remarks> Can be used with <see cref="IMethodSymbol.GetReturnTypeAttributes"/>. </remarks>
+    public static AttributeData? FindAttribute(Compilation compilation, ImmutableArray<AttributeData> attributes, string attributeName)
+        => FindAttribute(attributes, compilation.GetTypeByMetadataName(attributeName));
+
     /// <summary> Find all occurrences of a generic attribute regardless of type parameter on a symbol. </summary>
     /// <param name="compilation"> The compilation to fetch the type by its name. </param>
     /// <param name="symbol"> The declaration symbol in which the attributes are searched for. </param>
@@ -55,15 +66,32 @@ internal static class Utility
     public static IEnumerable<AttributeData> FindGenericAttributes(Compilation compilation, ISymbol symbol, string attributeName)
         => FindGenericAttributes(symbol, compilation.GetTypeByMetadataName(attributeName));
 
+    /// <summary> Find all occurrences of a generic attribute regardless of type parameter in a collection. </summary>
+    /// <param name="compilation"> The compilation to fetch the type by its name. </param>
+    /// <param name="attributes"> The collection in which the attributes are searched for. </param>
+    /// <param name="attributeName"> The fully qualified generic name of the attribute. </param>
+    /// <returns> All matching attributes. </returns>
+    /// <remarks> Can be used with <see cref="IMethodSymbol.GetReturnTypeAttributes"/>. </remarks>
+    public static IEnumerable<AttributeData> FindGenericAttributes(Compilation compilation, ImmutableArray<AttributeData> attributes, string attributeName)
+        => FindGenericAttributes(attributes, compilation.GetTypeByMetadataName(attributeName));
+
     /// <summary> Find the first attribute matching the given named type on a symbol. </summary>
     /// <param name="symbol"> The declaration symbol in which the attribute is searched for. </param>
     /// <param name="needle"> The attribute type to search for. </param>
     /// <returns> The attribute data if it could be found. </returns>
     public static AttributeData? FindAttribute(ISymbol symbol, INamedTypeSymbol? needle)
+        => FindAttribute(symbol.GetAttributes(), needle);
+
+    /// <summary> Find the first attribute matching the given named type in a collection. </summary>
+    /// <param name="attributes"> The collection in which the attribute is searched for. </param>
+    /// <param name="needle"> The attribute type to search for. </param>
+    /// <returns> The attribute data if it could be found. </returns>
+    /// <remarks> Can be used with <see cref="IMethodSymbol.GetReturnTypeAttributes"/>. </remarks>
+    public static AttributeData? FindAttribute(ImmutableArray<AttributeData> attributes, INamedTypeSymbol? needle)
     {
         return needle is null
             ? null
-            : symbol.GetAttributes().FirstOrDefault(a => needle.Equals(a.AttributeClass, SymbolEqualityComparer.Default));
+            : attributes.FirstOrDefault(a => needle.Equals(a.AttributeClass, SymbolEqualityComparer.Default));
     }
 
     /// <summary> Find all occurrences of a generic attribute regardless of type parameter on a symbol. </summary>
@@ -71,12 +99,19 @@ internal static class Utility
     /// <param name="needle"> The attribute type to search for. </param>
     /// <returns> All matching attributes. </returns>
     public static IEnumerable<AttributeData> FindGenericAttributes(ISymbol symbol, INamedTypeSymbol? needle)
+        => FindGenericAttributes(symbol.GetAttributes(), needle);
+
+    /// <summary> Find all occurrences of a generic attribute regardless of type parameter in a collection. </summary>
+    /// <param name="attributes"> The collection in which the attributes are searched for. </param>
+    /// <param name="needle"> The attribute type to search for. </param>
+    /// <returns> All matching attributes. </returns>
+    /// <remarks> Can be used with <see cref="IMethodSymbol.GetReturnTypeAttributes"/>. </remarks>
+    public static IEnumerable<AttributeData> FindGenericAttributes(ImmutableArray<AttributeData> attributes, INamedTypeSymbol? needle)
     {
         if (needle is null)
             yield break;
 
         var unboundNeedle = needle.ConstructUnboundGenericType();
-        var attributes    = symbol.GetAttributes();
         foreach (var attribute in attributes)
         {
             if (attribute.AttributeClass?.IsGenericType is true
@@ -84,6 +119,32 @@ internal static class Utility
                 yield return attribute;
         }
     }
+
+    /// <summary> Retrieves a named (property value) argument from an attribute. </summary>
+    /// <param name="attribute"> The attribute to retrieve information from. </param>
+    /// <param name="name"> The property to retrieve. </param>
+    /// <returns> The property's value, or null if not found or if <paramref name="attribute"/> was null. </returns>
+    /// <remarks>
+    /// This consumes the historical attribute property syntax (for example <c>Property = "Value"</c>),
+    /// not the named constructor argument syntax (for example <c>parameter: "value"</c>).
+    /// </remarks>
+    public static object? GetAttributeNamedArgument(AttributeData? attribute, string name)
+    {
+        if (attribute is null)
+            return null;
+
+        return (from property in attribute.NamedArguments
+            where property.Key.Equals(name, StringComparison.Ordinal)
+            select property.Value.Value).FirstOrDefault();
+    }
+
+    /// <summary> Determines whether the given symbol shadows a symbol from the parent class using the <c>new</c> keyword. </summary>
+    /// <param name="symbol"> The symbol to inspect. </param>
+    /// <param name="token"> A cancellation token for the parse that may be caused by this function. </param>
+    /// <returns> Whether the given symbol is declared with the <c>new</c> keyword. </returns>
+    /// <remarks> This function may cause a parse to happen to recover syntax data. </remarks>
+    public static bool IsNew(ISymbol symbol, CancellationToken token)
+        => symbol.DeclaringSyntaxReferences[0].GetSyntax(token).ChildTokens().Any(static token => token.Kind() is SyntaxKind.NewKeyword);
 
     /// <summary> Add initialization files based on given code and names. </summary>
     /// <param name="context"> The context to add the output to. </param>
@@ -125,4 +186,18 @@ internal static class Utility
             Accessibility.Public               => "public ",
             _                                  => string.Empty,
         };
+    
+    /// <summary> Convert a type kind to the C# keyword representing it. </summary>
+    public static string ToKeyword(this TypeKind typeKind)
+        => typeKind switch
+        {
+            TypeKind.Class     => "class",
+            TypeKind.Struct    => "struct",
+            TypeKind.Interface => "interface",
+            _                  => "class",
+        };
+
+    /// <summary> Construct a C# string literal of the given value. </summary>
+    public static string ToLiteral(this string input)
+        => SyntaxFactory.LiteralExpression(SyntaxKind.StringLiteralExpression, SyntaxFactory.Literal(input)).ToFullString();
 }
