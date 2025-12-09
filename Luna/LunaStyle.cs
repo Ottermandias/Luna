@@ -3,7 +3,7 @@ using Dalamud.Interface.ImGuiNotification;
 
 namespace Luna;
 
-public static class LunaStyle
+public static partial class LunaStyle
 {
     /// <summary> The icon that should be used for generic save buttons. </summary>
     public static readonly AwesomeIcon SaveIcon = FontAwesomeIcon.Save;
@@ -56,6 +56,15 @@ public static class LunaStyle
     /// <summary> The icon that should be used for things that are locked or write-protected. </summary>
     public static readonly AwesomeIcon LockedIcon = FontAwesomeIcon.Lock;
 
+    /// <summary> The icon that should be used for things copying data to the user's clipboard. </summary>
+    public static readonly AwesomeIcon ToClipboardIcon = FontAwesomeIcon.Clipboard;
+
+    /// <summary> The icon that should be used for things applying data from the user's clipboard. </summary>
+    public static readonly AwesomeIcon FromClipboardIcon = FontAwesomeIcon.Paste;
+
+    /// <summary> The icon that should be used for importing files or text. </summary>
+    public static readonly AwesomeIcon ImportIcon = FontAwesomeIcon.FileImport;
+
     /// <summary> The icon that should be used for things that are unlocked. </summary>
     public static readonly AwesomeIcon UnlockedIcon = FontAwesomeIcon.LockOpen;
 
@@ -71,6 +80,9 @@ public static class LunaStyle
     /// <summary> The icon that should be used for buttons that interact when being hovered. </summary>
     public static readonly AwesomeIcon OnHoverIcon = FontAwesomeIcon.Crosshairs;
 
+    /// <summary> The icon that should be used for applying colors to things. </summary>
+    public static readonly AwesomeIcon DyeIcon = FontAwesomeIcon.PaintBrush;
+
     /// <summary> The default color for error borders in inputs. </summary>
     public static readonly Vector4 ErrorBorderColor = new Rgba32(0xFF4040F0).ToVector();
 
@@ -78,16 +90,16 @@ public static class LunaStyle
     public static readonly Vector4 FavoriteColor = new(1, 1, 0, 1);
 
     /// <summary> The color for discord. </summary>
-    public static readonly Vector4 DiscordColor     = new(0.45f, 0.55f, 0.85f, 1);
+    public static readonly Vector4 DiscordColor = new(0.45f, 0.55f, 0.85f, 1);
 
     /// <summary> The default color for the ReniGuide. </summary>
-    public static readonly Vector4 ReniColorButton  = new(0.55f, 0.40f, 0.80f, 1);
+    public static readonly Vector4 ReniColorButton = new(0.55f, 0.40f, 0.80f, 1);
 
     /// <summary> The hovered color for the ReniGuide. </summary>
     public static readonly Vector4 ReniColorHovered = new(0.69f, 0.44f, 0.69f, 1);
 
     /// <summary> The active color for the ReniGuide. </summary>
-    public static readonly Vector4 ReniColorActive  = new(0.88f, 0.44f, 0.56f, 1);
+    public static readonly Vector4 ReniColorActive = new(0.88f, 0.44f, 0.56f, 1);
 
     /// <summary> Get the icon and color associated with a specific notification type. </summary>
     /// <param name="notification"> The notification type. </param>
@@ -101,24 +113,6 @@ public static class LunaStyle
             NotificationType.Info    => (FontAwesomeIcon.QuestionCircle, 0xFFFF4040),
             _                        => (FontAwesomeIcon.None, 0),
         };
-
-    /// <summary> Draw a help marker. </summary>
-    /// <param name="color"> The color to use. If null, <see cref="ImGuiColor.TextDisabled"/> will be used.</param>
-    /// <returns> True if the help marker is hovered by the mouse cursor in this frame. </returns>
-    public static bool DrawHelpMarker(ColorParameter color = default)
-    {
-        ImEx.Icon.Draw(HelpMarker, color.CheckDefault(ImGuiColor.TextDisabled));
-        return Im.Item.Hovered(HoveredFlags.AllowWhenDisabled);
-    }
-
-    /// <summary> Draw a help marker aligned to frame padding. </summary>
-    /// <inheritdoc cref="DrawHelpMarker"/>
-    public static bool DrawAlignedHelpMarker(ColorParameter color = default)
-    {
-        Im.Cursor.FrameAlign();
-        ImEx.Icon.Draw(HelpMarker, color.CheckDefault(ImGuiColor.TextDisabled));
-        return Im.Item.Hovered(HoveredFlags.AllowWhenDisabled);
-    }
 
     /// <summary> Draw a full GUID in mono font that can be copied on click. </summary>
     /// <param name="id"> The GUID to draw. </param>

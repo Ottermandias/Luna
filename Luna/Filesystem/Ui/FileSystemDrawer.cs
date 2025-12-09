@@ -164,6 +164,10 @@ public abstract class FileSystemDrawer<TNodeCache>(BaseFileSystem fileSystem, IF
         }
 
         /// <inheritdoc/>
+        public bool IsVisible
+            => false;
+
+        /// <inheritdoc/>
         public bool DrawFilter(ReadOnlySpan<byte> label, Vector2 availableRegion)
             => false;
 
