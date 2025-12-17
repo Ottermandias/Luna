@@ -399,7 +399,7 @@ public abstract class FileSystemCache<TData> : FileSystemCache
             {
                 // Only add folders that have any children that fulfill the filter if they are collapsed.
                 // If the node is not a folder, we already checked visibility above.
-                if (!visible && ((IFileSystemFolder)node).GetDescendants().All(d => !Filter.WouldBeVisible((TData)d, -1)))
+                if (!visible && ((IFileSystemFolder)node).GetDescendants().All(d => !AllNodes.TryGetValue(d, out var c) || !Filter.WouldBeVisible(c)))
                     return;
 
                 // Add the visible data node or collapsed folder.

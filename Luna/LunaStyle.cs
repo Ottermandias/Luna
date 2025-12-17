@@ -56,6 +56,9 @@ public static partial class LunaStyle
     /// <summary> The icon that should be used for things that are locked or write-protected. </summary>
     public static readonly AwesomeIcon LockedIcon = FontAwesomeIcon.Lock;
 
+    /// <summary> The icon that should be used for canceling running actions. </summary>
+    public static readonly AwesomeIcon CancelIcon = FontAwesomeIcon.Ban;
+
     /// <summary> The icon that should be used for things copying data to the user's clipboard. </summary>
     public static readonly AwesomeIcon ToClipboardIcon = FontAwesomeIcon.Clipboard;
 
@@ -83,8 +86,17 @@ public static partial class LunaStyle
     /// <summary> The icon that should be used for applying colors to things. </summary>
     public static readonly AwesomeIcon DyeIcon = FontAwesomeIcon.PaintBrush;
 
+    /// <summary> The icon that should be used for errors. </summary>
+    public static readonly AwesomeIcon ErrorIcon = FontAwesomeIcon.TimesCircle;
+
+    /// <summary> The icon that should be used for warnings. </summary>
+    public static readonly AwesomeIcon WarningIcon = FontAwesomeIcon.ExclamationCircle;
+
     /// <summary> The default color for error borders in inputs. </summary>
     public static readonly Vector4 ErrorBorderColor = new Rgba32(0xFF4040F0).ToVector();
+
+    /// <summary> The default color for warning borders in inputs. </summary>
+    public static readonly Vector4 WarningBorderColor = new Rgba32(0xFF40F0F0).ToVector();
 
     /// <summary> The color for activated favorites icons. </summary>
     public static readonly Vector4 FavoriteColor = new(1, 1, 0, 1);
@@ -108,8 +120,8 @@ public static partial class LunaStyle
         => notification switch
         {
             NotificationType.Success => (FontAwesomeIcon.CheckCircle, 0xFF40FF40),
-            NotificationType.Warning => (FontAwesomeIcon.ExclamationCircle, 0xFF40FFFF),
-            NotificationType.Error   => (FontAwesomeIcon.TimesCircle, 0xFF4040FF),
+            NotificationType.Warning => (WarningIcon, 0xFF40FFFF),
+            NotificationType.Error   => (ErrorIcon, 0xFF4040FF),
             NotificationType.Info    => (FontAwesomeIcon.QuestionCircle, 0xFFFF4040),
             _                        => (FontAwesomeIcon.None, 0),
         };

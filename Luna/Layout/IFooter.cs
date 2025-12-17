@@ -8,4 +8,8 @@ public interface IFooter : IUiService
 
     /// <inheritdoc cref="IHeader.Draw"/>
     public void Draw(Vector2 size);
+
+    /// <inheritdoc cref="IHeader.PostCollapsed"/>
+    public void PostCollapsed()
+    {}
 }

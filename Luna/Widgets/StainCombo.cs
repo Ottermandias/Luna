@@ -1,24 +1,17 @@
 namespace Luna;
 
+/// <summary> A combo to display named colors. </summary>
 public abstract class FilterComboColors : FilterComboBase<FilterComboColors.Item>
 {
     protected short   StainId;
     protected Vector2 ButtonSize;
 
+    /// <summary> Additional space for the width of the combo. </summary>
     protected virtual float AdditionalSpace
         => 0;
 
     public FilterComboColors()
         => ComputeWidth = true;
-
-
-    public sealed class Item
-    {
-        public StringPair Name;
-        public Rgba32     Color;
-        public byte       Id;
-        public bool       Gloss;
-    }
 
     protected internal override float ItemHeight
         => Im.Style.FrameHeightWithSpacing;
@@ -48,6 +41,23 @@ public abstract class FilterComboColors : FilterComboBase<FilterComboColors.Item
     protected internal override bool IsSelected(Item item, int globalIndex)
         => StainId == item.Id;
 
+    /// <summary> A color item. </summary>
+    public sealed class Item
+    {
+        /// <summary> The name to display and filter for. </summary>
+        public StringPair Name;
+
+        /// <summary> The color value. </summary>
+        public Rgba32 Color;
+
+        /// <summary> An additional ID for the color. </summary>
+        public byte Id;
+
+        /// <summary> Whether the color is glossy, in which case a shine effect will be applied. </summary>
+        public bool Gloss;
+    }
+
+    /// <summary> Specialized cache to compute the required width for the popup. </summary>
     protected class ColorsCache(FilterComboColors parent) : FilterComboBaseCache<Item>(parent)
     {
         protected override void ComputeWidth()
@@ -60,6 +70,7 @@ public abstract class FilterComboColors : FilterComboBase<FilterComboColors.Item
         }
     }
 
+    /// <inheritdoc/>
     protected override FilterComboBaseCache<Item> CreateCache()
         => new ColorsCache(this);
 }
