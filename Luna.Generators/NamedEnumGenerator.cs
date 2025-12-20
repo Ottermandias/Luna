@@ -1,4 +1,5 @@
 using System.Text;
+using System.Xml.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Text;
 
@@ -46,8 +47,9 @@ public sealed class NamedEnumGenerator : IIncrementalGenerator
             "/// <param name=\"Namespace\"> The namespace to put the extension class into. If this is null, the namespace of the enum will be used. </param>")
         .AppendLine(
             "/// <param name=\"Class\"> The name of the static class containing the extension methods. If this is null, <c>[EnumName]Extensions</c> will be used. </param>")
-        .AppendLine("[AttributeUsage(AttributeTargets.Enum)]")
+        .EmbeddedAttribute()
         .GeneratedAttribute()
+        .AppendLine("[AttributeUsage(AttributeTargets.Enum)]")
         .AppendLine(
             "internal class NamedEnumAttribute(string Method = \"ToName\", bool Utf8 = true, bool Utf16 = true, string Unknown = \"Unknown\", string? Namespace = null, string? Class = null) : Attribute;")
         .AppendLine()
@@ -56,8 +58,9 @@ public sealed class NamedEnumGenerator : IIncrementalGenerator
         .AppendLine("/// <param name=\"Name\"> The name to provide. If this is null, the name of the value itself is used. </param>")
         .AppendLine("/// <param name=\"Omit\"> Whether to omit this value from the enum and treat it as undefined. </param>")
         .AppendLine("/// <remarks> This is only intended for enum values. If this is omitted, the name of the value itself is used. </remarks>")
-        .AppendLine("[AttributeUsage(AttributeTargets.Field)]")
+        .EmbeddedAttribute()
         .GeneratedAttribute()
+        .AppendLine("[AttributeUsage(AttributeTargets.Field)]")
         .AppendLine("internal class NameAttribute(string? Name = null, bool Omit = false) : Attribute;")
         .CloseAllBlocks().ToString();
 
@@ -169,23 +172,26 @@ public sealed class NamedEnumGenerator : IIncrementalGenerator
         {
             if (namedEnum.Utf16)
                 sb.AppendLine();
+
+            foreach (var (value, name) in namedEnum.Values)
+                sb.Append("private static readonly global::ImSharp.StringU8 ").Append(value).Append("_Name__GenU8 = new(\"").Append(name).AppendLine("\"u8);");
+            sb.Append("private static readonly global::ImSharp.StringU8 MissingEntry_Name__GenU8_ = new(\"").Append(namedEnum.Unknown).AppendLine("\"u8);")
+                .AppendLine();
+
             sb.AppendLine("/// <summary> Efficiently get a human-readable display name for this value. </summary>");
             if (namedEnum.Utf16)
                 sb.Append("/// <remarks> For a UTF16 representation of the name, use <see cref=\"")
                     .Append($"{namedEnum.Class}.{namedEnum.MethodName}").AppendLine("\"/>. </remarks>");
             sb.GeneratedAttribute()
-                .Append("public static ReadOnlySpan<byte> ").Append(namedEnum.MethodName).Append("U8(this ")
+                .Append("public static global::ImSharp.StringU8 ").Append(namedEnum.MethodName).Append("U8(this ")
                 .AppendObject(namedEnum.Name.FullyQualified)
                 .Indent().AppendLine(" value)")
                 .AppendLine("=> value switch")
                 .OpenBlock();
-            foreach (var (value, name) in namedEnum.Values)
-            {
-                sb.AppendObject(namedEnum.Name.FullyQualified).Append('.').Append(value).Append(" => \"").Append(name)
-                    .AppendLine("\"u8,");
-            }
+            foreach (var (value, _) in namedEnum.Values)
+                sb.AppendObject(namedEnum.Name.FullyQualified).Append('.').Append(value).Append(" => ").Append(value).AppendLine("_Name__GenU8,");
 
-            sb.Append("_ => \"").Append(namedEnum.Unknown).Append("\"u8,").AppendLine()
+            sb.AppendLine("_ => MissingEntry_Name__GenU8_,")
                 .CloseBlock().Append(';').AppendLine().Unindent();
         }
 

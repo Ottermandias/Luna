@@ -52,8 +52,9 @@ public sealed class AssociatedEnumGenerator : IIncrementalGenerator
             "/// <param name=\"Namespace\"> The namespace to put the extension class into. If this is null, the namespace of the enum will be used. </param>")
         .AppendLine(
             "/// <param name=\"Class\"> The name of the static class containing the extension methods. If this is null, <c>[EnumName]Extensions</c> will be used. </param>")
-        .AppendLine("[AttributeUsage(AttributeTargets.Enum, AllowMultiple = true)]")
+        .EmbeddedAttribute()
         .GeneratedAttribute()
+        .AppendLine("[AttributeUsage(AttributeTargets.Enum, AllowMultiple = true)]")
         .AppendLine(
             "internal class AssociatedEnumAttribute<T>(string? ForwardMethod = null, string? BackwardMethod = \"\", T ForwardDefaultValue = default!, object? BackwardDefaultValue = null, string? Namespace = null, string? Class = null) : Attribute where T : Enum;")
         .AppendLine()
@@ -67,8 +68,9 @@ public sealed class AssociatedEnumGenerator : IIncrementalGenerator
         .AppendLine(
             "/// <param name=\"DefaultName\"> Whether to take the name from the attributed enum value, ignoring the provided value. </param>")
         .AppendLine("/// <remarks> This is only intended for enum values. If this is omitted, the name of the value itself is used. </remarks>")
-        .AppendLine("[AttributeUsage(AttributeTargets.Field, AllowMultiple = true)]")
+        .EmbeddedAttribute()
         .GeneratedAttribute()
+        .AppendLine("[AttributeUsage(AttributeTargets.Field, AllowMultiple = true)]")
         .AppendLine("internal class AssociateAttribute<T>(T Value, bool Associate = true, bool DefaultName = false) : Attribute where T : Enum")
         .OpenBlock()
         .AppendLine("[global::System.Runtime.CompilerServices.OverloadResolutionPriority(100)]")

@@ -75,8 +75,9 @@ public sealed class StrongTypeGenerator : IIncrementalGenerator
         .AppendLine()
         .OpenNamespace("Luna.Generators")
         .AppendLine("/// <summary> Flags that control which functionality this strong type should implement. </summary>")
-        .AppendLine("[Flags]")
+        .EmbeddedAttribute()
         .GeneratedAttribute()
+        .AppendLine("[Flags]")
         .AppendLine("internal enum StrongTypeFlag : ulong")
         .OpenBlock()
         .AppendLine("/// <summary> Whether the strong type is equatable to itself, including equality operators. </summary>")
@@ -125,8 +126,9 @@ public sealed class StrongTypeGenerator : IIncrementalGenerator
         .CloseBlock().AppendLine()
         .AppendLine()
         .AppendLine("/// <summary> Create a strongly typed ID type struct. </summary>")
-        .AppendLine("[AttributeUsage(AttributeTargets.Struct)]")
+        .EmbeddedAttribute()
         .GeneratedAttribute()
+        .AppendLine("[AttributeUsage(AttributeTargets.Struct)]")
         .AppendLine(
             "internal class StrongTypeAttribute<T>(string FieldName = \"Value\", StrongTypeFlag Flags = StrongTypeFlag.Default) : Attribute where T : unmanaged, System.Numerics.INumber<T>;")
         .CloseAllBlocks().ToString();
@@ -176,6 +178,7 @@ public sealed class StrongTypeGenerator : IIncrementalGenerator
             sb.AppendLine("[Newtonsoft.Json.JsonConverter(typeof(NewtonsoftJsonConverter))]");
         if (strongType.SystemConverter)
             sb.AppendLine("[System.Text.Json.Serialization.JsonConverter(typeof(SystemJsonConverter))]");
+                
         sb.Append(strongType.Accessibility.ToModifier()).Append("readonly partial struct ").Append(strongType.Name.Name).Append('(')
             .AppendObject(strongType.BaseType.FullyQualified).Append(' ').Append(strongType.FieldName).Append(')').AppendLine();
 

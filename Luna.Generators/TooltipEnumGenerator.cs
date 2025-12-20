@@ -1,7 +1,6 @@
 using System.Text;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Text;
 
 namespace Luna.Generators;
@@ -44,8 +43,9 @@ public sealed class TooltipEnumGenerator : IIncrementalGenerator
             "/// <param name=\"Namespace\"> The namespace to put the extension class into. If this is null, the namespace of the enum will be used. </param>")
         .AppendLine(
             "/// <param name=\"Class\"> The name of the static class containing the extension methods. If this is null, <c>[EnumName]Extensions</c> will be used. </param>")
-        .AppendLine("[AttributeUsage(AttributeTargets.Enum)]")
+        .EmbeddedAttribute()
         .GeneratedAttribute()
+        .AppendLine("[AttributeUsage(AttributeTargets.Enum)]")
         .AppendLine(
             "internal class TooltipEnumAttribute(string Method = \"Tooltip\", bool Utf16 = false, string Unknown = \"\", string? Namespace = null, string? Class = null) : Attribute;")
         .AppendLine()
@@ -54,8 +54,9 @@ public sealed class TooltipEnumGenerator : IIncrementalGenerator
         .AppendLine("/// <param name=\"Tooltip\"> The tooltip to provide. If this is null, an empty string is used. </param>")
         .AppendLine("/// <param name=\"Omit\"> Whether to omit this value from the enum and treat it as undefined. </param>")
         .AppendLine("/// <remarks> This is only intended for enum values. If this is omitted, the name of the value itself is used. </remarks>")
-        .AppendLine("[AttributeUsage(AttributeTargets.Field)]")
+        .EmbeddedAttribute()
         .GeneratedAttribute()
+        .AppendLine("[AttributeUsage(AttributeTargets.Field)]")
         .AppendLine("internal class TooltipAttribute(string? Tooltip = null, bool Omit = false) : Attribute;")
         .CloseAllBlocks().ToString();
 
@@ -112,8 +113,8 @@ public sealed class TooltipEnumGenerator : IIncrementalGenerator
             if (member is not IFieldSymbol symbol)
                 continue;
 
-            var add  = true;
-            var tooltip =$"{member.Name}";
+            var add     = true;
+            var tooltip = $"{member.Name}";
             if (Utility.FindAttribute(symbol, tooltipAttributeSymbol) is { } fieldAttribute)
             {
                 var arguments = fieldAttribute.ConstructorArguments;
@@ -133,28 +134,52 @@ public sealed class TooltipEnumGenerator : IIncrementalGenerator
     private static string GenerateExtensionClass(in TooltipEnumData tooltipEnum)
     {
         var sb           = IndentedStringBuilder.CreatePreamble();
-        var stringEnding = tooltipEnum.Utf16 ? "\"," : "\"u8,";
         sb.OpenNamespace(tooltipEnum.Namespace)
             .OpenExtensionClass(tooltipEnum.Class);
+
+        if (!tooltipEnum.Utf16)
+        {
+            foreach (var (value, tooltip) in tooltipEnum.Values)
+                sb.Append("private static readonly global::ImSharp.StringU8 ").Append(value).Append("_Tooltip__GenU8 = new(\"").Append(tooltip)
+                    .AppendLine("\"u8);");
+
+            sb.Append("private static readonly global::ImSharp.StringU8 MissingEntry_Tooltip__GenU8_ = new(\"").Append(tooltipEnum.Unknown)
+                .AppendLine("\"u8);")
+                .AppendLine();
+        }
+
         sb.Append("/// <summary> Efficiently get an ").Append(tooltipEnum.Utf16 ? "UTF16" : "UTF8")
             .AppendLine(" tooltip for this value. </summary>");
         sb.GeneratedAttribute()
-            .Append("public static ").Append(tooltipEnum.Utf16 ? "string " : "ReadOnlySpan<byte> ").Append(tooltipEnum.MethodName)
+            .Append("public static ").Append(tooltipEnum.Utf16 ? "string " : "global::ImSharp.StringU8 ").Append(tooltipEnum.MethodName)
             .Append("(this ")
             .AppendObject(tooltipEnum.Name.FullyQualified)
             .Indent()
             .AppendLine(" value)")
             .AppendLine("=> value switch")
             .OpenBlock();
-        foreach (var (value, tooltip) in tooltipEnum.Values)
+        if (tooltipEnum.Utf16)
         {
-            sb.AppendObject(tooltipEnum.Name.FullyQualified).Append('.').Append(value).Append(" => \"").Append(tooltip)
-                .AppendLine(stringEnding);
+            foreach (var (value, tooltip) in tooltipEnum.Values)
+            {
+                sb.AppendObject(tooltipEnum.Name.FullyQualified).Append('.').Append(value).Append(" => \"").Append(tooltip)
+                    .AppendLine("\",");
+            }
+
+            sb.Append("_ => \"").Append(tooltipEnum.Unknown).AppendLine("\",");
+        }
+        else
+        {
+            foreach (var (value, _) in tooltipEnum.Values)
+            {
+                sb.AppendObject(tooltipEnum.Name.FullyQualified).Append('.').Append(value).Append(" => ").Append(value)
+                    .AppendLine("_Tooltip__GenU8,");
+            }
+            sb.AppendLine("_ => MissingEntry_Tooltip__GenU8_,");
         }
 
-        sb.Append("_ => \"").Append(tooltipEnum.Unknown).Append(stringEnding).AppendLine()
-            .CloseBlock().Append(';').AppendLine().Unindent();
-        sb.CloseAllBlocks();
+        sb.CloseBlock().Append(';').AppendLine().Unindent()
+            .CloseAllBlocks();
         return sb.ToString();
     }
 }
