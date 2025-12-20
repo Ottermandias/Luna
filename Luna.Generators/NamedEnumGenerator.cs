@@ -16,7 +16,7 @@ internal readonly record struct NamedEnumData
     public readonly ValueCollection<(string Value, string Name)> Values;
 
     public NamedEnumData(string name, string methodName, string unknownName, bool utf16, bool utf8, string @namespace, string @class,
-        params IReadOnlyCollection<(string Value, string Name)> values)
+        params IReadOnlyList<(string Value, string Name)> values)
     {
         Name       = new TypeDefinition(name);
         MethodName = methodName;
@@ -157,11 +157,11 @@ public sealed class NamedEnumGenerator : IIncrementalGenerator
                 .OpenBlock();
             foreach (var (value, name) in namedEnum.Values)
             {
-                sb.AppendObject(namedEnum.Name.FullyQualified).Append('.').Append(value).Append(" => \"").Append(name)
-                    .AppendLine("\",");
+                sb.AppendObject(namedEnum.Name.FullyQualified).Append('.').Append(value).Append(" => ").AppendLiteral(name)
+                    .AppendLine(",");
             }
 
-            sb.Append("_ => \"").Append(namedEnum.Unknown).Append("\",").AppendLine()
+            sb.Append("_ => ").AppendLiteral(namedEnum.Unknown).Append(",").AppendLine()
                 .CloseBlock().Append(';').AppendLine().Unindent();
         }
 
@@ -181,11 +181,11 @@ public sealed class NamedEnumGenerator : IIncrementalGenerator
                 .OpenBlock();
             foreach (var (value, name) in namedEnum.Values)
             {
-                sb.AppendObject(namedEnum.Name.FullyQualified).Append('.').Append(value).Append(" => \"").Append(name)
-                    .AppendLine("\"u8,");
+                sb.AppendObject(namedEnum.Name.FullyQualified).Append('.').Append(value).Append(" => ").AppendLiteral(name)
+                    .AppendLine("u8,");
             }
 
-            sb.Append("_ => \"").Append(namedEnum.Unknown).Append("\"u8,").AppendLine()
+            sb.Append("_ => ").AppendLiteral(namedEnum.Unknown).Append("u8,").AppendLine()
                 .CloseBlock().Append(';').AppendLine().Unindent();
         }
 
