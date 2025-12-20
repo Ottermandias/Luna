@@ -149,10 +149,10 @@ public class DragDropManager : IDisposable, IUiService
         table.DrawColumn("Drag & Drop Manager Version"u8);
         table.DrawColumn($"{Version}");
 
-        table.DrawColumn("Original Creator");
+        table.DrawColumn("Original Creator"u8);
         table.DrawColumn($"{_creator}");
 
-        table.DrawColumn("Subscribed");
+        table.DrawColumn("Subscribed"u8);
         table.DrawColumn($"{_subscribed}");
         Im.Line.Same();
         if (Im.SmallButton(_subscribed ? "Unsubscribe"u8 : "Resubscribe"u8))
@@ -163,7 +163,7 @@ public class DragDropManager : IDisposable, IUiService
                 Subscribe();
         }
 
-        table.DrawColumn("Last Drawn Frame");
+        table.DrawColumn("Last Drawn Frame"u8);
         table.DrawColumn($"{LastDrawnFrame}");
 
         table.DrawColumn($"{_sources.Count} Sources");
@@ -235,7 +235,7 @@ public class DragDropManager : IDisposable, IUiService
 
         // Magic number used in our version of imgui to make the drag and drop border on the window look nice.
         Im.Cursor.Position = new Vector2(5f, 4f);
-        Im.InvisibleButton("##", Im.ContentRegion.Available - new Vector2(5f, 4f));
+        Im.InvisibleButton("##"u8, Im.ContentRegion.Available - new Vector2(5f, 4f));
         foreach (var (target, action) in _targets)
         {
             if (_dragDropManager.CreateImGuiTarget(target, out var files, out var directories))

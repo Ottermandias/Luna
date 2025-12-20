@@ -9,20 +9,20 @@ internal readonly record struct NamedEnumData
     public readonly TypeDefinition                               Name;
     public readonly string                                       MethodName;
     public readonly string                                       Unknown;
-    public readonly bool                                         Utf8;
     public readonly bool                                         Utf16;
+    public readonly bool                                         Utf8;
     public readonly string                                       Namespace;
     public readonly string                                       Class;
     public readonly ValueCollection<(string Value, string Name)> Values;
 
-    public NamedEnumData(string name, string methodName, string unknownName, bool utf8, bool utf16, string @namespace, string @class,
+    public NamedEnumData(string name, string methodName, string unknownName, bool utf16, bool utf8, string @namespace, string @class,
         params IReadOnlyList<(string Value, string Name)> values)
     {
         Name       = new TypeDefinition(name);
         MethodName = methodName;
         Unknown    = unknownName;
-        Utf8       = utf8;
         Utf16      = utf16;
+        Utf8       = utf8;
         Namespace  = @namespace;
         Class      = @class;
         Values     = new ValueCollection<(string Value, string Name)>(values);
@@ -32,7 +32,8 @@ internal readonly record struct NamedEnumData
 [Generator]
 public sealed class NamedEnumGenerator : IIncrementalGenerator
 {
-    private static readonly string NamedEnumAttribute = IndentedStringBuilder.CreatePreamble().AppendLine("#pragma warning disable CS9113").AppendLine()
+    private static readonly string NamedEnumAttribute = IndentedStringBuilder.CreatePreamble().AppendLine("#pragma warning disable CS9113")
+        .AppendLine()
         .OpenNamespace("Luna.Generators")
         .AppendLine(
             "/// <summary> Add a method returning names in UTF8 and UTF16 to the enum. Use with <see cref=\"Luna.Generators.NameAttribute\"/>. </summary>")
@@ -69,7 +70,7 @@ public sealed class NamedEnumGenerator : IIncrementalGenerator
 
     private static void Execute(NamedEnumData? enumToGenerate, SourceProductionContext context)
     {
-        if (enumToGenerate is not { } value || value is { Utf8: false, Utf16: false })
+        if (enumToGenerate is not { } value || value is { Utf16: false, Utf8: false })
             return;
 
         var result = GenerateExtensionClass(value);
@@ -134,7 +135,7 @@ public sealed class NamedEnumGenerator : IIncrementalGenerator
                 members.Add((member.Name, name));
         }
 
-        return new NamedEnumData(enumName, methodName, unknownName, utf8, utf16, @namespace, @class, members);
+        return new NamedEnumData(enumName, methodName, unknownName, utf16, utf8, @namespace, @class, members);
     }
 
     private static string GenerateExtensionClass(in NamedEnumData namedEnum)
@@ -142,10 +143,10 @@ public sealed class NamedEnumGenerator : IIncrementalGenerator
         var sb = IndentedStringBuilder.CreatePreamble();
         sb.OpenNamespace(namedEnum.Namespace)
             .OpenExtensionClass(namedEnum.Class);
-        if (namedEnum.Utf8)
+        if (namedEnum.Utf16)
         {
             sb.AppendLine("/// <summary> Efficiently get a human-readable display name for this value. </summary>");
-            if (namedEnum.Utf16)
+            if (namedEnum.Utf8)
                 sb.Append("/// <remarks> For a UTF8 representation of the name, use <see cref=\"")
                     .Append($"{namedEnum.Class}.{namedEnum.MethodName}").AppendLine("U8\"/>. </remarks>");
             sb.GeneratedAttribute()
@@ -164,12 +165,12 @@ public sealed class NamedEnumGenerator : IIncrementalGenerator
                 .CloseBlock().Append(';').AppendLine().Unindent();
         }
 
-        if (namedEnum.Utf16)
+        if (namedEnum.Utf8)
         {
-            if (namedEnum.Utf8)
+            if (namedEnum.Utf16)
                 sb.AppendLine();
             sb.AppendLine("/// <summary> Efficiently get a human-readable display name for this value. </summary>");
-            if (namedEnum.Utf8)
+            if (namedEnum.Utf16)
                 sb.Append("/// <remarks> For a UTF16 representation of the name, use <see cref=\"")
                     .Append($"{namedEnum.Class}.{namedEnum.MethodName}").AppendLine("\"/>. </remarks>");
             sb.GeneratedAttribute()

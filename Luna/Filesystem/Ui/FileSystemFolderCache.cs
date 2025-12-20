@@ -9,9 +9,19 @@ public sealed class FileSystemFolderCache : IFileSystemNodeCache
     /// <summary> The folder name as a UTF8 string. </summary>
     public StringU8 Label { get; set; } = StringU8.Empty;
 
+    /// <summary> The full path of the folder as a UTF16 string. </summary>
+    public string FullPath { get; set; } = string.Empty;
+
+    /// <summary> The folder name as a UTF16 string. </summary>
+    public string Name { get; set; } = string.Empty;
+
     /// <inheritdoc/>
     public void Update(FileSystemCache _, IFileSystemNode node)
-        => Label = new StringU8(node.Name);
+    {
+        Label    = new StringU8(node.Name);
+        FullPath = node.FullPath;
+        Name     = node.Name.ToString();
+    }
 
     /// <inheritdoc/>
     public void Draw(FileSystemCache cache, IFileSystemNode node)
@@ -23,6 +33,7 @@ public sealed class FileSystemFolderCache : IFileSystemNodeCache
         if (ret)
             cache.FileSystem.ChangeExpandedState(folder, !folder.Expanded);
         cache.HandleSelection(node, true);
+        ApplyMiddleClick(cache, folder);
         DrawContext(cache, folder);
         IFileSystemNodeCache.DragDrop(cache, node);
     }
@@ -39,5 +50,19 @@ public sealed class FileSystemFolderCache : IFileSystemNodeCache
 
         foreach (var button in cache.Parent.FolderContext)
             button.DrawMenuItem(folder);
+    }
+
+    /// <summary> Select or unselect all data node descendants of the folder on middle-click. </summary>
+    private static void ApplyMiddleClick(FileSystemCache cache, IFileSystemFolder folder)
+    {
+        if (!Im.Item.MiddleClicked())
+            return;
+
+        bool? isSelected = null;
+        foreach (var child in folder.GetDescendants().OfType<IFileSystemData>())
+        {
+            isSelected ??= child.Selected;
+            cache.Parent.FileSystem.ChangeSelectedState(child, !isSelected.Value);
+        }
     }
 }

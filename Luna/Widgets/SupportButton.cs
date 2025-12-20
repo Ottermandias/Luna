@@ -22,14 +22,13 @@ public static class SupportButton
     /// <summary> Draw the button that opens the ReniGuide. </summary>
     public static void ReniGuide(MessageService message, float width)
     {
-        const string address = "https://reniguide.info/";
         using var color = Im.Color.Push(ImGuiColor.Button, ReniColorButton)
             .Push(ImGuiColor.ButtonHovered, ReniColorHovered)
             .Push(ImGuiColor.ButtonActive,  ReniColorActive);
 
-        Link(message, "Beginner's Guides"u8, address, width,
-            $"Open {address}\nImage and text based guides for most functionality of Penumbra made by Serenity.\n"
-          + "Not directly affiliated and potentially, but not usually out of date.");
+        Link(message, "Beginner's Guides"u8, "https://reniguide.info/", width,
+            "Open https://reniguide.info/\nImage and text based guides for most functionality of Penumbra made by Serenity.\n"u8
+          + "Not directly affiliated and potentially, but not usually out of date."u8);
     }
 
     /// <summary> Draw a button that opens an address in the browser. </summary>

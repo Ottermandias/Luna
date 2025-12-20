@@ -30,9 +30,9 @@ public abstract class BaseFileSystemNodeCache<TSelf> : IFileSystemNodeCache
     /// <param name="node"> The original file system node this is used for. </param>
     protected virtual void DrawInternal(FileSystemCache<TSelf> cache, IFileSystemNode node)
     {
-        const TreeNodeFlags baseFlags = TreeNodeFlags.Leaf | TreeNodeFlags.Bullet | TreeNodeFlags.NoTreePushOnOpen;
+        const TreeNodeFlags baseFlags = TreeNodeFlags.NoTreePushOnOpen;
         var                 flags     = node.Selected ? baseFlags | TreeNodeFlags.Selected : baseFlags;
-        Im.Tree.Node(node.Name, flags).Dispose();
+        Im.Tree.Leaf(node.Name, flags);
     }
 
     /// <summary> Handle the context menu for a node based on the parent's data context. </summary>

@@ -128,7 +128,7 @@ public abstract class FileSystemDrawer<TNodeCache>(BaseFileSystem fileSystem, IF
     where TNodeCache : IFileSystemNodeCache
 {
     /// <summary> The header containing the filter for this file system drawer. </summary>
-    public readonly FilterHeader<TNodeCache> Header = new(filter ?? NopFilter.Instance, StringU8.Empty);
+    public readonly FilterHeader<TNodeCache> Header = new(filter ?? NopFilter.Instance, new StringU8("Filter..."u8));
 
     /// <summary> Draw the panel. </summary>
     public override void Draw()
@@ -162,6 +162,10 @@ public abstract class FileSystemDrawer<TNodeCache>(BaseFileSystem fileSystem, IF
             add { }
             remove { }
         }
+
+        /// <inheritdoc/>
+        public bool IsVisible
+            => false;
 
         /// <inheritdoc/>
         public bool DrawFilter(ReadOnlySpan<byte> label, Vector2 availableRegion)

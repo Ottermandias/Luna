@@ -12,7 +12,7 @@ public class FilterHeader<TCacheItem>(IFilter<TCacheItem> filter, StringU8? id) 
     public readonly StringU8 Id = id ?? StringU8.Empty;
 
     /// <inheritdoc/>
-    public bool Collapsed { get; } = filter is not NopFilter<TCacheItem>;
+    public bool Collapsed { get; } = !filter.IsVisible;
 
     /// <inheritdoc/>
     public void Draw(Vector2 size)
