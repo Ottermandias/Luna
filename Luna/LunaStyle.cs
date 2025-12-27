@@ -50,6 +50,9 @@ public static partial class LunaStyle
     /// <summary> The icon that should be used for buttons that collapse something that is currently expanded rightwards. </summary>
     public static readonly AwesomeIcon CollapseLeftIcon = FontAwesomeIcon.CaretLeft;
 
+    /// <summary> The icon that should be used for buttons that duplicate data. </summary>
+    public static readonly AwesomeIcon DuplicateIcon = FontAwesomeIcon.Clone;
+
     /// <summary> The icon that should be used for buttons that export to files. </summary>
     public static readonly AwesomeIcon FileExportIcon = FontAwesomeIcon.FileExport;
 

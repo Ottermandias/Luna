@@ -28,8 +28,13 @@ public sealed class FileSystemFolderCache : IFileSystemNodeCache
     {
         var folder = (IFileSystemFolder)node;
         Im.Tree.SetNextOpen(folder.Expanded);
-        var flags = node.Selected ? TreeNodeFlags.NoTreePushOnOpen | TreeNodeFlags.Selected : TreeNodeFlags.NoTreePushOnOpen;
-        ImEx.IconTreeNode(Label, flags, node, out var ret, new LockedIcon(cache.FileSystem)).Dispose();
+        bool ret;
+        var  flags = node.Selected ? TreeNodeFlags.NoTreePushOnOpen | TreeNodeFlags.Selected : TreeNodeFlags.NoTreePushOnOpen;
+        using (ImGuiColor.Text.Push(folder.Expanded ? cache.ExpandedFolderColor : cache.CollapsedFolderColor))
+        {
+            ImEx.IconTreeNode(Label, flags, node, out ret, new LockedIcon(cache.FileSystem)).Dispose();
+        }
+
         if (ret)
             cache.FileSystem.ChangeExpandedState(folder, !folder.Expanded);
         cache.HandleSelection(node, true);

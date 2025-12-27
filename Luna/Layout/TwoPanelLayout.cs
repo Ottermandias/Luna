@@ -130,13 +130,9 @@ public class TwoPanelLayout : IUiService
             .Push(ImStyleDouble.WindowPadding, Vector2.Zero)
             .Push(ImStyleSingle.FrameRounding, 0);
 
-        // Draw the header and move the cursor to the correct height for the panel afterward.
-        var startCursor = Im.Cursor.Y;
+        // Draw the header, which is not restricted to frame height.
         if (!RightHeader.Collapsed)
-        {
-            RightHeader.Draw(Im.ContentRegion.Available with { Y = Im.Style.FrameHeight });
-            Im.Cursor.Y = startCursor + Im.Style.FrameHeight;
-        }
+            RightHeader.Draw(Im.ContentRegion.Available);
 
         style.Pop(2).Push(ImStyleSingle.ChildRounding, 0);
 

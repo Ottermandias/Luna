@@ -36,7 +36,13 @@ public abstract class FileSystemCache : BasicCache
     internal IFileSystemNode? DraggedNode;
 
     /// <summary> The color to use for the tree lines. </summary>
-    public Vector4 LineColor { get; set; } = Vector4.One;
+    public Vector4 LineColor { get;   set; } = Vector4.One;
+
+    /// <summary> The color to use for collapsed folder labels. </summary>
+    public Vector4 CollapsedFolderColor { get; set; } = Vector4.One;
+    
+    /// <summary> The color to use for expanded folder labels. </summary>
+    public Vector4 ExpandedFolderColor { get; set; } = Vector4.One;
 
     /// <summary> The last targeted node for shift-selection operations. </summary>
     protected readonly WeakReference<IFileSystemNode> LastTarget = new(null!);

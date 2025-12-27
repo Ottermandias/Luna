@@ -7,6 +7,9 @@ public readonly struct SingleArray<T> : IReadOnlyList<T> where T : notnull
     /// <summary> Reference type as a union of the object type itself and an array of objects. </summary>
     private readonly object? _value;
 
+    /// <summary> An empty single array. </summary>
+    public static readonly SingleArray<T> Empty = new();
+
     /// <summary> Create an empty single array containing no objects. </summary>
     public SingleArray()
         => _value = null;
