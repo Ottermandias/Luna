@@ -9,6 +9,9 @@ public sealed class FileSystemSelection : IDisposable
     private readonly List<IFileSystemData>   _dataNodes    = [];
     private readonly List<IFileSystemFolder> _folders      = [];
 
+    /// <summary> The current selection changed. </summary>
+    public event Action? Changed;
+
     /// <summary> Whether this selection object allows multiple nodes to be selected at once. </summary>
     public readonly bool AllowsMultiSelection;
 
@@ -92,11 +95,12 @@ public sealed class FileSystemSelection : IDisposable
         {
             case IFileSystemData data:
                 _dataNodes.Remove(data);
-                return;
+                break;
             case IFileSystemFolder folder:
                 _folders.Remove(folder);
-                return;
+                break;
         }
+        Changed?.Invoke();
     }
 
     /// <summary> Add a node to the selection as consequence of a file system event. </summary>
@@ -115,11 +119,13 @@ public sealed class FileSystemSelection : IDisposable
         {
             case IFileSystemData data:
                 _dataNodes.Add(data);
-                return;
+                break;
             case IFileSystemFolder folder:
                 _folders.Add(folder);
-                return;
+                break;
         }
+
+        Changed?.Invoke();
     }
 
     /// <summary> Clear all selected nodes. </summary>
@@ -131,7 +137,7 @@ public sealed class FileSystemSelection : IDisposable
     }
 
     /// <summary> Update the selected nodes from the file system data. </summary>
-    private void SetData()
+    public void SetData()
     {
         foreach (var node in _fileSystem.Root.GetDescendants().Where(n => n.Selected))
             AddNode(node);

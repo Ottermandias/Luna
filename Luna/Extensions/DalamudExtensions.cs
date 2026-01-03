@@ -1,4 +1,5 @@
 using Dalamud.Bindings.ImGui;
+using Dalamud.Interface.ImGuiFileDialog;
 
 namespace Luna;
 
@@ -10,4 +11,10 @@ public static class DalamudExtensions
     /// <returns> The converted flags. </returns>
     public static ImGuiWindowFlags ToDalamudWindowFlags(this WindowFlags flags)
         => (ImGuiWindowFlags)flags;
+
+    /// <summary> Create a FileDialogManager with specific Window Flags. </summary>
+    /// <param name="flags"> The flags to pass. </param>
+    /// <returns> A file dialog manager. </returns>
+    public static FileDialogManager CreateFileDialog(WindowFlags flags = WindowFlags.None)
+        => new() { AddedWindowFlags = flags.ToDalamudWindowFlags() };
 }

@@ -10,19 +10,19 @@ public sealed class RenameFolderInput(BaseFileSystem fileSystem) : BaseButton<IF
 
     /// <summary> Replaces the normal menu item handling for a text input, so the other fields are not used. </summary>
     /// <inheritdoc/>
-    public override bool DrawMenuItem(in IFileSystemFolder folder)
+    public override bool DrawMenuItem(in IFileSystemFolder data)
     {
         MenuSeparator.DrawSeparator();
 
-        var currentPath = folder.FullPath;
+        var currentPath = data.FullPath;
         var ret         = false;
         if (Im.Window.Appearing)
             Im.Keyboard.SetFocusHere();
 
-        if (Im.Input.Text(Label(folder), ref currentPath, flags: InputTextFlags.EnterReturnsTrue))
+        if (Im.Input.Text(Label(data), ref currentPath, flags: InputTextFlags.EnterReturnsTrue))
         {
-            fileSystem.RenameAndMove(folder, currentPath);
-            fileSystem.ExpandAllAncestors(folder);
+            fileSystem.RenameAndMove(data, currentPath);
+            fileSystem.ExpandAllAncestors(data);
             ret = true;
         }
 

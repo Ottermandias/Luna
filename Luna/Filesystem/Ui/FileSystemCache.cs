@@ -29,9 +29,6 @@ public abstract class FileSystemCache : BasicCache
     /// <summary> A set of nodes currently being dragged by selection. </summary>
     internal readonly HashSet<IFileSystemNode> DraggedNodes = [];
 
-    /// <summary> The text displayed while nodes are being dragged. </summary>
-    internal StringU8 DraggedNodeString = StringU8.Empty;
-
     /// <summary> The actual node being dragged. </summary>
     internal IFileSystemNode? DraggedNode;
 
@@ -130,7 +127,6 @@ public abstract class FileSystemCache : BasicCache
     {
         DraggedNode = null;
         DraggedNodes.Clear();
-        DraggedNodeString = StringU8.Empty;
     }
 
     /// <summary> Set the drag and drop data for the given node and current selection. </summary>
@@ -139,12 +135,12 @@ public abstract class FileSystemCache : BasicCache
     {
         DraggedNode = node;
         DraggedNodes.Clear();
-        DraggedNodes.UnionWith(Parent.FileSystem.Selection.OrderedNodes);
         DraggedNodes.Add(node);
-        DraggedNodes.RemoveWhere(n => n.GetAncestors().Any(DraggedNodes.Contains));
-        DraggedNodeString = DraggedNodes.Count is 1
-            ? new StringU8($"Moving {DraggedNodes.First().FullPath}...")
-            : new StringU8($"Moving ...\n\t - {StringU8.Join("\n\t"u8, DraggedNodes.Select(n => n.FullPath))}");
+        if (DraggedNode.Selected)
+        {
+            DraggedNodes.UnionWith(Parent.FileSystem.Selection.OrderedNodes);
+            DraggedNodes.RemoveWhere(n => n.GetAncestors().Any(DraggedNodes.Contains));
+        }
     }
 
     #region Selection Handling

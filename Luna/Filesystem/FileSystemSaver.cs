@@ -115,8 +115,22 @@ public abstract class FileSystemSaver<TSaveService, TProvider> : FileSystemSaver
         FileSystem.Changed.Subscribe(OnFileSystemChange, uint.MinValue);
     }
 
+    /// <summary> The delay between attempts to save locked nodes. </summary>
+    public TimeSpan LockedDelay      = TimeSpan.FromSeconds(1);
+
+    /// <summary> The delay between attempts to save empty folders. </summary>
+    public TimeSpan EmptyFolderDelay = TimeSpan.FromSeconds(5);
+
+    /// <summary> The delay between attempts to save selected nodes. </summary>
+    public TimeSpan SelectedDelay    = TimeSpan.FromSeconds(30);
+
+    /// <summary> The delay between attempts to save expanded folders. </summary>
+    public TimeSpan ExpandedDelay    = TimeSpan.FromSeconds(30);
+
+    /// <summary> Load the file system data from its files. </summary>
     public virtual void Load()
     {
+        FileSystem.Changed.Unsubscribe(OnFileSystemChange);
         FileSystem.Clear();
         MigrateOldFileSystem();
         CreateDataNodes();
@@ -124,6 +138,8 @@ public abstract class FileSystemSaver<TSaveService, TProvider> : FileSystemSaver
         HandleLockedNodes();
         HandleExpandedFolders();
         HandleSelectedNodes();
+        FileSystem.Selection.SetData();
+        FileSystem.Changed.Subscribe(OnFileSystemChange, uint.MinValue);
     }
 
     /// <summary> Save the corresponding files when the file system changes. </summary>
@@ -135,42 +151,42 @@ public abstract class FileSystemSaver<TSaveService, TProvider> : FileSystemSaver
             case FileSystemChangeType.ObjectRenamed:
             case FileSystemChangeType.ObjectRemoved:
                 if (arguments.ChangedObject.Locked)
-                    SaveService.DelaySave(new LockedFiles(this));
+                    SaveService.DelaySave(new LockedFiles(this), LockedDelay);
                 if (arguments.ChangedObject.Selected)
-                    SaveService.DelaySave(new SelectedFiles(this));
+                    SaveService.DelaySave(new SelectedFiles(this), SelectedDelay);
                 if (arguments.ChangedObject is IFileSystemFolder folder)
                 {
                     if (folder.Children.Count is 0)
-                        SaveService.DelaySave(new EmptyFoldersFiles(this));
+                        SaveService.DelaySave(new EmptyFoldersFiles(this), EmptyFolderDelay);
                     if (folder.Expanded)
-                        SaveService.DelaySave(new ExpandedFiles(this));
+                        SaveService.DelaySave(new ExpandedFiles(this), ExpandedDelay);
                 }
 
                 break;
-            case FileSystemChangeType.FolderAdded: SaveService.DelaySave(new EmptyFoldersFiles(this)); break;
+            case FileSystemChangeType.FolderAdded: SaveService.DelaySave(new EmptyFoldersFiles(this), EmptyFolderDelay); break;
             case FileSystemChangeType.DataAdded:
                 if (arguments.ChangedObject.Parent!.Children.Count is 1)
-                    SaveService.DelaySave(new EmptyFoldersFiles(this));
+                    SaveService.DelaySave(new EmptyFoldersFiles(this), EmptyFolderDelay);
                 break;
             case FileSystemChangeType.ObjectMoved:
                 if (arguments.ChangedObject.Locked)
-                    SaveService.DelaySave(new LockedFiles(this));
+                    SaveService.DelaySave(new LockedFiles(this), LockedDelay);
                 if (arguments.ChangedObject.Selected)
-                    SaveService.DelaySave(new SelectedFiles(this));
-                SaveService.DelaySave(new EmptyFoldersFiles(this));
-                SaveService.DelaySave(new ExpandedFiles(this));
+                    SaveService.DelaySave(new SelectedFiles(this), SelectedDelay);
+                SaveService.DelaySave(new EmptyFoldersFiles(this), EmptyFolderDelay);
+                SaveService.DelaySave(new ExpandedFiles(this), ExpandedDelay);
                 break;
             case FileSystemChangeType.FolderMerged:
             case FileSystemChangeType.PartialMerge:
             case FileSystemChangeType.Reload:
-                SaveService.DelaySave(new SelectedFiles(this));
-                SaveService.DelaySave(new LockedFiles(this));
-                SaveService.DelaySave(new EmptyFoldersFiles(this));
-                SaveService.DelaySave(new ExpandedFiles(this));
+                SaveService.DelaySave(new SelectedFiles(this), SelectedDelay);
+                SaveService.DelaySave(new LockedFiles(this), LockedDelay);
+                SaveService.DelaySave(new EmptyFoldersFiles(this), EmptyFolderDelay);
+                SaveService.DelaySave(new ExpandedFiles(this), ExpandedDelay);
                 break;
-            case FileSystemChangeType.LockedChange:   SaveService.DelaySave(new LockedFiles(this)); break;
-            case FileSystemChangeType.ExpandedChange: SaveService.DelaySave(new ExpandedFiles(this)); break;
-            case FileSystemChangeType.SelectedChange: SaveService.DelaySave(new SelectedFiles(this)); break;
+            case FileSystemChangeType.LockedChange:   SaveService.DelaySave(new LockedFiles(this), LockedDelay); break;
+            case FileSystemChangeType.ExpandedChange: SaveService.DelaySave(new ExpandedFiles(this), ExpandedDelay); break;
+            case FileSystemChangeType.SelectedChange: SaveService.DelaySave(new SelectedFiles(this), SelectedDelay); break;
         }
     }
 
@@ -414,7 +430,6 @@ public abstract class FileSystemSaver<TSaveService, TProvider> : FileSystemSaver
                 SaveService.DelaySave(new ExpandedFiles(this));
         }
     }
-
 
     private readonly struct LockedFiles(FileSystemSaver<TSaveService, TProvider> saver) : ISavable<TProvider>
     {

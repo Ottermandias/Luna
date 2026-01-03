@@ -12,4 +12,8 @@ public interface IFooter : IUiService
     /// <inheritdoc cref="IHeader.PostCollapsed"/>
     public void PostCollapsed()
     {}
+
+    /// <inheritdoc cref="IHeader.MinimumWidth"/> 
+    public float MinimumWidth
+        => 0;
 }

@@ -12,4 +12,8 @@ public interface IHeader : IUiService
     /// <summary> Actions to execute if the object is collapsed. </summary>
     public void PostCollapsed()
     { }
+
+    /// <summary> A minimum width for this header. </summary>
+    public float MinimumWidth
+        => 0;
 }

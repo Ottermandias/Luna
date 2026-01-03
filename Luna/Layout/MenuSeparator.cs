@@ -31,6 +31,6 @@ public sealed class MenuSeparator<T> : BaseButton<T>
         => StringU8.Empty;
 
     /// <inheritdoc/>
-    public override bool DrawMenuItem(in T folder)
+    public override bool DrawMenuItem(in T data)
         => MenuSeparator.DrawSeparator();
 }

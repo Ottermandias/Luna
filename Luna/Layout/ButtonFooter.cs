@@ -22,4 +22,9 @@ public class ButtonFooter : IFooter
 
         Buttons[^1].DrawButton(buttonWidth);
     }
+
+    /// <inheritdoc/>
+    /// <remarks> A general assumption that every button has to be at least as big as an icon button. </remarks>
+    public float MinimumWidth
+        => Buttons.Count * Im.Style.FrameHeight;
 }

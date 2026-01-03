@@ -84,6 +84,15 @@ public interface IFileSystemNodeCache
         }
 
         FileSystemCache.KeepDragAlive = true;
-        Im.Text(cache.DraggedNodeString);
+        if (cache.DraggedNodes.Count is 1)
+        {
+            Im.Text($"Moving {cache.DraggedNodes.First().FullPath}...");
+        }
+        else
+        {
+            Im.Text("Moving ..."u8);
+            foreach (var n in cache.DraggedNodes)
+                Im.BulletText(n.FullPath);
+        }
     }
 }

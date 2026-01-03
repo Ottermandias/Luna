@@ -95,6 +95,9 @@ public static partial class LunaStyle
     /// <summary> The icon that should be used for warnings. </summary>
     public static readonly AwesomeIcon WarningIcon = FontAwesomeIcon.ExclamationCircle;
 
+    /// <summary> The icon that should be used for information or help. </summary>
+    public static readonly AwesomeIcon InfoIcon = FontAwesomeIcon.QuestionCircle;
+
     /// <summary> The default color for error borders in inputs. </summary>
     public static readonly Vector4 ErrorBorderColor = new Rgba32(0xFF4040F0).ToVector();
 

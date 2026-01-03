@@ -185,21 +185,21 @@ public abstract class BaseButton<T>
     }
 
     /// <summary> The method to draw this button as a menu item. </summary>
-    /// <param name="folder"> The arguments to be passed to the button. </param>
+    /// <param name="data"> The arguments to be passed to the button. </param>
     /// <returns> True if the menu item was clicked in this frame and <see cref="OnClick"/> was invoked. </returns>
-    public virtual bool DrawMenuItem(in T folder)
+    public virtual bool DrawMenuItem(in T data)
     {
-        PreDraw(folder);
-        var ret = Im.Menu.Item(Label(folder), enabled: Enabled(folder));
+        PreDraw(data);
+        var ret = Im.Menu.Item(Label(data), enabled: Enabled(data));
         if (HasTooltip && Im.Item.Hovered(HoveredFlags.AllowWhenDisabled))
         {
             using var tt = Im.Tooltip.Begin();
-            DrawTooltip(folder);
+            DrawTooltip(data);
         }
 
-        PostDraw(folder);
+        PostDraw(data);
         if (ret)
-            OnClick(folder);
+            OnClick(data);
 
         return ret;
     }

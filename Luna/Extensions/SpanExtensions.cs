@@ -1,7 +1,6 @@
-using System.Collections.Frozen;
-
 namespace Luna;
 
+/// <summary> Extension methods for Spans and ReadOnlySpans. </summary>
 public static class SpanExtensions
 {
     /// <summary> Find the first object fulfilling <paramref name="predicate"/>'s criteria in <paramref name="array"/>, if one exists. </summary>

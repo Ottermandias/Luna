@@ -183,6 +183,7 @@ public class DragDropManager : IDisposable, IUiService
     /// </summary>
     private void Draw()
     {
+        
         // Keep the window alive one frame longer than IsDragging.
         if (!_dragDropManager.IsDragging)
         {
@@ -191,6 +192,10 @@ public class DragDropManager : IDisposable, IUiService
 
             _keepDragAlive = false;
         }
+        else
+        {
+            _keepDragAlive = true;
+        }
 
         // Keep track of the current frame in the shared state,
         // so that only one service draws the window with the sources and targets.
@@ -198,23 +203,19 @@ public class DragDropManager : IDisposable, IUiService
         if (LastDrawnFrame == currentFrame)
             return;
 
-        _keepDragAlive = true;
         LastDrawnFrame = currentFrame;
 
         // Make the window take up the entire main viewport with no padding, no visible elements and no interactivity.
         Im.Window.SetNextSize(Im.Viewport.Main.Size);
         Im.Viewport.Main.SetNextWindowPositionRelative(Vector2.Zero);
         using var style = ImStyleDouble.WindowPadding.Push(Vector2.Zero);
-        using var window = Im.Window.Begin("dragDropWindow"u8,
+        using var window = Im.Window.Begin("###dragDropWindow"u8,
             WindowFlags.NoSavedSettings
           | WindowFlags.NoBackground
-          | WindowFlags.NoBringToFrontOnFocus
           | WindowFlags.NoCollapse
           | WindowFlags.NoDecoration
-          | WindowFlags.NoNavFocus
-          | WindowFlags.NoNav
-          | WindowFlags.NoNavInputs
-          | WindowFlags.NoFocusOnAppearing
+          | WindowFlags.NoMove
+          | WindowFlags.NoDocking
           | WindowFlags.NoResize
           | WindowFlags.NoTitleBar);
         if (!window)
