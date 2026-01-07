@@ -16,7 +16,7 @@ internal readonly record struct TooltipEnumData
     public readonly ValueCollection<(string Value, string Name)> Values;
 
     public TooltipEnumData(string name, string methodName, string unknownName, bool utf16, string @namespace, string @class,
-        params IReadOnlyCollection<(string Value, string Name)> values)
+        params IReadOnlyList<(string Value, string Name)> values)
     {
         Name       = new TypeDefinition(name);
         MethodName = methodName;
@@ -134,17 +134,18 @@ public sealed class TooltipEnumGenerator : IIncrementalGenerator
     private static string GenerateExtensionClass(in TooltipEnumData tooltipEnum)
     {
         var sb           = IndentedStringBuilder.CreatePreamble();
+        var stringEnding = tooltipEnum.Utf16 ? "\"," : "\"u8,";
         sb.OpenNamespace(tooltipEnum.Namespace)
             .OpenExtensionClass(tooltipEnum.Class);
 
         if (!tooltipEnum.Utf16)
         {
             foreach (var (value, tooltip) in tooltipEnum.Values)
-                sb.Append("private static readonly global::ImSharp.StringU8 ").Append(value).Append("_Tooltip__GenU8 = new(\"").Append(tooltip)
-                    .AppendLine("\"u8);");
+                sb.Append("private static readonly global::ImSharp.StringU8 ").Append(value).Append("_Tooltip__GenU8 = new(").AppendLiteral(tooltip)
+                    .AppendLine("u8);");
 
-            sb.Append("private static readonly global::ImSharp.StringU8 MissingEntry_Tooltip__GenU8_ = new(\"").Append(tooltipEnum.Unknown)
-                .AppendLine("\"u8);")
+            sb.Append("private static readonly global::ImSharp.StringU8 MissingEntry_Tooltip__GenU8_ = new(").AppendLiteral(tooltipEnum.Unknown)
+                .AppendLine("u8);")
                 .AppendLine();
         }
 
@@ -162,11 +163,11 @@ public sealed class TooltipEnumGenerator : IIncrementalGenerator
         {
             foreach (var (value, tooltip) in tooltipEnum.Values)
             {
-                sb.AppendObject(tooltipEnum.Name.FullyQualified).Append('.').Append(value).Append(" => \"").Append(tooltip)
-                    .AppendLine("\",");
+                sb.AppendObject(tooltipEnum.Name.FullyQualified).Append('.').Append(value).Append(" => ").AppendLiteral(tooltip)
+                    .AppendLine(',');
             }
 
-            sb.Append("_ => \"").Append(tooltipEnum.Unknown).AppendLine("\",");
+            sb.Append("_ => ").AppendLiteral(tooltipEnum.Unknown).AppendLine(',');
         }
         else
         {

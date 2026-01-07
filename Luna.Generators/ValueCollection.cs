@@ -5,11 +5,11 @@ namespace Luna.Generators;
 /// <summary> A collection adapter for equality comparison of collections by element. </summary>
 /// <typeparam name="T"> The type of the items. </typeparam>
 /// <param name="collection"> The base collection to use. </param>
-internal readonly struct ValueCollection<T>(IReadOnlyCollection<T> collection) : IEquatable<ValueCollection<T>>, IReadOnlyCollection<T>
+internal readonly struct ValueCollection<T>(IReadOnlyList<T> collection) : IEquatable<ValueCollection<T>>, IReadOnlyList<T>
     where T : IEquatable<T>
 {
     /// <summary> The base collection to use. </summary>
-    public readonly IReadOnlyCollection<T> Collection = collection;
+    public readonly IReadOnlyList<T> Collection = collection;
 
     /// <summary> Compares two collections on being sequentially equal. </summary>
     public bool Equals(ValueCollection<T> other)
@@ -40,4 +40,7 @@ internal readonly struct ValueCollection<T>(IReadOnlyCollection<T> collection) :
     /// <inheritdoc/>
     public int Count
         => Collection.Count;
+
+    public T this[int index]
+        => Collection[index];
 }
