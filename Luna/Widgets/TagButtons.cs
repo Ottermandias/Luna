@@ -74,7 +74,7 @@ public static class TagButtons
         if (!editable)
             return -1;
 
-        if (_editIdx == tags.Count)
+        if (_editIdx == tags.Count && Im.Id.IsCurrent(_currentButton))
         {
             var width = SetPosText(_currentTag, x);
             SetFocus();
@@ -86,9 +86,10 @@ public static class TagButtons
             if (!ImEx.Icon.Button(LunaStyle.AddObjectIcon, "Add Tag..."u8))
                 return ret;
 
-            _editIdx    = tags.Count;
-            _setFocus   = true;
-            _currentTag = string.Empty;
+            _currentButton = Im.Id.Current;
+            _editIdx       = tags.Count;
+            _setFocus      = true;
+            _currentTag    = string.Empty;
         }
 
         return ret;
