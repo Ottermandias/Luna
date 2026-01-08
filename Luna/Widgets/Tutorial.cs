@@ -177,7 +177,7 @@ public class Tutorial
         nextValue = Im.Button("Disable Tutorial"u8) ? -1 : nextValue;
         Im.Tooltip.OnHover("Disable all tutorial entries."u8);
 
-        if (nextValue != null)
+        if (nextValue is not null)
         {
             setter(nextValue.Value);
             _waitFrames = 2;

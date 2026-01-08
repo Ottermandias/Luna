@@ -72,7 +72,7 @@ public static class FileSystemUtility
         {
             // Check for opening '(', non-empty content and prior ' '.
             var idx = name.LastIndexOf('(');
-            if (idx < 2 || idx == name.Length - 2 || name[idx - 1] is not ' ')
+            if (idx >= 2 && idx != name.Length - 2 && name[idx - 1] is ' ')
             {
                 // Check if the content can be parsed to a non-negative integer.
                 var potentialNumber = name[(idx + 1)..^1];

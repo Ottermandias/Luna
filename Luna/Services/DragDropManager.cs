@@ -13,8 +13,8 @@ namespace Luna;
 public class DragDropManager : IDisposable, IUiService
 {
     private const    int                     Version = 1;
+    public readonly  IDragDropManager        DalamudManager;
     private readonly IUiBuilder              _uiBuilder;
-    private readonly IDragDropManager        _dragDropManager;
     private readonly IDalamudPluginInterface _pluginInterface;
     private readonly ILogger                 _logger;
 
@@ -47,11 +47,11 @@ public class DragDropManager : IDisposable, IUiService
     private bool _subscribed;
 
     /// <summary> Create a new instance of <see cref="DragDropManager"/> utilizing shared resources and dalamud services. </summary>
-    public DragDropManager(IUiBuilder uiBuilder, IDragDropManager dragDropManager, IDalamudPluginInterface pi,
+    public DragDropManager(IUiBuilder uiBuilder, IDragDropManager dalamudManager, IDalamudPluginInterface pi,
         IDalamudPluginInterface pluginInterface, ILogger logger)
     {
         _uiBuilder       = uiBuilder;
-        _dragDropManager = dragDropManager;
+        DalamudManager   = dalamudManager;
         _pluginInterface = pluginInterface;
         _logger          = logger;
 
@@ -68,6 +68,9 @@ public class DragDropManager : IDisposable, IUiService
             _logger.LogDebug("Created new external drag & drop manager with version {Version}.", Version);
         else
             _logger.LogDebug("Shared existing external drag & drop manager with version {Version}.", Version);
+
+        // Ensure a subscription if initialized before Dalamud's Drag & Drop Manager exists properly.
+        _uiBuilder.Draw += SubscriptionDraw;
     }
 
     /// <summary> Add a new external drag and drop source to the shared data. </summary>
@@ -183,9 +186,8 @@ public class DragDropManager : IDisposable, IUiService
     /// </summary>
     private void Draw()
     {
-        
         // Keep the window alive one frame longer than IsDragging.
-        if (!_dragDropManager.IsDragging)
+        if (!DalamudManager.IsDragging)
         {
             if (!_keepDragAlive)
                 return;
@@ -205,51 +207,53 @@ public class DragDropManager : IDisposable, IUiService
 
         LastDrawnFrame = currentFrame;
 
-        // Make the window take up the entire main viewport with no padding, no visible elements and no interactivity.
-        Im.Window.SetNextSize(Im.Viewport.Main.Size);
-        Im.Viewport.Main.SetNextWindowPositionRelative(Vector2.Zero);
-        using var style = ImStyleDouble.WindowPadding.Push(Vector2.Zero);
-        using var window = Im.Window.Begin("###dragDropWindow"u8,
-            WindowFlags.NoSavedSettings
-          | WindowFlags.NoBackground
-          | WindowFlags.NoCollapse
-          | WindowFlags.NoDecoration
-          | WindowFlags.NoMove
-          | WindowFlags.NoDocking
-          | WindowFlags.NoResize
-          | WindowFlags.NoTitleBar);
-        if (!window)
-            return;
-
         // Draw all sources.
         foreach (var (source, (validity, tooltip)) in _sources)
         {
             if (tooltip is null)
-                _dragDropManager.CreateImGuiSource(source, validity);
+                DalamudManager.CreateImGuiSource(source, validity);
             else
-                _dragDropManager.CreateImGuiSource(source, validity, tooltip);
+                DalamudManager.CreateImGuiSource(source, validity, tooltip);
         }
 
-        // Draw all targets associated with a window-wide invisible button.
+        // Draw all targets associated with the full viewport.
         if (_targets.Count is 0)
             return;
 
-        // Magic number used in our version of imgui to make the drag and drop border on the window look nice.
-        Im.Cursor.Position = new Vector2(5f, 4f);
-        Im.InvisibleButton("##"u8, Im.ContentRegion.Available - new Vector2(5f, 4f));
-        foreach (var (target, action) in _targets)
+        if (DalamudManager.Files.Count is 0 && DalamudManager.Directories.Count is 0)
+            return;
+
+        using var target = Im.DragDrop.TargetViewport();
+        if (!target || !Im.DragDrop.TryPeekPayload(out var payload))
+            return;
+
+        var drawTarget = false;
+        foreach (var (id, action) in _targets)
         {
-            if (_dragDropManager.CreateImGuiTarget(target, out var files, out var directories))
+            if (!payload.CheckType(id))
+                continue;
+
+            drawTarget = true;
+            if (!target.IsDropping(id))
+                continue;
+
+            _logger.LogDebug("Accepted payload for {Target}, invoking associated action.", target);
+            try
             {
-                _logger.LogDebug("Accepted payload for {Target}, invoking associated action.", target);
-                try
-                {
-                    action(files, directories);
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Error invoking action for {Target}.", target);
-                }
+                action(DalamudManager.Files, DalamudManager.Directories);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error invoking action for {Target}.", target);
+            }
+        }
+
+        if (drawTarget)
+        {
+            var drawList = Im.Viewport.Main.Foreground.Shape;
+            unsafe
+            {
+                drawList.Rectangle(Im.Context.Pointer->DragDropTargetRect, Im.Color.Get(ImGuiColor.DragDropTarget), 0, 0, 3.5f);
             }
         }
     }
@@ -260,7 +264,7 @@ public class DragDropManager : IDisposable, IUiService
         if (_subscribed)
             return;
 
-        if (!_dragDropManager.ServiceAvailable)
+        if (!DalamudManager.ServiceAvailable)
         {
             _logger.LogDebug("External drag & drop through Dalamud is unavailable.");
             return;
@@ -293,5 +297,19 @@ public class DragDropManager : IDisposable, IUiService
 
     /// <summary> Always-true predicate to replace null-validity checks. </summary>
     private static bool AlwaysTrue(IDragDropManager _)
-        => true;
+    {
+        return true;
+    }
+
+    /// <summary> Method to ensure trying a subscription again on the first draw call when Dalamud's Drag & Drop Manager should be initialized. </summary>
+    private void SubscriptionDraw()
+    {
+        if (!_subscribed && (_sources.Count > 0 || _targets.Count > 0))
+        {
+            _logger.LogDebug("Subscribing external drag & drop in Draw due to early load.");
+            Subscribe();
+        }
+
+        _uiBuilder.Draw -= SubscriptionDraw;
+    }
 }
