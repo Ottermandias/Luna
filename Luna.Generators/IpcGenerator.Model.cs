@@ -23,7 +23,7 @@ internal readonly record struct IpcProviderOrSubscriberInfo
         ParameterInfo implementationParameter, IReadOnlyList<MethodInfo> methods, IReadOnlyList<PropertyInfo> properties,
         IReadOnlyList<EventInfo> events)
     {
-        DeclaringType           = new(declaringType);
+        DeclaringType           = new TypeDefinition(declaringType);
         DeclaringTypeKind       = declaringTypeKind;
         DeclaringTypeNamespace  = declaringTypeNamespace;
         MethodName              = methodName;
@@ -33,9 +33,9 @@ internal readonly record struct IpcProviderOrSubscriberInfo
         Lazy                    = lazy;
         PluginInterfaceName     = pluginInterfaceName;
         ImplementationParameter = implementationParameter;
-        Methods                 = new(methods);
-        Properties              = new(properties);
-        Events                  = new(events);
+        Methods                 = new ValueCollection<MethodInfo>(methods);
+        Properties              = new ValueCollection<PropertyInfo>(properties);
+        Events                  = new ValueCollection<EventInfo>(events);
     }
 }
 
@@ -57,7 +57,7 @@ internal readonly record struct MethodInfo
         ReturnParameter = returnParameter;
         IpcName         = ipcName;
         Accessibility   = accessibility;
-        Parameters      = new(parameters);
+        Parameters      = new ValueCollection<ParameterInfo>(parameters);
     }
 }
 
@@ -85,7 +85,7 @@ internal readonly record struct PropertyInfo
         Accessibility    = accessibility;
         GetAccessibility = getAccessibility;
         SetAccessibility = setAccessibility;
-        Indices          = new(indices);
+        Indices          = new ValueCollection<ParameterInfo>(indices);
     }
 }
 

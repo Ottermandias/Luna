@@ -68,14 +68,17 @@ public sealed class IpcGenerator : IIncrementalGenerator
 
     private static readonly string EraseTypeAttribute = IndentedStringBuilder.CreatePreamble()
         .OpenNamespace("Luna.Generators")
-        .AppendLine("/// <summary> Erases the custom type of the marked parameter or return value at the IPC level, replacing it by the best matching shared type the generator can determine. Not currently supported on events. </summary>")
-        .AppendLine("/// <remarks> Enums and strong types (see <see cref=\"Luna.Generators.StrongTypeAttribute\"/>) will be replaced by their underlying type. If no better match can be made, types will be replaced by <see cref=\"System.Object\"/>. </remarks>")
+        .AppendLine(
+            "/// <summary> Erases the custom type of the marked parameter or return value at the IPC level, replacing it by the best matching shared type the generator can determine. Not currently supported on events. </summary>")
+        .AppendLine(
+            "/// <remarks> Enums and strong types (see <see cref=\"Luna.Generators.StrongTypeAttribute\"/>) will be replaced by their underlying type. If no better match can be made, types will be replaced by <see cref=\"System.Object\"/>. </remarks>")
         .AppendLine("[AttributeUsage(AttributeTargets.Property | AttributeTargets.Parameter | AttributeTargets.ReturnValue)]")
         .EmbeddedAttribute()
         .GeneratedAttribute()
         .AppendLine($"internal sealed class {nameof(EraseTypeAttribute)} : Attribute")
         .OpenBlock()
-        .AppendLine("/// <summary> A method to use, instead of a cast, to marshal objects of custom types into objects of shared types. </summary>")
+        .AppendLine(
+            "/// <summary> A method to use, instead of a cast, to marshal objects of custom types into objects of shared types. </summary>")
         .AppendLine("/// <remarks>")
         .AppendLine("/// Only pass a method name to use a static method from the custom type.<para />")
         .AppendLine("/// Prefix with a <c>.</c> to use a member expression.<para />")
@@ -83,7 +86,8 @@ public sealed class IpcGenerator : IIncrementalGenerator
         .AppendLine("/// </remarks>")
         .AppendLine("public string Marshal { get; set; } = string.Empty;")
         .AppendLine()
-        .AppendLine("/// <summary> A method to use, instead of a cast, to marshal objects of shared types into objects of custom types. </summary>")
+        .AppendLine(
+            "/// <summary> A method to use, instead of a cast, to marshal objects of shared types into objects of custom types. </summary>")
         .AppendLine("/// <remarks>")
         .AppendLine("/// Only pass a method name to use a static method from the custom type.<para />")
         .AppendLine("/// Prefix with a <c>.</c> to use a member expression.<para />")
@@ -93,14 +97,16 @@ public sealed class IpcGenerator : IIncrementalGenerator
         .AppendLine("public string MarshalBack { get; set; } = string.Empty;")
         .CloseBlock().AppendLine()
         .AppendLine()
-        .AppendLine("/// <summary> Erases the custom type of the marked parameter or return value at the IPC level, replacing it by the given (preferably shared) type. </summary>")
+        .AppendLine(
+            "/// <summary> Erases the custom type of the marked parameter or return value at the IPC level, replacing it by the given (preferably shared) type. </summary>")
         .AppendLine("/// <typeparam name=\"T\"> The type to use at the IPC level. </typeparam>")
         .AppendLine("[AttributeUsage(AttributeTargets.Property | AttributeTargets.Parameter | AttributeTargets.ReturnValue)]")
         .EmbeddedAttribute()
         .GeneratedAttribute()
         .AppendLine($"internal sealed class {nameof(EraseTypeAttribute)}<T> : Attribute")
         .OpenBlock()
-        .AppendLine("/// <summary> A method to use, instead of a cast, to marshal objects of custom types into objects of shared types. </summary>")
+        .AppendLine(
+            "/// <summary> A method to use, instead of a cast, to marshal objects of custom types into objects of shared types. </summary>")
         .AppendLine("/// <remarks>")
         .AppendLine("/// Only pass a method name to use a static method from the custom type.<para />")
         .AppendLine("/// Prefix with a <c>.</c> to use a member expression.<para />")
@@ -108,7 +114,8 @@ public sealed class IpcGenerator : IIncrementalGenerator
         .AppendLine("/// </remarks>")
         .AppendLine("public string Marshal { get; set; } = string.Empty;")
         .AppendLine()
-        .AppendLine("/// <summary> A method to use, instead of a cast, to marshal objects of shared types into objects of custom types. </summary>")
+        .AppendLine(
+            "/// <summary> A method to use, instead of a cast, to marshal objects of shared types into objects of custom types. </summary>")
         .AppendLine("/// <remarks>")
         .AppendLine("/// Only pass a method name to use a static method from the custom type.<para />")
         .AppendLine("/// Prefix with a <c>.</c> to use a member expression.<para />")
@@ -218,7 +225,8 @@ public sealed class IpcGenerator : IIncrementalGenerator
         return new IpcProviderOrSubscriberInfo(methodSymbol.ContainingType!.ToString(), methodSymbol.ContainingType!.TypeKind,
             Utility.GetFullNamespace(methodSymbol.ContainingType), methodSymbol.Name, methodSymbol.ReturnType.ToString(),
             methodSymbol.DeclaredAccessibility, Utility.IsNew(methodSymbol, token), lazy, methodSymbol.Parameters[0].Name,
-            provider ? new(methodSymbol.Parameters[1].Name, methodSymbol.Parameters[1].Type) : ParameterInfo.Void, methods, properties, events);
+            provider ? new ParameterInfo(methodSymbol.Parameters[1].Name, methodSymbol.Parameters[1].Type) : ParameterInfo.Void, methods,
+            properties, events);
     }
 
     private static void CollectMembers(ITypeSymbol typeSymbol, Compilation compilation, bool provider, List<MethodInfo> methods,
@@ -227,8 +235,8 @@ public sealed class IpcGenerator : IIncrementalGenerator
         if (typeSymbol.BaseType is { } baseTypeSymbol)
             CollectMembers(baseTypeSymbol, compilation, provider, methods, properties, events, token);
 
-        foreach (var ifaceSymbol in typeSymbol.Interfaces)
-            CollectMembers(ifaceSymbol, compilation, provider, methods, properties, events, token);
+        foreach (var iFaceSymbol in typeSymbol.Interfaces)
+            CollectMembers(iFaceSymbol, compilation, provider, methods, properties, events, token);
 
         var ipcAttribute = compilation.GetTypeByMetadataName($"Luna.Generators.{nameof(IpcAttribute)}")!;
         foreach (var symbol in typeSymbol.GetMembers())
@@ -243,10 +251,10 @@ public sealed class IpcGenerator : IIncrementalGenerator
                         break;
 
                     var ipcName = GetIpcName(methodSymbol, ipcAttribute);
-                    if (ipcName.Length == 0)
+                    if (ipcName.Length is 0)
                         break;
 
-                    methods.Add(new(methodSymbol.Name, ParseReturnParameter(methodSymbol, compilation),
+                    methods.Add(new MethodInfo(methodSymbol.Name, ParseReturnParameter(methodSymbol, compilation),
                         ipcName, methodSymbol.DeclaredAccessibility,
                         ParseParameters(methodSymbol.Parameters, compilation)));
                     break;
@@ -262,10 +270,10 @@ public sealed class IpcGenerator : IIncrementalGenerator
                         var setSymbol => GetIpcName(setSymbol, ipcAttribute),
                     };
 
-                    if (getIpcName.Length == 0 && setIpcName.Length == 0)
+                    if (getIpcName.Length is 0 && setIpcName.Length is 0)
                         break;
 
-                    properties.Add(new(propertySymbol.Name,
+                    properties.Add(new PropertyInfo(propertySymbol.Name,
                         ParsePropertyValueParameter(propertySymbol, compilation), getIpcName, setIpcName,
                         propertySymbol.DeclaredAccessibility, propertySymbol.GetMethod?.DeclaredAccessibility ?? Accessibility.NotApplicable,
                         propertySymbol.SetMethod?.DeclaredAccessibility ?? Accessibility.NotApplicable,
@@ -282,12 +290,11 @@ public sealed class IpcGenerator : IIncrementalGenerator
                         break;
 
                     ipcName = GetIpcName(eventSymbol, ipcAttribute);
-                    if (ipcName.Length == 0)
+                    if (ipcName.Length is 0)
                         break;
 
-                    events.Add(new(eventSymbol.Name, eventType, ipcName, eventSymbol.DeclaredAccessibility,
-                        ImmutableArrayExtensions
-                            .Select(namedEventTypeSymbol.TypeArguments, static param => new ParameterInfo(string.Empty, param)).ToArray()));
+                    events.Add(new EventInfo(eventSymbol.Name, eventType, ipcName, eventSymbol.DeclaredAccessibility,
+                        namedEventTypeSymbol.TypeArguments.Select(static param => new ParameterInfo(string.Empty, param)).ToArray()));
                     break;
             }
 
@@ -296,8 +303,7 @@ public sealed class IpcGenerator : IIncrementalGenerator
     }
 
     private static ParameterInfo[] ParseParameters(ImmutableArray<IParameterSymbol> parameters, Compilation compilation)
-        => ImmutableArrayExtensions.Select(parameters,
-                param => BuildParameterInfo(param.Type, param.GetAttributes(), param.Name, compilation))
+        => parameters.Select(param => BuildParameterInfo(param.Type, param.GetAttributes(), param.Name, compilation))
             .ToArray();
 
     private static ParameterInfo ParseReturnParameter(IMethodSymbol methodSymbol, Compilation compilation)
@@ -313,17 +319,17 @@ public sealed class IpcGenerator : IIncrementalGenerator
             Utility.FindGenericAttributes(compilation, attributes, $"Luna.Generators.{nameof(EraseTypeAttribute)}`1").FirstOrDefault()
          ?? Utility.FindAttribute(compilation, attributes, $"Luna.Generators.{nameof(EraseTypeAttribute)}");
         if (eraseType is null)
-            return new(name, type);
+            return new ParameterInfo(name, type);
 
         var marshal     = Utility.GetAttributeNamedArgument(eraseType, "Marshal") as string ?? string.Empty;
         var marshalBack = Utility.GetAttributeNamedArgument(eraseType, "MarshalBack") as string ?? string.Empty;
 
-        if (eraseType.AttributeClass is { TypeArguments.Length: 1, })
-            return new(name, type, eraseType.AttributeClass.TypeArguments[0], marshal, marshalBack);
+        if (eraseType.AttributeClass is { TypeArguments.Length: 1 })
+            return new ParameterInfo(name, type, eraseType.AttributeClass.TypeArguments[0], marshal, marshalBack);
 
         if (Utility.FindGenericAttributes(compilation, type, "Luna.Generators.StrongTypeAttribute`1").FirstOrDefault() is
-            { AttributeClass.TypeArguments.Length: 1, ConstructorArguments.Length: >= 1, } strongType)
-            return new(name, type, strongType.AttributeClass.TypeArguments[0],
+            { AttributeClass.TypeArguments.Length: 1, ConstructorArguments.Length: >= 1 } strongType)
+            return new ParameterInfo(name, type, strongType.AttributeClass.TypeArguments[0],
                 marshal.Length > 0 ? marshal : $".{strongType.ConstructorArguments[0].Value}", marshalBack.Length > 0 ? marshalBack : "new");
 
         return type switch
@@ -331,9 +337,9 @@ public sealed class IpcGenerator : IIncrementalGenerator
             INamedTypeSymbol
             {
                 EnumUnderlyingType: { } underlyingType,
-            } => new(name, type, underlyingType, marshal, marshalBack),
-            IPointerTypeSymbol => new(name, type, "nint", marshal, marshalBack),
-            _                  => new(name, type, "object", marshal, marshalBack),
+            } => new ParameterInfo(name, type, underlyingType, marshal, marshalBack),
+            IPointerTypeSymbol => new ParameterInfo(name, type, "nint",   marshal, marshalBack),
+            _                  => new ParameterInfo(name, type, "object", marshal, marshalBack),
         };
     }
 
@@ -354,12 +360,15 @@ public sealed class IpcGenerator : IIncrementalGenerator
         builder.AppendLine($"    => new {info.DeclaringType.Name}_{info.MethodName}_SubscriberImplementation({info.PluginInterfaceName});");
         builder.CloseBlock().AppendLine();
 
-        var allNames = new HashSet<string>();
-        allNames.Add($"{info.DeclaringType.Name}_{info.MethodName}_SubscriberImplementation");
-        allNames.Add("_pi");
-        allNames.Add("pi");
+        HashSet<string> allNames =
+        [
+            $"{info.DeclaringType.Name}_{info.MethodName}_SubscriberImplementation",
+            "_pi",
+            "pi",
+        ];
         AddExposedMemberNames(allNames, info);
-        PrepareDeclarationLists(info, out var getterDecls, out var setterDecls, out var eventDecls, out var methodDecls);
+        PrepareDeclarationLists(info, out var getterDeclarations, out var setterDeclarations, out var eventDeclarations,
+            out var methodDeclarations);
 
         builder.AppendLine();
         builder.GeneratedAttribute();
@@ -367,13 +376,13 @@ public sealed class IpcGenerator : IIncrementalGenerator
         builder.OpenBlock();
         builder.AppendLine($"private readonly global::{IDalamudPluginInterfaceName} _pi;");
         builder.AppendLine();
-        AppendAllDeclarations(builder, info, false, allNames, getterDecls, setterDecls, eventDecls, methodDecls);
+        AppendAllDeclarations(builder, info, false, allNames, getterDeclarations, setterDeclarations, eventDeclarations, methodDeclarations);
         builder.AppendLine();
         builder.AppendLine(
             $"public {info.DeclaringType.Name}_{info.MethodName}_SubscriberImplementation(global::{IDalamudPluginInterfaceName} pi)");
         builder.OpenBlock();
         builder.AppendLine("_pi = pi;");
-        AppendAllInitializations(builder, info, false, getterDecls, setterDecls, eventDecls, methodDecls);
+        AppendAllInitializations(builder, info, false, getterDeclarations, setterDeclarations, eventDeclarations, methodDeclarations);
         builder.CloseBlock().AppendLine();
 
         var i = -1;
@@ -384,19 +393,17 @@ public sealed class IpcGenerator : IIncrementalGenerator
             builder.Append(
                 $"{(info.DeclaringTypeKind is TypeKind.Class ? property.Accessibility.ToModifier() + "override" : "public")} {property.ValueParameter.Type} {(property.IsIndexer ? "this" : property.Name)}");
             if (property.Indices.Count > 0)
-            {
                 builder.Append(
                     $"[{string.Join(", ", property.Indices.Select(static index => $"{index.Type} {index.Name}"))}]"
                 );
-            }
 
             if (!info.Lazy
              && property.GetIpcName.Length > 0
-             && property.SetIpcName.Length == 0
+             && property.SetIpcName.Length is 0
              && (info.DeclaringTypeKind is not TypeKind.Class
                  || property.GetAccessibility == property.Accessibility))
             {
-                AppendCall(builder, getterDecls[i], property.GetIpcName, false, false, property.ValueParameter, property.Indices,
+                AppendCall(builder, getterDeclarations[i], property.GetIpcName, false, false, property.ValueParameter, property.Indices,
                     string.Empty);
             }
             else
@@ -407,7 +414,7 @@ public sealed class IpcGenerator : IIncrementalGenerator
                 {
                     builder.Append(
                         $"{(info.DeclaringTypeKind is TypeKind.Class && property.GetAccessibility != property.Accessibility ? property.GetAccessibility.ToModifier() : string.Empty)}get");
-                    AppendCall(builder, getterDecls[i], property.GetIpcName, info.Lazy, true, property.ValueParameter, property.Indices,
+                    AppendCall(builder, getterDeclarations[i], property.GetIpcName, info.Lazy, true, property.ValueParameter, property.Indices,
                         string.Empty);
                 }
 
@@ -415,7 +422,7 @@ public sealed class IpcGenerator : IIncrementalGenerator
                 {
                     builder.Append(
                         $"{(info.DeclaringTypeKind is TypeKind.Class && property.SetAccessibility != property.Accessibility ? property.SetAccessibility.ToModifier() : string.Empty)}set");
-                    AppendCall(builder, setterDecls[i], property.SetIpcName, info.Lazy, true, ParameterInfo.Void, property.Indices,
+                    AppendCall(builder, setterDeclarations[i], property.SetIpcName, info.Lazy, true, ParameterInfo.Void, property.Indices,
                         property.ValueParameter.GetMarshalExpression("value"));
                 }
 
@@ -432,9 +439,11 @@ public sealed class IpcGenerator : IIncrementalGenerator
                 $"{(info.DeclaringTypeKind is TypeKind.Class ? @event.Accessibility.ToModifier() + "override" : "public")} event {@event.Type} {@event.Name}");
             builder.OpenBlock();
             builder.Append("add");
-            AppendAnyCall(builder, eventDecls[i], @event.IpcName, info.Lazy, true, false, $"{eventDecls[i].Name}.Subscribe(value)");
+            AppendAnyCall(builder, eventDeclarations[i], @event.IpcName, info.Lazy, true, false,
+                $"{eventDeclarations[i].Name}.Subscribe(value)");
             builder.Append("remove");
-            AppendAnyCall(builder, eventDecls[i], @event.IpcName, info.Lazy, true, false, $"{eventDecls[i].Name}.Unsubscribe(value)");
+            AppendAnyCall(builder, eventDeclarations[i], @event.IpcName, info.Lazy, true, false,
+                $"{eventDeclarations[i].Name}.Unsubscribe(value)");
             builder.CloseBlock().AppendLine();
         }
 
@@ -445,7 +454,8 @@ public sealed class IpcGenerator : IIncrementalGenerator
             builder.AppendLine();
             builder.Append(
                 $"{(info.DeclaringTypeKind is TypeKind.Class ? method.Accessibility.ToModifier() + "override" : "public")} {method.ReturnParameter.Type} {method.Name}({string.Join(", ", method.Parameters.Select(static param => $"{param.Type} {param.Name}"))})");
-            AppendCall(builder, methodDecls[i], method.IpcName, info.Lazy, false, method.ReturnParameter, method.Parameters, string.Empty);
+            AppendCall(builder, methodDeclarations[i], method.IpcName, info.Lazy, false, method.ReturnParameter, method.Parameters,
+                string.Empty);
         }
 
         return SourceText.From(builder.CloseAllBlocks().ToString(), Encoding.UTF8);
@@ -483,6 +493,7 @@ public sealed class IpcGenerator : IIncrementalGenerator
                     builder.AppendLine();
                     builder.Append("   ");
                 }
+
                 builder.AppendLine($" => {call};");
             }
         }
@@ -501,56 +512,58 @@ public sealed class IpcGenerator : IIncrementalGenerator
         builder.AppendLine(
             $"    => new __{info.MethodName}_ProviderImplementation({info.PluginInterfaceName}, {info.ImplementationParameter.Name});");
 
-        var allNames = new HashSet<string>();
-        allNames.Add($"__{info.MethodName}_SubscriberImplementation");
-        allNames.Add("_pi");
-        allNames.Add("_impl");
-        allNames.Add("pi");
-        allNames.Add("impl");
-        allNames.Add("e");
+        HashSet<string> allNames =
+        [
+            $"__{info.MethodName}_SubscriberImplementation",
+            "_pi",
+            "_impl",
+            "pi",
+            "impl",
+            "e",
+        ];
         AddExposedMemberNames(allNames, info);
-        PrepareDeclarationLists(info, out var getterDecls, out var setterDecls, out var eventDecls, out var methodDecls);
+        PrepareDeclarationLists(info, out var getterDeclarations, out var setterDeclarations, out var eventDeclarations,
+            out var methodDeclarations);
 
         builder.AppendLine();
-        builder.AppendLine("/// <summary> This is a supporting class for a generated method and has to be exposed due to a technical limitation, but should not be used directly. </summary>");
+        builder.AppendLine(
+            "/// <summary> This is a supporting class for a generated method and has to be exposed due to a technical limitation, but should not be used directly. </summary>");
         builder.GeneratedAttribute();
         builder.AppendLine($"private sealed class __{info.MethodName}_ProviderImplementation : {info.ReturnType}");
         builder.OpenBlock();
         builder.AppendLine($"private readonly global::{IDalamudPluginInterfaceName} _pi;");
         builder.AppendLine($"private readonly {info.ImplementationParameter.Type} _impl;");
         builder.AppendLine();
-        AppendAllDeclarations(builder, info, true, allNames, getterDecls, setterDecls, eventDecls, methodDecls);
+        AppendAllDeclarations(builder, info, true, allNames, getterDeclarations, setterDeclarations, eventDeclarations, methodDeclarations);
         builder.AppendLine();
         builder.AppendLine(
             $"public __{info.MethodName}_ProviderImplementation(global::{IDalamudPluginInterfaceName} pi, {info.ImplementationParameter.Type} impl)");
         builder.OpenBlock();
         builder.AppendLine("_pi = pi;");
         builder.AppendLine("_impl = impl;");
-        AppendAllInitializations(builder, info, true, getterDecls, setterDecls, eventDecls, methodDecls);
+        AppendAllInitializations(builder, info, true, getterDeclarations, setterDeclarations, eventDeclarations, methodDeclarations);
         builder.CloseBlock().AppendLine();
         builder.AppendLine();
         builder.AppendLine("public void Dispose()");
         builder.OpenBlock();
         for (var i = info.Methods.Count; i-- > 0;)
-        {
-            builder.AppendLine($"{methodDecls[i].Name}?.Unregister{(info.Methods[i].IsAction ? "Action" : "Func")}();");
-        }
+            builder.AppendLine($"{methodDeclarations[i].Name}?.Unregister{(info.Methods[i].IsAction ? "Action" : "Func")}();");
 
         for (var i = info.Events.Count; i-- > 0;)
         {
-            builder.AppendLine($"if ({eventDecls[i].Name} is not null)");
+            builder.AppendLine($"if ({eventDeclarations[i].Name} is not null)");
             builder.OpenBlock();
-            builder.AppendLine($"_impl.{info.Events[i].Name} -= {eventDecls[i].Name}.SendMessage;");
+            builder.AppendLine($"_impl.{info.Events[i].Name} -= {eventDeclarations[i].Name}.SendMessage;");
             builder.CloseBlock().AppendLine();
         }
 
         for (var i = info.Properties.Count; i-- > 0;)
         {
             if (info.Properties[i].SetIpcName.Length > 0)
-                builder.AppendLine($"{setterDecls[i].Name}?.UnregisterAction();");
+                builder.AppendLine($"{setterDeclarations[i].Name}?.UnregisterAction();");
 
             if (info.Properties[i].GetIpcName.Length > 0)
-                builder.AppendLine($"{getterDecls[i].Name}?.UnregisterFunc();");
+                builder.AppendLine($"{getterDeclarations[i].Name}?.UnregisterFunc();");
         }
 
         return SourceText.From(builder.CloseAllBlocks().ToString(), Encoding.UTF8);
@@ -581,53 +594,56 @@ public sealed class IpcGenerator : IIncrementalGenerator
         }
     }
 
-    private static void PrepareDeclarationLists(IpcProviderOrSubscriberInfo info, out List<(string TypeArguments, string Name)> getterDecls,
-        out List<(string TypeArguments, string Name)> setterDecls, out List<(string TypeArguments, string Name)> eventDecls,
-        out List<(string TypeArguments, string Name)> methodDecls)
+    private static void PrepareDeclarationLists(IpcProviderOrSubscriberInfo info,
+        out List<(string TypeArguments, string Name)> getterDeclarations,
+        out List<(string TypeArguments, string Name)> setterDeclarations, out List<(string TypeArguments, string Name)> eventDeclarations,
+        out List<(string TypeArguments, string Name)> methodDeclarations)
     {
-        getterDecls = new(info.Properties.Count);
-        setterDecls = new(info.Properties.Count);
-        eventDecls  = new(info.Events.Count);
-        methodDecls = new(info.Methods.Count);
+        getterDeclarations = new List<(string TypeArguments, string Name)>(info.Properties.Count);
+        setterDeclarations = new List<(string TypeArguments, string Name)>(info.Properties.Count);
+        eventDeclarations  = new List<(string TypeArguments, string Name)>(info.Events.Count);
+        methodDeclarations = new List<(string TypeArguments, string Name)>(info.Methods.Count);
     }
 
     private static void AppendAllDeclarations(IndentedStringBuilder builder, IpcProviderOrSubscriberInfo info, bool provider,
-        HashSet<string> allNames, List<(string TypeArguments, string Name)> getterDecls, List<(string TypeArguments, string Name)> setterDecls,
-        List<(string TypeArguments, string Name)> eventDecls, List<(string TypeArguments, string Name)> methodDecls)
+        HashSet<string> allNames, List<(string TypeArguments, string Name)> getterDeclarations,
+        List<(string TypeArguments, string Name)> setterDeclarations,
+        List<(string TypeArguments, string Name)> eventDeclarations, List<(string TypeArguments, string Name)> methodDeclarations)
     {
         foreach (var property in info.Properties)
         {
             if (property.GetIpcName.Length > 0)
             {
                 var name = AllocateName($"_g{(property.IsIndexer ? "this" : property.Name)}", allNames);
-                AppendDeclaration(builder, provider, getterDecls, info, property.Indices, property.ValueParameter.IpcType, name);
+                AppendDeclaration(builder, provider, getterDeclarations, info, property.Indices, property.ValueParameter.IpcType, name);
             }
             else
             {
-                getterDecls.Add((string.Empty, string.Empty));
+                getterDeclarations.Add((string.Empty, string.Empty));
             }
 
             if (property.SetIpcName.Length > 0)
             {
                 var name = AllocateName($"_s{(property.IsIndexer ? "this" : property.Name)}", allNames);
-                AppendDeclaration(builder, provider, setterDecls, info, property.Indices, $"{property.ValueParameter.IpcType}, object?", name);
+                AppendDeclaration(builder, provider, setterDeclarations, info, property.Indices, $"{property.ValueParameter.IpcType}, object?",
+                    name);
             }
             else
             {
-                setterDecls.Add((string.Empty, string.Empty));
+                setterDeclarations.Add((string.Empty, string.Empty));
             }
         }
 
         foreach (var @event in info.Events)
         {
             var name = AllocateName($"_e{@event.Name}", allNames);
-            AppendDeclaration(builder, provider, eventDecls, info, @event.Parameters, "object?", name);
+            AppendDeclaration(builder, provider, eventDeclarations, info, @event.Parameters, "object?", name);
         }
 
         foreach (var method in info.Methods)
         {
             var name = AllocateName($"_m{method.Name}", allNames);
-            AppendDeclaration(builder,                                     provider, methodDecls, info, method.Parameters,
+            AppendDeclaration(builder,                                        provider, methodDeclarations, info, method.Parameters,
                 method.IsAction ? "object?" : method.ReturnParameter.IpcType, name);
         }
     }
@@ -644,9 +660,9 @@ public sealed class IpcGenerator : IIncrementalGenerator
     }
 
     private static void AppendAllInitializations(IndentedStringBuilder builder, IpcProviderOrSubscriberInfo info,
-        bool provider, List<(string TypeArguments, string Name)> getterDecls,
-        List<(string TypeArguments, string Name)> setterDecls, List<(string TypeArguments, string Name)> eventDecls,
-        List<(string TypeArguments, string Name)> methodDecls)
+        bool provider, List<(string TypeArguments, string Name)> getterDeclarations,
+        List<(string TypeArguments, string Name)> setterDeclarations, List<(string TypeArguments, string Name)> eventDeclarations,
+        List<(string TypeArguments, string Name)> methodDeclarations)
     {
         if (info.Lazy)
             return;
@@ -660,43 +676,39 @@ public sealed class IpcGenerator : IIncrementalGenerator
             ++i;
             var indexNames = string.Join(", ", property.Indices.Select(static param => param.Name));
             if (property.GetIpcName.Length > 0)
-            {
-                AppendInitialization(builder, provider, getterDecls[i], property.GetIpcName, false, !provider
+                AppendInitialization(builder, provider, getterDeclarations[i], property.GetIpcName, false, !provider
                     ? string.Empty
                     : property.IsIndexer
-                        ? $"{getterDecls[i].Name}.RegisterFunc(({indexNames}) => {property.ValueParameter.GetMarshalExpression($"_impl[{string.Join(", ", property.Indices.Select(static param => param.GetMarshalBackExpression(param.Name)))}]")});"
-                        : $"{getterDecls[i].Name}.RegisterFunc(() => {property.ValueParameter.GetMarshalExpression($"_impl.{property.Name}")});");
-            }
+                        ? $"{getterDeclarations[i].Name}.RegisterFunc(({indexNames}) => {property.ValueParameter.GetMarshalExpression($"_impl[{string.Join(", ", property.Indices.Select(static param => param.GetMarshalBackExpression(param.Name)))}]")});"
+                        : $"{getterDeclarations[i].Name}.RegisterFunc(() => {property.ValueParameter.GetMarshalExpression($"_impl.{property.Name}")});");
 
             if (property.SetIpcName.Length > 0)
-            {
-                AppendInitialization(builder, provider, setterDecls[i], property.SetIpcName, false,
+                AppendInitialization(builder, provider, setterDeclarations[i], property.SetIpcName, false,
                     !provider
                         ? string.Empty
                         : property.IsIndexer
-                            ? $"{setterDecls[i].Name}.RegisterAction(({indexNames}, value) => _impl[{string.Join(", ", property.Indices.Select(static param => param.GetMarshalBackExpression(param.Name)))}] = {property.ValueParameter.GetMarshalBackExpression("value")});"
-                            : $"{setterDecls[i].Name}.RegisterAction(value => _impl.{property.Name} = value);");
-            }
+                            ? $"{setterDeclarations[i].Name}.RegisterAction(({indexNames}, value) => _impl[{string.Join(", ", property.Indices.Select(static param => param.GetMarshalBackExpression(param.Name)))}] = {property.ValueParameter.GetMarshalBackExpression("value")});"
+                            : $"{setterDeclarations[i].Name}.RegisterAction(value => _impl.{property.Name} = value);");
         }
 
         i = -1;
         foreach (var @event in info.Events)
         {
             ++i;
-            AppendInitialization(builder, provider, eventDecls[i], @event.IpcName, false,
-                !provider ? string.Empty : $"_impl.{@event.Name} += {eventDecls[i].Name}.SendMessage;");
+            AppendInitialization(builder, provider, eventDeclarations[i], @event.IpcName, false,
+                !provider ? string.Empty : $"_impl.{@event.Name} += {eventDeclarations[i].Name}.SendMessage;");
         }
 
         i = -1;
         foreach (var method in info.Methods)
         {
             ++i;
-            AppendInitialization(builder, provider, methodDecls[i], method.IpcName, false,
+            AppendInitialization(builder, provider, methodDeclarations[i], method.IpcName, false,
                 !provider
                     ? string.Empty
                     : method.ReturnParameter.IsTypeErased || method.Parameters.Any(static parameter => parameter.IsTypeErased)
-                        ? $"{methodDecls[i].Name}.Register{(method.IsAction ? "Action" : "Func")}(({string.Join(", ", method.Parameters.Select(static param => param.Name))}) => {method.ReturnParameter.GetMarshalExpression($"_impl.{method.Name}({string.Join(", ", method.Parameters.Select(static param => param.GetMarshalBackExpression(param.Name)))})")});"
-                        : $"{methodDecls[i].Name}.Register{(method.IsAction ? "Action" : "Func")}(_impl.{method.Name});");
+                        ? $"{methodDeclarations[i].Name}.Register{(method.IsAction ? "Action" : "Func")}(({string.Join(", ", method.Parameters.Select(static param => param.Name))}) => {method.ReturnParameter.GetMarshalExpression($"_impl.{method.Name}({string.Join(", ", method.Parameters.Select(static param => param.GetMarshalBackExpression(param.Name)))})")});"
+                        : $"{methodDeclarations[i].Name}.Register{(method.IsAction ? "Action" : "Func")}(_impl.{method.Name});");
         }
     }
 
