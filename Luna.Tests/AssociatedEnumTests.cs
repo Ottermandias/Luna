@@ -1,5 +1,4 @@
 ﻿using Luna.Generators;
-using Tests;
 
 namespace Luna.Tests;
 
