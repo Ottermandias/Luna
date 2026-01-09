@@ -1,45 +1,51 @@
 ﻿<Project Sdk="Dalamud.NET.Sdk/14.0.1">
 
-  <PropertyGroup>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
-    <IsPackable>false</IsPackable>
-  </PropertyGroup>
+    <PropertyGroup>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <IsPackable>false</IsPackable>
+    </PropertyGroup>
 
-  <ItemGroup>
-    <PackageReference Include="coverlet.collector" Version="6.0.2" />
-    <PackageReference Include="Microsoft.CodeAnalysis.Analyzers" Version="5.0.0-1.25277.114" />
-    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.14.0" />
-    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />
-    <PackageReference Include="Moq" Version="4.20.72" />
-    <PackageReference Include="Verify.SourceGenerators" Version="2.5.0" />
-    <PackageReference Include="Verify.Xunit" Version="30.10.0" />
-    <PackageReference Include="xunit" Version="2.9.3" />
-    <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2" />
-  </ItemGroup>
+    <ItemGroup>
+        <PackageReference Include="coverlet.collector" Version="6.0.2" />
+        <PackageReference Include="Microsoft.CodeAnalysis.Analyzers" Version="5.0.0-1.25277.114" />
+        <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.14.0" />
+        <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />
+        <PackageReference Include="Moq" Version="4.20.72" />
+        <PackageReference Include="Verify.SourceGenerators" Version="2.5.0" />
+        <PackageReference Include="Verify.Xunit" Version="30.10.0" />
+        <PackageReference Include="xunit" Version="2.9.3" />
+        <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2" />
+    </ItemGroup>
 
-  <ItemGroup>
-    <Using Include="Xunit" />
-  </ItemGroup>
+    <ItemGroup>
+        <Using Include="Xunit" />
+    </ItemGroup>
 
     <PropertyGroup>
         <Use_DalamudPackager>false</Use_DalamudPackager>
     </PropertyGroup>
 
     <ItemGroup>
-    <ProjectReference Include="..\Luna\Luna.csproj" />
-    <ProjectReference Include="..\Luna.Generators\Luna.Generators.csproj" />
-    <ProjectReference Include="..\Luna.Generators\Luna.Generators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
-  </ItemGroup>
+        <ProjectReference Include="..\Luna\Luna.csproj" />
+        <ProjectReference Include="..\Luna.Generators\Luna.Generators.csproj" />
+        <ProjectReference Include="..\Luna.Generators\Luna.Generators.csproj" OutputItemType="Analyzer"
+                          ReferenceOutputAssembly="false"  />
+    </ItemGroup>
 
-  <PropertyGroup>
-    <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
-    <CompilerGeneratedFilesOutputPath>.generated</CompilerGeneratedFilesOutputPath>
-  </PropertyGroup>
+    <PropertyGroup>
+        <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
+        <CompilerGeneratedFilesOutputPath>.generated</CompilerGeneratedFilesOutputPath>
+    </PropertyGroup>
 
-  <ItemGroup>
-    <!-- Exclude the output of source generators from the compilation -->
-    <Compile Remove="$(CompilerGeneratedFilesOutputPath)/**/*.cs" />
-  </ItemGroup>
+    <ItemGroup>
+        <Content Include="$(DalamudLibPath)\Dalamud.dll" CopyToOutputDirectory="PreserveNewest" />
+        <Content Include="$(DalamudLibPath)\Dalamud.Bindings.ImGui.dll" CopyToOutputDirectory="PreserveNewest" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <!-- Exclude the output of source generators from the compilation -->
+        <Compile Remove="$(CompilerGeneratedFilesOutputPath)/**/*.cs" />
+    </ItemGroup>
 
 </Project>

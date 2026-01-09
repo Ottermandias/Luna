@@ -16,8 +16,9 @@ namespace Luna.Generators
     /// <param name="BackwardDefaultValue"> The default value used for unknown or omitted values in the backward method. If this is <c>null</c> <c>default</c> is used. </param>
     /// <param name="Namespace"> The namespace to put the extension class into. If this is null, the namespace of the enum will be used. </param>
     /// <param name="Class"> The name of the static class containing the extension methods. If this is null, <c>[EnumName]Extensions</c> will be used. </param>
-    [AttributeUsage(AttributeTargets.Enum, AllowMultiple = true)]
+    [global::Microsoft.CodeAnalysis.EmbeddedAttribute]
     [GeneratedCode("Luna.Generators", "1.0.0.0")]
+    [AttributeUsage(AttributeTargets.Enum, AllowMultiple = true)]
     internal class AssociatedEnumAttribute<T>(string? ForwardMethod = null, string? BackwardMethod = "", T ForwardDefaultValue = default!, object? BackwardDefaultValue = null, string? Namespace = null, string? Class = null) : Attribute where T : Enum;
     
     /// <summary> The name to provide when <see cref="Luna.Generators.NamedEnumAttribute"/> is used for this enum. </summary>
@@ -26,8 +27,9 @@ namespace Luna.Generators
     /// <param name="Associate"> Whether to associate this value from the enum or omit it and treat it as undefined. </param>
     /// <param name="DefaultName"> Whether to take the name from the attributed enum value, ignoring the provided value. </param>
     /// <remarks> This is only intended for enum values. If this is omitted, the name of the value itself is used. </remarks>
-    [AttributeUsage(AttributeTargets.Field, AllowMultiple = true)]
+    [global::Microsoft.CodeAnalysis.EmbeddedAttribute]
     [GeneratedCode("Luna.Generators", "1.0.0.0")]
+    [AttributeUsage(AttributeTargets.Field, AllowMultiple = true)]
     internal class AssociateAttribute<T>(T Value, bool Associate = true, bool DefaultName = false) : Attribute where T : Enum
     {
         [global::System.Runtime.CompilerServices.OverloadResolutionPriority(100)]

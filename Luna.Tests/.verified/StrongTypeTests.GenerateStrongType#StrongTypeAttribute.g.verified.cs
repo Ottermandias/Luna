@@ -9,8 +9,9 @@ using System.CodeDom.Compiler;
 namespace Luna.Generators
 {
     /// <summary> Flags that control which functionality this strong type should implement. </summary>
-    [Flags]
+    [global::Microsoft.CodeAnalysis.EmbeddedAttribute]
     [GeneratedCode("Luna.Generators", "1.0.0.0")]
+    [Flags]
     internal enum StrongTypeFlag : ulong
     {
         /// <summary> Whether the strong type is equatable to itself, including equality operators. </summary>
@@ -43,14 +44,19 @@ namespace Luna.Generators
         NewtonsoftConverter        = 1 << 13,
         /// <summary> Whether the strong type contains and applies a System.Text.Json Converter. </summary>
         SystemConverter            = 1 << 14,
+        /// <summary> Whether the strong type contains a Zero entry. </summary>
+        HasZero                    = 1 << 15,
+        /// <summary> Whether the strong type contains a One entry. </summary>
+        HasOne                     = 1 << 16,
         
         /// <summary> The default functionality for a basic type. </summary>
-        Default = EquatableSelf | EquatableBase | ComparableBase | ComparableSelf | Incrementable | Decrementable | AdditionBase | SubtractionBase | ImplicitConversionFromBase | ExplicitConversionToBase,
+        Default = EquatableSelf | EquatableBase | ComparableBase | ComparableSelf | Incrementable | Decrementable | AdditionBase | SubtractionBase | ImplicitConversionFromBase | ExplicitConversionToBase | HasZero,
     }
     
     /// <summary> Create a strongly typed ID type struct. </summary>
-    [AttributeUsage(AttributeTargets.Struct)]
+    [global::Microsoft.CodeAnalysis.EmbeddedAttribute]
     [GeneratedCode("Luna.Generators", "1.0.0.0")]
+    [AttributeUsage(AttributeTargets.Struct)]
     internal class StrongTypeAttribute<T>(string FieldName = "Value", StrongTypeFlag Flags = StrongTypeFlag.Default) : Attribute where T : unmanaged, System.Numerics.INumber<T>;
 }
 
