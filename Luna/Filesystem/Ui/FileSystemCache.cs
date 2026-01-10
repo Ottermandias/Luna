@@ -33,11 +33,11 @@ public abstract class FileSystemCache : BasicCache
     internal IFileSystemNode? DraggedNode;
 
     /// <summary> The color to use for the tree lines. </summary>
-    public Vector4 LineColor { get;   set; } = Vector4.One;
+    public Vector4 LineColor { get; set; } = Vector4.One;
 
     /// <summary> The color to use for collapsed folder labels. </summary>
     public Vector4 CollapsedFolderColor { get; set; } = Vector4.One;
-    
+
     /// <summary> The color to use for expanded folder labels. </summary>
     public Vector4 ExpandedFolderColor { get; set; } = Vector4.One;
 
@@ -78,6 +78,7 @@ public abstract class FileSystemCache : BasicCache
             case FileSystemChangeType.ObjectMoved:
             case FileSystemChangeType.LockedChange:
             case FileSystemChangeType.ExpandedChange:
+            case FileSystemChangeType.FilterExpandedChange:
                 if (!AllNodes.TryGetValue(arguments.ChangedObject, out var node))
                     AllNodes.TryAdd(arguments.ChangedObject, ConvertNodeInternal(arguments.ChangedObject));
                 else
@@ -312,6 +313,9 @@ public abstract class FileSystemCache : BasicCache
         /// <inheritdoc/>
         public int IndentationDepth { get; set; }
 
+        /// <summary> Whether a folder uses its persistent expansion state or the filter expansion state. </summary>
+        public bool TemporaryFilter { get; set; }
+
         /// <inheritdoc/>
         public void Draw(int _)
         {
@@ -323,7 +327,7 @@ public abstract class FileSystemCache : BasicCache
             }
 
             // Draw the node.
-            NodeData.Draw(Parent, ParentNode);
+            NodeData.Draw(Parent, ParentNode, TemporaryFilter);
         }
     }
 }
@@ -386,46 +390,75 @@ public abstract class FileSystemCache<TData> : FileSystemCache
             }
 
             var visible = Filter.WouldBeVisible(cache);
-            // Skip filtered out nodes.
-            if (!visible && node is not IFileSystemFolder)
-                return;
-
-            // Create a new flattened node entry with the node and its cache,
-            // and the current tree data.
-            var data = new FileSystemTreeNode(this, node, cache)
+            switch (node)
             {
-                IndentationDepth = currentDepth,
-                ParentIndex      = parentIndex,
-            };
-            if (node is not IFileSystemFolder { Expanded: true } folder)
-            {
-                // Only add folders that have any children that fulfill the filter if they are collapsed.
-                // If the node is not a folder, we already checked visibility above.
-                if (!visible && ((IFileSystemFolder)node).GetDescendants().All(d => !AllNodes.TryGetValue(d, out var c) || !Filter.WouldBeVisible(c)))
-                    return;
+                // Skip filtered out nodes and add visible data nodes.
+                case IFileSystemData data when visible:
+                {
+                    InternalNodes.Add(new FileSystemTreeNode(this, data, cache)
+                    {
+                        IndentationDepth = currentDepth,
+                        ParentIndex      = parentIndex,
+                        StartsLineTo     = -1,
+                    });
+                    break;
+                }
+                case IFileSystemFolder folder:
+                {
+                    // Create a new flattened node entry with the node and its cache,
+                    // and the current tree data.
+                    var data = new FileSystemTreeNode(this, node, cache)
+                    {
+                        IndentationDepth = currentDepth,
+                        ParentIndex      = parentIndex,
+                        StartsLineTo     = -1,
+                    };
 
-                // Add the visible data node or collapsed folder.
-                data.StartsLineTo = -1;
-                InternalNodes.Add(data);
-                return;
+                    // We only respect the expanded state of folders if the filter is currently empty.
+                    // As soon as a filter is set, expand all folders that are visible or have visible children.
+                    if (Filter.IsEmpty)
+                    {
+                        data.TemporaryFilter = false;
+                        var index = InternalNodes.Count;
+                        InternalNodes.Add(data);
+                        if (folder.Expanded)
+                        {
+                            // Add all visible children.
+                            foreach (var child in folder.GetChildren(Parent.SortMode))
+                                AddNode(child, index, currentDepth + 1);
+                            // We have visible children, so the folder is also visible either way.
+                            if (InternalNodes.Count > index + 1)
+                                data.StartsLineTo = InternalNodes.Count - 1;
+                        }
+                    }
+                    else
+                    {
+                        data.TemporaryFilter = true;
+                        if (!folder.FilterExpanded)
+                        {
+                            if (visible || folder.GetDescendants().Any(d => AllNodes.TryGetValue(d, out var c) && Filter.WouldBeVisible(c)))
+                                InternalNodes.Add(data);
+                        }
+                        else
+                        {
+                            var index = InternalNodes.Count;
+                            // The folder is added regardless of visibility.
+                            InternalNodes.Add(data);
+                            // Add all visible children.
+                            foreach (var child in folder.GetChildren(Parent.SortMode))
+                                AddNode(child, index, currentDepth + 1);
+
+                            if (InternalNodes.Count > index + 1)
+                                data.StartsLineTo = InternalNodes.Count - 1;
+                            // The folder has neither visible children, nor is visible by itself. Remove it again.
+                            else if (!visible)
+                                InternalNodes.RemoveAt(index);
+                        }
+                    }
+
+                    break;
+                }
             }
-
-            var index = VisibleNodes.Count;
-            // The folder is added regardless of visibility.
-            InternalNodes.Add(data);
-            // Add all visible children.
-            foreach (var child in folder.GetChildren(Parent.SortMode))
-                AddNode(child, index, currentDepth + 1);
-
-            // We have visible children, so the folder is also visible either way.
-            if (VisibleNodes.Count > index + 1)
-                data.StartsLineTo = VisibleNodes.Count - 1;
-            // The folder is visible by itself through the filter, but has no visible children.
-            else if (visible)
-                data.StartsLineTo = -1;
-            // The folder has neither visible children, nor is visible by itself. Remove it again.
-            else
-                InternalNodes.RemoveAt(index);
         }
     }
 

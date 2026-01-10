@@ -76,7 +76,23 @@ public class BaseFileSystem
             return false;
 
         ((FileSystemFolder)folder).SetExpanded(value);
+        if (value)
+            ChangeTemporaryExpandedState(folder, true);
         Changed.Invoke(new FileSystemChanged.Arguments(FileSystemChangeType.ExpandedChange, folder, null, null));
+        return true;
+    }
+
+    /// <summary> Change the temporary expanded state of an item and invoke a change for it if it actually changes. </summary>
+    /// <returns> True on change, false if nothing changed. </returns>
+    public bool ChangeTemporaryExpandedState(IFileSystemFolder folder, bool value)
+    {
+        if (folder.FilterExpanded == value || folder.IsRoot)
+            return false;
+
+        ((FileSystemFolder)folder).FilterExpanded = value;
+        if (!value)
+            ChangeExpandedState(folder, false);
+        Changed.Invoke(new FileSystemChanged.Arguments(FileSystemChangeType.FilterExpandedChange, folder, null, null));
         return true;
     }
 

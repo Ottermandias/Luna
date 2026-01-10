@@ -24,19 +24,26 @@ public sealed class FileSystemFolderCache : IFileSystemNodeCache
     }
 
     /// <inheritdoc/>
-    public void Draw(FileSystemCache cache, IFileSystemNode node)
+    public void Draw(FileSystemCache cache, IFileSystemNode node, bool temporaryExpansion)
     {
-        var folder = (IFileSystemFolder)node;
-        Im.Tree.SetNextOpen(folder.Expanded);
+        var folder   = (IFileSystemFolder)node;
+        var expanded = temporaryExpansion ? folder.FilterExpanded : folder.Expanded;
+        Im.Tree.SetNextOpen(expanded);
         bool ret;
         var  flags = node.Selected ? TreeNodeFlags.NoTreePushOnOpen | TreeNodeFlags.Selected : TreeNodeFlags.NoTreePushOnOpen;
-        using (ImGuiColor.Text.Push(folder.Expanded ? cache.ExpandedFolderColor : cache.CollapsedFolderColor))
+        using (ImGuiColor.Text.Push(expanded ? cache.ExpandedFolderColor : cache.CollapsedFolderColor))
         {
             ImEx.IconTreeNode(Label, flags, node, out ret, new LockedIcon(cache.FileSystem)).Dispose();
         }
 
         if (ret)
-            cache.FileSystem.ChangeExpandedState(folder, !folder.Expanded);
+        {
+            if (temporaryExpansion)
+                cache.FileSystem.ChangeTemporaryExpandedState(folder, !folder.FilterExpanded);
+            else
+                cache.FileSystem.ChangeExpandedState(folder, !folder.Expanded);
+        }
+
         cache.HandleSelection(node, true);
         ApplyMiddleClick(cache, folder);
         DrawContext(cache, folder);

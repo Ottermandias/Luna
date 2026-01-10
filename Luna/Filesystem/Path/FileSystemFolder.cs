@@ -14,9 +14,12 @@ internal sealed class FileSystemFolder(FileSystemIdentifier identifier)
     /// <summary> All direct children of this folder. </summary>
     internal readonly List<FileSystemNode> Children = [];
 
-    /// <summary> Whether this folder is marked as expanded/open. </summary>
+    /// <inheritdoc/>
     public bool Expanded
         => Flags.HasFlag(PathFlags.Expanded);
+
+    /// <inheritdoc/>
+    public bool FilterExpanded { get; set; } = true;
 
     /// <summary> Set this folder to be expanded or not. </summary>
     /// <param name="value"> Whether the folder should be expanded or not. </param>

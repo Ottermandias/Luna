@@ -16,8 +16,9 @@ public interface IFileSystemNodeCache
     /// <summary> Draw this node. </summary>
     /// <param name="cache"> The cache that is drawing this node. </param>
     /// <param name="node"> The original file system node that is drawn. </param>
+    /// <param name="startsLine"> Whether the node starts a line and thus has children, which may be true regardless of the node's <see cref="IFileSystemFolder.Expanded"/> state. </param>
     /// <remarks> Called inside a <see cref="TreeLine"/>. The drawn object should be a single item for ImGui. </remarks>
-    public void Draw(FileSystemCache cache, IFileSystemNode node);
+    public void Draw(FileSystemCache cache, IFileSystemNode node, bool startsLine);
 
     /// <summary> Draw the drag and drop functionality for file system tree nodes. </summary>
     /// <param name="cache"> The cache that is drawing this node. </param>

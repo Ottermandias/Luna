@@ -6,6 +6,9 @@ public interface IFileSystemFolder : IFileSystemNode
     /// <summary> Get whether the folder is currently expanded/open. </summary>
     public bool Expanded { get; }
 
+    /// <summary> Get or set whether the folder is temporarily expanded. This is not saved across sessions and does not incur events. </summary>
+    public bool FilterExpanded { get; set; }
+
     /// <summary> The total number of descendants of this folder. </summary>
     public int TotalDescendants { get; }
 

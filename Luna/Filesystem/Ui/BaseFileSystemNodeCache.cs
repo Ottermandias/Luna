@@ -14,10 +14,8 @@ public abstract class BaseFileSystemNodeCache<TSelf> : IFileSystemNodeCache
     public virtual void Update(FileSystemCache cache, IFileSystemNode node)
     { }
 
-    /// <summary> Draw the cached node. </summary>
-    /// <param name="cache"> The parent cache. </param>
-    /// <param name="node"> The original file system node this is used for. </param>
-    public void Draw(FileSystemCache cache, IFileSystemNode node)
+    /// <inheritdoc/>
+    public void Draw(FileSystemCache cache, IFileSystemNode node, bool _)
     {
         DrawInternal((FileSystemCache<TSelf>)cache, node);
         cache.HandleSelection(node, true);

@@ -20,7 +20,7 @@ public readonly struct OptionalBool : IEquatable<OptionalBool>, IEquatable<bool?
 
     /// <summary> Create an optional bool from a nullable bool. </summary>
     public OptionalBool(bool? value)
-        => _value = (byte)(value == null ? byte.MaxValue : value.Value ? 1 : 0);
+        => _value = (byte)(value is null ? byte.MaxValue : value.Value ? 1 : 0);
 
     /// <summary> Whether the value is set to either <c>true</c> or <c>false</c>. </summary>
     public bool HasValue
@@ -47,6 +47,18 @@ public readonly struct OptionalBool : IEquatable<OptionalBool>, IEquatable<bool?
     /// <inheritdoc/>
     public bool Equals(OptionalBool other)
         => _value == other._value;
+
+    /// <summary> Get whether the value is set to true. </summary>
+    public bool IsTrue
+        => _value is 1;
+
+    /// <summary> Get whether the value is set to false. </summary>
+    public bool IsFalse
+        => _value is 0;
+
+    /// <summary> Get whether the value is not set to true or false. </summary>
+    public bool IsNull
+        => _value > 1;
 
     /// <inheritdoc/>
     public bool Equals(bool? other)

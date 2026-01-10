@@ -38,4 +38,7 @@ public enum FileSystemChangeType
 
     /// <summary> The <see cref="PathFlags.Selected"/> state of an object was changed. </summary>
     SelectedChange,
+
+    /// <summary> The <see cref="IFileSystemFolder.FilterExpanded"/> state of a folder was changed. </summary>
+    FilterExpandedChange,
 }
