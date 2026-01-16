@@ -39,8 +39,8 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <Content Include="$(DalamudLibPath)\Dalamud.dll" CopyToOutputDirectory="PreserveNewest" />
-        <Content Include="$(DalamudLibPath)\Dalamud.Bindings.ImGui.dll" CopyToOutputDirectory="PreserveNewest" />
+        <None Include="$(DalamudLibPath)\Dalamud.dll" CopyToOutputDirectory="PreserveNewest" Visible="false"/>
+        <None Include="$(DalamudLibPath)\Dalamud.Bindings.ImGui.dll" CopyToOutputDirectory="PreserveNewest" Visible="false"/>
     </ItemGroup>
 
     <ItemGroup>

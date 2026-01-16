@@ -172,7 +172,7 @@ public sealed class IpcGenerator : IIncrementalGenerator
         if (!methodSymbol.Parameters[0].Type.Equals(dalamudPluginInterface, SymbolEqualityComparer.Default))
             return null;
 
-        var lazy = (bool)(Utility.GetAttributeNamedArgument(context.Attributes[0], "LazySubscribers") ?? false);
+        var lazy = (bool)(Utility.GetNamedArgument(context.Attributes[0], "LazySubscribers") ?? false);
 
         return ParseProviderOrSubscriber(methodSymbol, context.SemanticModel.Compilation, false, lazy, token);
     }
@@ -321,8 +321,8 @@ public sealed class IpcGenerator : IIncrementalGenerator
         if (eraseType is null)
             return new ParameterInfo(name, type);
 
-        var marshal     = Utility.GetAttributeNamedArgument(eraseType, "Marshal") as string ?? string.Empty;
-        var marshalBack = Utility.GetAttributeNamedArgument(eraseType, "MarshalBack") as string ?? string.Empty;
+        var marshal     = Utility.GetNamedArgument(eraseType, "Marshal") as string ?? string.Empty;
+        var marshalBack = Utility.GetNamedArgument(eraseType, "MarshalBack") as string ?? string.Empty;
 
         if (eraseType.AttributeClass is { TypeArguments.Length: 1 })
             return new ParameterInfo(name, type, eraseType.AttributeClass.TypeArguments[0], marshal, marshalBack);
