@@ -20,6 +20,28 @@ public static class FormattingFunctions
         return string.Format(format, s, ByteAbbreviations[order]);
     }
 
+    /// <inheritdoc cref="DurationString(long,DateTime)"/>
+    public static string DurationString(long timestamp)
+        => DurationString(timestamp, DateTime.UtcNow);
+
+    /// <summary> Obtain a human-readable duration from a unix millisecond timestamp. </summary>
+    /// <param name="timestamp"> The unix epoch timestamp in milliseconds. </param>
+    /// <param name="now"> The current time to compare it against. </param>
+    /// <returns> A human-readable string of the time difference. </returns>
+    public static string DurationString(long timestamp, DateTime now)
+    {
+        now = now.AddMilliseconds(-now.Millisecond);
+        var diff = now - DateTimeOffset.FromUnixTimeMilliseconds(timestamp - timestamp % 1000);
+        return diff.TotalSeconds switch
+        {
+            > 300 * TimeSpan.SecondsPerDay => string.Create(CultureInfo.InvariantCulture, $"{diff.TotalSeconds / 300.0 / TimeSpan.SecondsPerDay:F2} Years"),
+            > 10 * TimeSpan.SecondsPerDay  => string.Create(CultureInfo.InvariantCulture, $"{diff.TotalSeconds / 10.0 / TimeSpan.SecondsPerDay:F2} Months"),
+            > TimeSpan.SecondsPerDay       => string.Create(CultureInfo.InvariantCulture, $"{diff.TotalSeconds / TimeSpan.SecondsPerDay:F2} Days"),
+            > TimeSpan.SecondsPerHour      => $"{diff.Hours}:{diff.Minutes:D2} Hours",
+            _                              => $"{diff.Minutes}:{diff.Seconds:D2} Minutes",
+        };
+    }
+
     /// <summary> Convert a contiguous array of memory into its hex representation without spaces. </summary>
     /// <param name="bytes"> The data to format. </param>
     /// <param name="capitalized"> Whether the hex-letters should be capitalized or not. </param>
@@ -37,8 +59,10 @@ public static class FormattingFunctions
                 *retPtr2++ = span[*ptr & 0xF];
                 *retPtr2++ = span[*ptr >> 4];
             }
+
             *retPtr2 = 0;
         }
+
         return new StringU8(ret.AsMemory(0, ret.Length - 1));
     }
 
@@ -60,8 +84,10 @@ public static class FormattingFunctions
                 *retPtr2++ = span[*ptr >> 4];
                 *retPtr2++ = (byte)' ';
             }
+
             retPtr2[-1] = 0;
         }
+
         return new StringU8(ret.AsMemory(0, ret.Length - 1));
     }
 

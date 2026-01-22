@@ -12,10 +12,12 @@ public sealed class RenameFolderInput(BaseFileSystem fileSystem) : BaseButton<IF
     /// <inheritdoc/>
     public override bool DrawMenuItem(in IFileSystemFolder data)
     {
+        var       currentPath = data.FullPath;
+        var       ret         = false;
+        using var style       = Im.Style.PushDefault(ImStyleDouble.FramePadding);
+
         MenuSeparator.DrawSeparator();
 
-        var currentPath = data.FullPath;
-        var ret         = false;
         if (Im.Window.Appearing)
             Im.Keyboard.SetFocusHere();
 

@@ -29,8 +29,7 @@ public sealed class FileSystemSelection : IDisposable
         => _folders;
 
     /// <summary> A single selected data node if exactly one is selected; otherwise, null. </summary>
-    public IFileSystemData? Selection
-        => _dataNodes.Count is 1 ? _dataNodes[0] : null;
+    public IFileSystemData? Selection { get; private set; }
 
     /// <summary> Create the selection data for a specific parent. </summary>
     /// <remarks> Since this is only called by the <see cref="BaseFileSystem"/> itself, and thus has at least the same lifetime as the event, it is not disposed by its parent. </remarks>
@@ -46,6 +45,7 @@ public sealed class FileSystemSelection : IDisposable
     {
         while (OrderedNodes.Count > 0)
             _fileSystem.ChangeSelectedState(OrderedNodes[^1], false);
+        Selection = null;
     }
 
     /// <summary> Select a single node and unselect all other nodes. </summary>
@@ -100,6 +100,7 @@ public sealed class FileSystemSelection : IDisposable
                 _folders.Remove(folder);
                 break;
         }
+        Selection = null;
         Changed?.Invoke();
     }
 
@@ -114,11 +115,14 @@ public sealed class FileSystemSelection : IDisposable
         if (_orderedNodes.Contains(node))
             return;
 
+        Selection = null;
         _orderedNodes.Add(node);
         switch (node)
         {
             case IFileSystemData data:
                 _dataNodes.Add(data);
+                if (_orderedNodes.Count is 1)
+                    Selection = data;
                 break;
             case IFileSystemFolder folder:
                 _folders.Add(folder);
@@ -131,6 +135,7 @@ public sealed class FileSystemSelection : IDisposable
     /// <summary> Clear all selected nodes. </summary>
     private void Clear()
     {
+        Selection = null;
         _orderedNodes.Clear();
         _dataNodes.Clear();
         _folders.Clear();

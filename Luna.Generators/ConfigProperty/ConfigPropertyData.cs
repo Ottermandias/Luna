@@ -42,10 +42,12 @@ internal readonly record struct ConfigPropertyData(
                 SyntaxFactory.Argument(SyntaxFactory.IdentifierName("__oldValue")))));
 
         if (EventName is not null)
-            setterStatements.Add(SyntaxFactory.ExpressionStatement(SyntaxFactory
-                .InvocationExpression(SyntaxFactory.IdentifierName(EventName))
-                .AddArgumentListArguments(SyntaxFactory.Argument(fieldExpression),
-                    SyntaxFactory.Argument(SyntaxFactory.IdentifierName("__oldValue")))));
+            setterStatements.Add(
+                SyntaxFactory.ExpressionStatement(
+                    SyntaxFactory.ConditionalAccessExpression(SyntaxFactory.IdentifierName(EventName),
+                        SyntaxFactory.InvocationExpression(SyntaxFactory.MemberBindingExpression(SyntaxFactory.IdentifierName("Invoke")))
+                            .AddArgumentListArguments(SyntaxFactory.Argument(fieldExpression),
+                                SyntaxFactory.Argument(SyntaxFactory.IdentifierName("__oldValue"))))));
 
         if (SaveMethodName is not null)
             setterStatements.Add(
@@ -101,7 +103,8 @@ internal readonly record struct ConfigPropertyData(
                     EventName.Identifier())
                 .AddModifiers(SyntaxFactory.Token(SyntaxKind.PublicKeyword))
                 .AddAttributeLists(SyntaxFactory.AttributeList(SyntaxFactory.SingletonSeparatedList(SyntaxFactory.Generated())))
-                .WithLeadingTrivia(SyntaxFactory.Comment($"/// <summary> Invoked after <see cref=\"{PropertyName}\"/> changed. First argument is the new value, second is the old value. </summary>"))
+                .WithLeadingTrivia(SyntaxFactory.Comment(
+                    $"/// <summary> Invoked after <see cref=\"{PropertyName}\"/> changed. First argument is the new value, second is the old value. </summary>"))
                 .WithSemicolonToken(SyntaxFactory.Token(SyntaxKind.SemicolonToken));
             yield return @event;
         }

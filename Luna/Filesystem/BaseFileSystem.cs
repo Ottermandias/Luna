@@ -107,7 +107,11 @@ public class BaseFileSystem
         var parent     = node.Parent;
         var anyChanges = false;
         while (parent != Root)
+        {
             anyChanges |= ChangeExpandedState(parent!, true);
+            parent     =  parent!.Parent;
+        }
+
         return anyChanges;
     }
 
@@ -681,7 +685,7 @@ public class BaseFileSystem
             return (Result.SuccessNothingDone, _root);
         }
 
-        var slash = fullPath.IndexOf('/');
+        var slash = fullPath.LastIndexOf('/');
         if (slash < 0)
         {
             fileName = fullPath;
