@@ -150,7 +150,7 @@ public sealed class NamedEnumGenerator : IIncrementalGenerator
         {
             sb.AppendLine("/// <summary> Efficiently get a human-readable display name for this value. </summary>");
             if (namedEnum.Utf8)
-                sb.Append("/// <remarks> For a UTF8 representation of the name, use <see cref=\"")
+                sb.Append("/// <remarks> For a UTF8 representation of the name, use <see cref=\"global::")
                     .Append($"{namedEnum.Class}.{namedEnum.MethodName}").AppendLine("U8\"/>. </remarks>");
             sb.GeneratedAttribute()
                 .Append("public static string ").Append(namedEnum.MethodName).Append("(this ").AppendObject(namedEnum.Name.FullyQualified)
@@ -175,12 +175,12 @@ public sealed class NamedEnumGenerator : IIncrementalGenerator
 
             foreach (var (value, name) in namedEnum.Values)
                 sb.Append("private static readonly global::ImSharp.StringU8 ").Append(value).Append("_Name__GenU8 = new(").AppendLiteral(name).AppendLine("u8);");
-            sb.Append("private static readonly global::ImSharp.StringU8 MissingEntry_Name__GenU8_ = new(").AppendLiteral(namedEnum.Unknown).AppendLine("u8);")
+            sb.Append("private static readonly global::ImSharp.StringU8 MissingEntry_Name__GenU8 = new(").AppendLiteral(namedEnum.Unknown).AppendLine("u8);")
                 .AppendLine();
 
             sb.AppendLine("/// <summary> Efficiently get a human-readable display name for this value. </summary>");
             if (namedEnum.Utf16)
-                sb.Append("/// <remarks> For a UTF16 representation of the name, use <see cref=\"")
+                sb.Append("/// <remarks> For a UTF16 representation of the name, use <see cref=\"global::")
                     .Append($"{namedEnum.Class}.{namedEnum.MethodName}").AppendLine("\"/>. </remarks>");
             sb.GeneratedAttribute()
                 .Append("public static global::ImSharp.StringU8 ").Append(namedEnum.MethodName).Append("U8(this ")
@@ -191,7 +191,7 @@ public sealed class NamedEnumGenerator : IIncrementalGenerator
             foreach (var (value, _) in namedEnum.Values)
                 sb.AppendObject(namedEnum.Name.FullyQualified).Append('.').Append(value).Append(" => ").Append(value).AppendLine("_Name__GenU8,");
 
-            sb.AppendLine("_ => MissingEntry_Name__GenU8_,")
+            sb.AppendLine("_ => MissingEntry_Name__GenU8,")
                 .CloseBlock().Append(';').AppendLine().Unindent();
         }
 

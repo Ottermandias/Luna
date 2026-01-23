@@ -11,6 +11,9 @@ public static partial class LunaStyle
     /// <summary> The icon that should be used for deletion buttons. </summary>
     public static readonly AwesomeIcon DeleteIcon = FontAwesomeIcon.Trash;
 
+    /// <summary> The icon that should be used for buttons that back something up and then delete it. </summary>
+    public static readonly AwesomeIcon BackupDeleteIcon = FontAwesomeIcon.TrashRestore;
+
     /// <summary> The icon that should be used for help- or tooltip markers, generally with the disabled text color. </summary>
     public static readonly AwesomeIcon HelpMarker = FontAwesomeIcon.InfoCircle;
 
