@@ -102,10 +102,10 @@ public static partial class LunaStyle
     public static readonly AwesomeIcon InfoIcon = FontAwesomeIcon.QuestionCircle;
 
     /// <summary> The default color for error borders in inputs. </summary>
-    public static readonly Vector4 ErrorBorderColor = new Rgba32(0xFF4040F0).ToVector();
+    public static readonly Vector4 ErrorBorderColor = new(0.95f, 0.25f, 0.25f, 1);
 
     /// <summary> The default color for warning borders in inputs. </summary>
-    public static readonly Vector4 WarningBorderColor = new Rgba32(0xFF40F0F0).ToVector();
+    public static readonly Vector4 WarningBorderColor = new(0.95f, 0.95f, 0.25f, 1);
 
     /// <summary> The color for activated favorites icons. </summary>
     public static readonly Vector4 FavoriteColor = new(1, 1, 0, 1);
