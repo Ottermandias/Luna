@@ -5,16 +5,11 @@ namespace Luna;
 /// <summary> Auxiliary functions to draw some of the support buttons. </summary>
 public static class SupportButton
 {
-    public const uint DiscordColor     = 0xFFDA8972;
-    public const uint ReniColorButton  = 0xFFCC648D;
-    public const uint ReniColorHovered = 0xFFB070B0;
-    public const uint ReniColorActive  = 0xFF9070E0;
-
     /// <summary> Draw a button to open the official Penumbra/Glamourer discord server. </summary>
     public static void Discord(MessageService message, float width)
     {
         const string address = "https://discord.gg/kVva7DHV4r";
-        using var    color   = ImGuiColor.Button.Push(DiscordColor);
+        using var    color   = ImGuiColor.Button.Push(LunaStyle.DiscordColor);
 
         Link(message, "Join Discord for Support"u8, address, width, $"Open {address}");
     }
@@ -22,9 +17,9 @@ public static class SupportButton
     /// <summary> Draw the button that opens the ReniGuide. </summary>
     public static void ReniGuide(MessageService message, float width)
     {
-        using var color = Im.Color.Push(ImGuiColor.Button, ReniColorButton)
-            .Push(ImGuiColor.ButtonHovered, ReniColorHovered)
-            .Push(ImGuiColor.ButtonActive,  ReniColorActive);
+        using var color = Im.Color.Push(ImGuiColor.Button, LunaStyle.ReniColorButton)
+            .Push(ImGuiColor.ButtonHovered, LunaStyle.ReniColorHovered)
+            .Push(ImGuiColor.ButtonActive,  LunaStyle.ReniColorActive);
 
         Link(message, "Beginner's Guides"u8, "https://reniguide.info/", width,
             "Open https://reniguide.info/\nImage and text based guides for most functionality of Penumbra made by Serenity.\n"u8
