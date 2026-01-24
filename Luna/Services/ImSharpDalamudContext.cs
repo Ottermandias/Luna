@@ -50,7 +50,7 @@ public sealed unsafe class ImSharpDalamudContext : IRequiredService, IDisposable
             logger.LogDebug("Created new ImSharp Context at 0x{Context:X} with tag {Tag:l}.", (nint)context, _contextTag);
         else
             logger.LogDebug("Shared existing ImSharp Context at 0x{Context:X} with tag {Tag:l}.", (nint)context, _contextTag);
-        ImSharpConfiguration.SetContext(context);
+        ImSharpConfiguration.SetContext(context, false);
     }
 
     /// <summary> Clear all ImSharp configuration data and relinquish the context from Dalamud's data store.  </summary>
@@ -59,7 +59,7 @@ public sealed unsafe class ImSharpDalamudContext : IRequiredService, IDisposable
         _uiBuilder.DefaultFontChanged        -= OnDefaultFontChanged;
         _uiBuilder.DefaultGlobalScaleChanged -= OnDefaultGlobalScaleChanged;
         _uiBuilder.DefaultStyleChanged       -= OnDefaultStyleChanged;
-        ImSharpConfiguration.SetContext(null);
+        ImSharpConfiguration.SetContext(null, true);
         ImSharpConfiguration.SetLogger(null);
         _pluginInterface.RelinquishData(_contextTag);
         _uiBuilder.Draw -= ImSharpPerFrame.OnUpdate;
@@ -152,6 +152,7 @@ public sealed unsafe class ImSharpDalamudContext : IRequiredService, IDisposable
                 return;
 
             ImSharpContext.TearDownDefault((ImSharpContext*)_context);
+            ((ImSharpContext*)_context)->Dispose();
             ImSharpConfiguration.Logger.LogDebug("Teared down ImSharp context at 0x{Context:X}.", _context);
             _context = nint.Zero;
         }
