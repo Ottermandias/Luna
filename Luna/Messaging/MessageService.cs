@@ -98,6 +98,8 @@ public class MessageService(Logger log, IChatGui chat, INotificationManager noti
                     InitialDuration = message.NotificationDuration,
                 });
                 notification.DrawActions += message.OnNotificationActions;
+                if (message is INotificationAwareMessage notificationAwareMessage)
+                    notificationAwareMessage.OnNotificationCreated(notification);
             }
         }
 
