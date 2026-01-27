@@ -33,9 +33,6 @@ public class DragDropManager : IDisposable, IUiService
     /// <summary> A marker that gets set on initialization if this service created the data share. False if the share already existed. </summary>
     private bool _creator;
 
-    /// <summary> The <see cref="IDragDropManager.IsDragging"/> property gets removed one frame before the drop actually happens, but we still need to draw the window in this frame. </summary>
-    private bool _keepDragAlive;
-
     /// <summary> Accessor for the last frame. </summary>
     private int LastDrawnFrame
     {
@@ -184,20 +181,10 @@ public class DragDropManager : IDisposable, IUiService
     ///   When required, draw an entirely independent ImGui window that is invisible and not interactable.
     ///   This window draws all external drag and drop sources, as well as all drag and drop targets across the entire main viewport.
     /// </summary>
-    private void Draw()
+    private unsafe void Draw()
     {
-        // Keep the window alive one frame longer than IsDragging.
-        if (!DalamudManager.IsDragging)
-        {
-            if (!_keepDragAlive)
-                return;
-
-            _keepDragAlive = false;
-        }
-        else
-        {
-            _keepDragAlive = true;
-        }
+        if (!Im.Context.Initialized)
+            return;
 
         // Keep track of the current frame in the shared state,
         // so that only one service draws the window with the sources and targets.
@@ -234,27 +221,25 @@ public class DragDropManager : IDisposable, IUiService
                 continue;
 
             drawTarget = true;
+
             if (!target.IsDropping(id))
                 continue;
 
-            _logger.LogDebug("Accepted payload for {Target}, invoking associated action.", target);
+            _logger.LogDebug("Accepted payload for {Target:l}, invoking associated action.", id);
             try
             {
                 action(DalamudManager.Files, DalamudManager.Directories);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error invoking action for {Target}.", target);
+                _logger.LogError(ex, "Error invoking action for {Target}.", id);
             }
         }
 
         if (drawTarget)
         {
             var drawList = Im.Viewport.Main.Foreground.Shape;
-            unsafe
-            {
-                drawList.Rectangle(Im.Context.Pointer->DragDropTargetRect, Im.Color.Get(ImGuiColor.DragDropTarget), 0, 0, 3.5f);
-            }
+            drawList.Rectangle(Im.Context.Pointer->DragDropTargetRect, Im.Color.Get(ImGuiColor.DragDropTarget), 0, 0, 3.5f);
         }
     }
 
