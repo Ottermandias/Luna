@@ -3,7 +3,7 @@ using Dalamud.Interface;
 namespace Luna;
 
 /// <summary> A struct containing the printable bytes for a <see cref="FontAwesomeIcon"/>. </summary>
-public readonly struct AwesomeIcon : IIconStandIn
+public readonly struct AwesomeIcon : IIconStandIn, IEquatable<AwesomeIcon>, IEqualityOperators<AwesomeIcon, AwesomeIcon, bool>
 {
     private readonly ulong _data;
 
@@ -34,4 +34,19 @@ public readonly struct AwesomeIcon : IIconStandIn
     /// <inheritdoc/>
     public static unsafe Im.Font Font
         => (Im.Native.ImFont*)UiBuilder.IconFont.Handle;
+
+    public bool Equals(AwesomeIcon other)
+        => _data == other._data;
+
+    public override bool Equals(object? obj)
+        => obj is AwesomeIcon other && Equals(other);
+
+    public override int GetHashCode()
+        => _data.GetHashCode();
+
+    public static bool operator ==(AwesomeIcon left, AwesomeIcon right)
+        => left.Equals(right);
+
+    public static bool operator !=(AwesomeIcon left, AwesomeIcon right)
+        => !left.Equals(right);
 }

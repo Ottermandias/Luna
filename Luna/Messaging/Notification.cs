@@ -34,7 +34,7 @@ public class Notification : IMessage
 
     /// <inheritdoc/>
     public void OnNotificationActions(INotificationDrawArgs args)
-    {}
+    { }
 
     /// <summary> Create a new notification with the given message. </summary>
     /// <param name="content"> The message to display in the notification and write to log.  </param>
@@ -47,8 +47,8 @@ public class Notification : IMessage
         NotificationDuration = TimeSpan.FromMilliseconds(duration);
         NotificationTitle    = type.ToString();
         LogMessage           = NotificationMessage;
-        StoredMessage         = new StringU8(NotificationMessage);
-        StoredTooltip         = StringU8.Empty;
+        StoredMessage        = new StringU8(NotificationMessage);
+        StoredTooltip        = StringU8.Empty;
     }
 
     /// <summary> Create a new error notification with the given message. </summary>
@@ -64,7 +64,7 @@ public class Notification : IMessage
         NotificationDuration = TimeSpan.FromMilliseconds(duration);
         NotificationTitle    = type.ToString();
         LogMessage           = $"{content2}:\n{ex}";
-        StoredMessage         = new StringU8(NotificationMessage);
-        StoredTooltip         = new StringU8($"{ex}");
+        StoredMessage        = new StringU8(NotificationMessage);
+        StoredTooltip        = new StringU8($"{ex}");
     }
 }
