@@ -101,6 +101,15 @@ public static partial class LunaStyle
     /// <summary> The icon that should be used for information or help. </summary>
     public static readonly AwesomeIcon InfoIcon = FontAwesomeIcon.QuestionCircle;
 
+    /// <summary> The icon that should be used Undo or Revert buttons. </summary>
+    public static readonly AwesomeIcon UndoIcon = FontAwesomeIcon.UndoAlt;
+
+    /// <summary> The icon that should be used to pop a panel out to its own window. </summary>
+    public static readonly AwesomeIcon PopOutIcon = FontAwesomeIcon.SquareArrowUpRight;
+
+    /// <summary> The icon that should be used to resize something to its default values or auto-fit values. </summary>
+    public static readonly AwesomeIcon AutoResizeIcon = FontAwesomeIcon.Expand;
+
     /// <summary> The default color for error borders in inputs. </summary>
     public static readonly Vector4 ErrorBorderColor = new(0.95f, 0.25f, 0.25f, 1);
 
