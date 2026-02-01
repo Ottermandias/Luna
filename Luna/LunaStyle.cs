@@ -35,6 +35,12 @@ public static partial class LunaStyle
     /// <summary> The icon that should be used to show favorites. </summary>
     public static readonly AwesomeIcon FavoriteIcon = FontAwesomeIcon.Star;
 
+    /// <summary> The checkmark icon that should be used to denote a true or active value. </summary>
+    public static readonly AwesomeIcon TrueIcon = FontAwesomeIcon.Check;
+
+    /// <summary> The cross icon that should be used to denote a false or inactive value. </summary>
+    public static readonly AwesomeIcon FalseIcon = FontAwesomeIcon.Times;
+
     /// <summary> The icon that should be used to show buttons opening folders. </summary>
     public static readonly AwesomeIcon FolderIcon = FontAwesomeIcon.Folder;
 

@@ -62,6 +62,7 @@ public class StartTimeTracker : IService
     public void Stop(string name)
         => Get(name).Stop();
 
+    /// <summary> Draw the data of the start time tracker with the given ID. </summary>
     public static void Draw(Utf8LabelHandler id)
     {
         using var _     = Im.Id.Push(ref id);
@@ -81,7 +82,7 @@ public class StartTimeTracker : IService
         return tuple;
     }
 
-    private sealed class StartTimeTrackerViewModel(StartTimeTracker tracker) : BasicCache
+    public sealed class StartTimeTrackerViewModel(StartTimeTracker tracker) : BasicCache, IService
     {
         private record struct Column(StringU8 Name, SizedString Time, SizedString Start, SizedString End, SizedString Thread)
         {

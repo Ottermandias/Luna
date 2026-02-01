@@ -192,7 +192,7 @@ public sealed class Changelog : Window
         if (!combo)
             return;
 
-        foreach (var type in Enum.GetValues<ChangeLogDisplayType>())
+        foreach (var type in ChangeLogDisplayType.Values)
         {
             if (Im.Selectable(ToName(type)))
                 _setConfig(_lastVersion, type);
@@ -333,7 +333,7 @@ public sealed class Changelog : Window
             foreach (var entry in entries)
                 entry.Append(sb);
 
-            Im.Clipboard.Set(sb.ToString());
+            Im.Clipboard.Set($"{sb}");
         }
         catch
         {

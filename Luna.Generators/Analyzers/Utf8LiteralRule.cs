@@ -26,16 +26,33 @@ public sealed class Utf8LiteralRule : DiagnosticAnalyzer
             return;
 
         if (!syntax.Operand.ConstantValue.HasValue)
-            return;
+        {
+            if (syntax.Operand is not IMemberReferenceOperation member)
+                return;
 
-        if (syntax.Operand.ConstantValue.Value is not string)
-            return;
+            if (member.Instance is not null)
+                return;
 
-        if (syntax.OperatorMethod?.ReturnType is not { } returnType || !returnType.ToString().StartsWith("ImSharp.Utf8StringHandler<"))
-            return;
+            if (member.Member.Name is not nameof(string.Empty))
+                return;
 
-        var diagnostic = Diagnostic.Create(Rule, context.Operation.Syntax.GetLocation(), returnType);
-        context.ReportDiagnostic(diagnostic);
+            if (member.ConstrainedToType?.Name is not "string")
+                return;
+
+            var diagnostic = Diagnostic.Create(Rule, context.Operation.Syntax.GetLocation());
+            context.ReportDiagnostic(diagnostic);
+        }
+        else
+        {
+            if (syntax.Operand.ConstantValue.Value is not string)
+                return;
+
+            if (syntax.OperatorMethod?.ReturnType is not { } returnType || !returnType.ToString().StartsWith("ImSharp.Utf8StringHandler<"))
+                return;
+
+            var diagnostic = Diagnostic.Create(Rule, context.Operation.Syntax.GetLocation());
+            context.ReportDiagnostic(diagnostic);
+        }
     }
 
     private static readonly DiagnosticDescriptor Rule = new("Luna01", "Prefer UTF8 Literals",
