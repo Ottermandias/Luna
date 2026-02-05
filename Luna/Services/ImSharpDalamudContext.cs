@@ -32,7 +32,6 @@ public sealed unsafe class ImSharpDalamudContext : IRequiredService, IDisposable
         ImSharpConfiguration.SetLogger(logger);
 
         // Set up the default cache manager.
-        CacheManager.Instance.ServiceProvider =  services;
         _uiBuilder.DefaultFontChanged         += OnDefaultFontChanged;
         _uiBuilder.DefaultGlobalScaleChanged  += OnDefaultGlobalScaleChanged;
         _uiBuilder.DefaultStyleChanged        += OnDefaultStyleChanged;

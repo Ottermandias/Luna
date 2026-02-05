@@ -10,7 +10,7 @@ public abstract class FilterComboColors : FilterComboBase<FilterComboColors.Item
     protected Vector2 ButtonSize;
 
     /// <summary> No color is selected. </summary>
-    public static readonly Item None = new(new StringU8("None"), Rgba32.Transparent, 0, false);
+    public static readonly Item None = new(new StringU8("None"u8), Rgba32.Transparent, 0, false);
 
     /// <summary> The current selection of the combo. </summary>
     public Item CurrentSelection
@@ -44,7 +44,7 @@ public abstract class FilterComboColors : FilterComboBase<FilterComboColors.Item
     /// <inheritdoc/>
     protected internal override float ItemHeight
         => Im.Style.FrameHeight;
-
+    
     /// <summary> Draw the combo updating its own current selection. </summary>
     /// <param name="label"> The label to use. </param>
     /// <returns> True if the selection was changed this frame. </returns>
@@ -73,8 +73,8 @@ public abstract class FilterComboColors : FilterComboBase<FilterComboColors.Item
         // Push the stain color to type and if it is too bright, turn the text color black.
         var contrastColor = item.Color.ContrastColor();
         Style.Push(ImGuiColor.Button, item.Color, !item.Color.IsTransparent)
-            .Push(ImGuiColor.Text, contrastColor);
-        Im.Cursor.X = 0;
+            .Push(ImGuiColor.Text, contrastColor, !item.Color.IsTransparent);
+        Im.Cursor.X = AdditionalSpace + Im.Style.GlobalScale;
         var ret = Im.Button(item.Name, Im.Scroll.MaximumY > 0 ? ButtonSize with { X = ButtonSize.X - Im.Style.ScrollbarSize } : ButtonSize);
         Style.PopColor(2);
 

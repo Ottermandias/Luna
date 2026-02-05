@@ -25,7 +25,7 @@ public class ServiceManager : IDisposable
     public ServiceManager(Logger logger, string? name = null)
     {
         _logger = logger;
-
+        
         // Add logging services and self.
         _collection.AddSingleton(ServiceDescriptor.Singleton(typeof(ILogger<>), typeof(Logger<>)));
         _collection.AddSingleton<ILogger>(_logger);
