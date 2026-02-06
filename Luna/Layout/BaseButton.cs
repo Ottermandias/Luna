@@ -63,7 +63,8 @@ public abstract class BaseButton
         var ret = ImEx.Button(Label, disabled: !Enabled, size: size);
         if (HasTooltip && Im.Item.Hovered(HoveredFlags.AllowWhenDisabled))
         {
-            using var tt = Im.Tooltip.Begin();
+            using var style = Im.Style.PushDefault();
+            using var tt    = Im.Tooltip.Begin();
             DrawTooltip();
         }
 
@@ -85,7 +86,8 @@ public abstract class BaseButton
         var ret = Im.Menu.Item(Label, enabled: Enabled);
         if (HasTooltip && Im.Item.Hovered(HoveredFlags.AllowWhenDisabled))
         {
-            using var tt = Im.Tooltip.Begin();
+            using var style = Im.Style.PushDefault();
+            using var tt    = Im.Tooltip.Begin();
             DrawTooltip();
         }
 
@@ -112,7 +114,8 @@ public abstract class BaseButton
 
         if (HasTooltip && Im.Item.Hovered(HoveredFlags.AllowWhenDisabled))
         {
-            using var tt = Im.Tooltip.Begin();
+            using var style = Im.Style.PushDefault();
+            using var tt    = Im.Tooltip.Begin();
             DrawTooltip();
         }
 
@@ -173,7 +176,8 @@ public abstract class BaseButton<T>
         var ret = ImEx.Button(Label(data), disabled: !Enabled(data), size: size);
         if (HasTooltip && Im.Item.Hovered(HoveredFlags.AllowWhenDisabled))
         {
-            using var tt = Im.Tooltip.Begin();
+            using var style = Im.Style.PushDefault();
+            using var tt    = Im.Tooltip.Begin();
             DrawTooltip(data);
         }
 
@@ -193,7 +197,8 @@ public abstract class BaseButton<T>
         var ret = Im.Menu.Item(Label(data), enabled: Enabled(data));
         if (HasTooltip && Im.Item.Hovered(HoveredFlags.AllowWhenDisabled))
         {
-            using var tt = Im.Tooltip.Begin();
+            using var style = Im.Style.PushDefault();
+            using var tt    = Im.Tooltip.Begin();
             DrawTooltip(data);
         }
 

@@ -148,7 +148,7 @@ public abstract class FilterComboColors : FilterComboBase<FilterComboColors.Item
         {
             ComboWidth = 0;
             foreach (var item in AllItems)
-                ComboWidth = Math.Max(ComboWidth, Im.Font.CalculateSize(item.Name).X);
+                ComboWidth = Math.Max(ComboWidth, Im.Font.CalculateSize(item.Name).X + 4 * Im.Style.ItemSpacing.X);
             parent.ButtonSize =  new Vector2(ComboWidth += Im.Style.FramePadding.X * 2 + Im.Style.ScrollbarSize, parent.ItemHeight);
             ComboWidth        += parent.AdditionalSpace;
         }

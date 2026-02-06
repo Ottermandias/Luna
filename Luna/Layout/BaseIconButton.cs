@@ -26,7 +26,8 @@ public abstract class BaseIconButton<TIcon> : BaseButton
         var ret = ImEx.Icon.Button(Icon, !Enabled, size);
         if (HasTooltip && Im.Item.Hovered(HoveredFlags.AllowWhenDisabled))
         {
-            using var tt = Im.Tooltip.Begin();
+            using var style = Im.Style.PushDefault();
+            using var tt    = Im.Tooltip.Begin();
             DrawTooltip();
         }
 
@@ -66,7 +67,8 @@ public abstract class BaseIconButton<TIcon, TData> : BaseButton<TData>
         var ret = ImEx.Icon.Button(Icon, !Enabled(data), size);
         if (HasTooltip && Im.Item.Hovered(HoveredFlags.AllowWhenDisabled))
         {
-            using var tt = Im.Tooltip.Begin();
+            using var style = Im.Style.PushDefault();
+            using var tt    = Im.Tooltip.Begin();
             DrawTooltip(data);
         }
 
