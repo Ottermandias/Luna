@@ -40,7 +40,7 @@ public abstract class FastHook<T> : IHookService, IDisposable where T : Delegate
     }
 
     /// <inheritdoc/>
-    public void Dispose()
+    public virtual void Dispose()
     {
         Task.Result.Dispose();
         Task.Dispose();
