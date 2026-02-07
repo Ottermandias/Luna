@@ -58,7 +58,8 @@ public static partial class LunaStyle
     {
         if (DrawHelpMarker(color) || treatAsHovered)
         {
-            using var tt = Im.Tooltip.Begin();
+            using var style = Im.Style.PushDefault(ImStyleDouble.WindowPadding);
+            using var tt    = Im.Tooltip.Begin();
             Im.Text(ref tooltip);
         }
     }
