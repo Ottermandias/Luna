@@ -84,17 +84,17 @@ public class StartTimeTracker : IService
 
     private sealed class StartTimeTrackerViewModel(StartTimeTracker tracker) : BasicCache
     {
-        private record struct Column(StringU8 Name, SizedString Time, SizedString Start, SizedString End, SizedString Thread)
+        private record struct Column(StringU8 Name, StringU8 Time, StringU8 Start, StringU8 End, StringU8 Thread)
         {
             public static Column Create(KeyValuePair<string, TimerTuple> kvp)
             {
                 var name      = new StringU8(kvp.Key);
                 var duration  = kvp.Value.ElapsedTicks * 1000.0 / Stopwatch.Frequency;
                 var startTime = kvp.Value.StartDelay.TotalMilliseconds;
-                var time      = new SizedString($"{duration:F4}");
-                var start     = new SizedString($"{startTime:F4}");
-                var end       = new SizedString($"{duration + startTime:F4}");
-                var thread    = new SizedString($"{kvp.Value.Thread}");
+                var time      = new StringU8($"{duration:F4}");
+                var start     = new StringU8($"{startTime:F4}");
+                var end       = new StringU8($"{duration + startTime:F4}");
+                var thread    = new StringU8($"{kvp.Value.Thread}");
                 return new Column(name, time, start, end, thread);
             }
         }
