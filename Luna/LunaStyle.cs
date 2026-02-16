@@ -44,6 +44,12 @@ public static partial class LunaStyle
     /// <summary> The icon that should be used to show buttons opening folders. </summary>
     public static readonly AwesomeIcon FolderIcon = FontAwesomeIcon.Folder;
 
+    /// <summary> The icon that should be used when files are removed, but not deleted from something. </summary>
+    public static readonly AwesomeIcon RemoveFileIcon = FontAwesomeIcon.FileCircleMinus;
+
+    /// <summary> The icon that should be used when folders are removed, but not deleted from something. </summary>
+    public static readonly AwesomeIcon RemoveFolderIcon = FontAwesomeIcon.FolderMinus;
+
     /// <summary> The icon that should be used to show reloading or refreshing. </summary>
     public static readonly AwesomeIcon RefreshIcon = FontAwesomeIcon.Recycle;
 
