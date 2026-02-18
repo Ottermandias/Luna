@@ -17,4 +17,8 @@ public class FilterHeader<TCacheItem>(IFilter<TCacheItem> filter, StringU8? id) 
     /// <inheritdoc/>
     public void Draw(Vector2 size)
         => Filter.DrawFilter(Id, size);
+
+    /// <inheritdoc/>
+    public float MinimumWidth
+        => Im.Font.CalculateButtonSize(Id).X;
 }

@@ -39,6 +39,45 @@ public readonly record struct TwoPanelWidth(float Width, ScalingMode Mode)
         return available with { X = Width * Im.Style.GlobalScale };
     }
 
+    /// <summary> Write the width to a JSON stream, giving the object a specific name. </summary>
+    /// <param name="j"> The JSON writer. </param>
+    /// <param name="name"> The name for the object. </param>
+    public void WriteJson(JsonTextWriter j, string name)
+    {
+        j.WritePropertyName(name);
+        j.WriteStartObject();
+        j.WritePropertyName("Mode");
+        j.WriteValue(Mode is ScalingMode.Absolute ? "Absolute" : "Percentage");
+        j.WritePropertyName("Width");
+        j.WriteValue(Width);
+        j.WriteEndObject();
+    }
+
+    /// <inheritdoc cref="ReadJson(JObject,string,TwoPanelWidth)"/>
+    public static TwoPanelWidth ReadJson(JObject jObj, string name)
+        => ReadJson(jObj, name, IndeterminateRelative);
+
+    /// <summary> Read a named <see cref="TwoPanelLayout"/> from a deserialized JSON object. </summary>
+    /// <param name="jObj"> The deserialized JSON data. </param>
+    /// <param name="name"> The name of the object to read. </param>
+    /// <param name="defaultValue"> The default value if the object or parts of it can not be read or are not supplied. If no default value is provided, <see cref="IndeterminateRelative"/> is used. </param>
+    /// <returns> The parsed object. </returns>
+    public static TwoPanelWidth ReadJson(JObject jObj, string name, TwoPanelWidth defaultValue)
+    {
+        if (jObj[name] is not JObject obj)
+            return defaultValue;
+
+        if (obj["Width"]?.Value<float>() is not { } width)
+            return defaultValue;
+
+        return obj["Mode"]?.Value<string>() switch
+        {
+            "Absolute"   => new TwoPanelWidth(width, ScalingMode.Absolute),
+            "Percentage" => new TwoPanelWidth(width, ScalingMode.Percentage),
+            _            => defaultValue,
+        };
+    }
+
     /// <summary> Indeterminate value for an absolute selector that will resolve to half of the available content region but return absolute values. </summary>
     public static readonly TwoPanelWidth IndeterminateAbsolute = new(float.NaN, ScalingMode.Absolute);
 
