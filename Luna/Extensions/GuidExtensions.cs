@@ -31,4 +31,26 @@ public static class GuidExtensions
         ];
         return new string(text);
     }
+
+    /// <summary> Write only the first 8 hexadecimal digits of a GUID to a UTF8 string (the digits up to the first dash in the default format). </summary>
+    /// <param name="guid"> The GUID to shorten and write. </param>
+    /// <param name="lowercase"> Whether the hex letter symbols should be lowercase or uppercased. </param>
+    public static unsafe StringU8 ShortGuidU8(this Guid guid, bool lowercase = true)
+    {
+        var bytes = (byte*)&guid;
+        var chars = lowercase ? CharsLower : CharsUpper;
+        byte[] text =
+        [
+            (byte)chars[bytes[3] >> 4],
+            (byte)chars[bytes[3] & 0x0F],
+            (byte)chars[bytes[2] >> 4],
+            (byte)chars[bytes[2] & 0x0F],
+            (byte)chars[bytes[1] >> 4],
+            (byte)chars[bytes[1] & 0x0F],
+            (byte)chars[bytes[0] >> 4],
+            (byte)chars[bytes[0] & 0x0F],
+            0,
+        ];
+        return new StringU8(text.AsMemory(..^1));
+    }
 }

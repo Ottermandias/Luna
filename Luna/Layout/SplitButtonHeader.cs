@@ -19,7 +19,7 @@ public class SplitButtonHeader : IHeader
 
     public virtual void Draw(Vector2 size)
     {
-        var width = Im.Style.FrameHeightWithSpacing;
+        var width = Im.Style.FrameHeight + Im.Style.ItemSpacing.X;
         using var style = new Im.ColorStyleDisposable()
             .Push(ImStyleDouble.ItemSpacing,          Vector2.Zero)
             .Push(ImStyleSingle.FrameRounding,        0)
@@ -61,6 +61,6 @@ public class SplitButtonHeader : IHeader
         }
     }
 
-    public bool Collapsed
+    public virtual bool Collapsed
         => false;
 }

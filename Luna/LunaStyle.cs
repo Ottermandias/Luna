@@ -113,8 +113,11 @@ public static partial class LunaStyle
     /// <summary> The icon that should be used for information or help. </summary>
     public static readonly AwesomeIcon InfoIcon = FontAwesomeIcon.QuestionCircle;
 
-    /// <summary> The icon that should be used Undo or Revert buttons. </summary>
+    /// <summary> The icon that should be used for Undo or Revert buttons. </summary>
     public static readonly AwesomeIcon UndoIcon = FontAwesomeIcon.UndoAlt;
+
+    /// <summary> The icon that should be used for Reset buttons. </summary>
+    public static readonly AwesomeIcon ResetIcon = FontAwesomeIcon.SyncAlt;
 
     /// <summary> The icon that should be used to pop a panel out to its own window. </summary>
     public static readonly AwesomeIcon PopOutIcon = FontAwesomeIcon.SquareArrowUpRight;
