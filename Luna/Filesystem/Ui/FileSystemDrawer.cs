@@ -172,8 +172,8 @@ public abstract class FileSystemDrawer<TNodeCache>(BaseFileSystem fileSystem, IF
             => false;
 
         /// <inheritdoc/>
-        public void Clear()
-        { }
+        public bool Clear()
+            => false;
 
         /// <inheritdoc/>
         public bool IsEmpty

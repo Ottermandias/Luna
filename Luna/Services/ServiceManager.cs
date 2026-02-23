@@ -69,17 +69,6 @@ public class ServiceManager : IDisposable
         }
     }
 
-    // TODO remove when not needed anymore.
-    public void EnsureRequiredServices<T>()
-    {
-        BuildProvider();
-        foreach (var service in _collection)
-        {
-            if (service.ServiceType.IsAssignableTo(typeof(T)))
-                Provider!.GetRequiredService(service.ServiceType);
-        }
-    }
-
     /// <summary> Create the provider. </summary>
     public void BuildProvider()
     {
