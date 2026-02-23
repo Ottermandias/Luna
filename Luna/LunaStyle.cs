@@ -146,6 +146,12 @@ public static partial class LunaStyle
     /// <summary> The active color for the ReniGuide. </summary>
     public static readonly Vector4 ReniColorActive = new(0.88f, 0.44f, 0.56f, 1);
 
+    /// <summary> The default color for tag buttons that can be added to the object. </summary>
+    public static readonly Vector4 AddPredefinedTagColor = new Rgba32(0xFF44AA44).ToVector();
+
+    /// <summary> The default color for tag buttons that will be removed from the object. </summary>
+    public static readonly Vector4 RemovePredefinedTagColor = new Rgba32(0xFF2222AA).ToVector();
+
     /// <summary> Get the icon and color associated with a specific notification type. </summary>
     /// <param name="notification"> The notification type. </param>
     /// <returns> The associated icon and it's default color. </returns>

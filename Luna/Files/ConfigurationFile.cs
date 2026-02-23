@@ -65,8 +65,11 @@ public abstract class ConfigurationFile<TProvider>(BaseSaveService<TProvider> sa
             Messager.Log.Debug($"Reading {logName}...");
             var text = File.ReadAllText(fileName);
             var jObj = JObject.Parse(text);
-            if (jObj["Version"]?.Value<int>() != CurrentVersion)
-                throw new Exception("Unsupported version.");
+            if (jObj["Version"]?.Value<int>() is not { } version)
+                throw new Exception("No version provided.");
+
+            if (version != CurrentVersion && HandleVersionMigration(logName, jObj, version))
+                return;
 
             LoadData(jObj);
         }
@@ -76,4 +79,13 @@ public abstract class ConfigurationFile<TProvider>(BaseSaveService<TProvider> sa
                 $"Error reading {logName}", NotificationType.Error);
         }
     }
+
+    /// <summary> Handle the migration of old versions of this file. If the version can not be migrated, an exception should be thrown. The default implementation throws an exception for all versions. </summary>
+    /// <param name="logName"> The name of this type of file for logging purposes. </param>
+    /// <param name="data"> The parsed JSON data of this file. </param>
+    /// <param name="version"> The version of the file. </param>
+    /// <returns> False if the regular LoadData should still be called, true if the migration incorporated the loading. Failure to migrate should cause an exception. </returns>
+    /// <remarks> This is not called if <paramref name="version"/> is the same as <see cref="CurrentVersion"/>, or no version could be parsed. </remarks>
+    protected virtual bool HandleVersionMigration(string logName, JObject data, int version)
+        => throw new Exception($"{logName} Version {version} is outdated and can not be migrated.");
 }
