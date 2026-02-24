@@ -119,8 +119,7 @@ public abstract class PredefinedTagManager<TProvider, TObj>(BaseSaveService<TPro
     /// <summary> Draw a button to toggle the visibility of the predefined tags list in the top right corner.  </summary>
     private void DrawToggleButtonTopRight()
     {
-        var scrollBar = Im.Scroll.MaximumY > 0 ? Im.Style.ItemInnerSpacing.X : 0;
-        Im.Line.Same(Im.ContentRegion.Maximum.X - Im.Style.FrameHeight - scrollBar);
+        Im.Line.Same(Im.ContentRegion.Available.X - Im.Style.FrameHeight);
         DrawToggleButton();
     }
 
@@ -140,7 +139,7 @@ public abstract class PredefinedTagManager<TProvider, TObj>(BaseSaveService<TPro
             else
                 ChangeGlobalTag(obj, index, changedTag);
         }
-        else if (!editLocal && DrawList(GetLocalTags(obj), out var changedTag, out var index))
+        else if (editLocal && DrawList(GetLocalTags(obj), out var changedTag, out var index))
         {
             ChangeLocalTag(obj, index, changedTag);
         }
@@ -279,27 +278,32 @@ public abstract class PredefinedTagManager<TProvider, TObj>(BaseSaveService<TPro
             var inModData        = 0;
             var missing          = 0;
 
-            foreach (var (modIndex, mod) in cache.SelectedObjects.Index())
+            foreach (var (index, obj) in cache.SelectedObjects.Index())
             {
-                var tagIdx = GetLocalTags(mod).IndexOf(tag);
+                var tagIdx = GetLocalTags(obj).IndexOf(tag);
                 if (tagIdx >= 0)
                 {
                     ++alreadyContained;
-                    cache.CountedObjects[modIndex] = (tagIdx, -1);
+                    cache.CountedObjects[index] = (tagIdx, -1);
                 }
                 else if (HasGlobalTags)
                 {
-                    var dataIdx = GetGlobalTags(mod).IndexOf(tag);
+                    var dataIdx = GetGlobalTags(obj).IndexOf(tag);
                     if (dataIdx >= 0)
                     {
                         ++inModData;
-                        cache.CountedObjects[modIndex] = (-1, dataIdx);
+                        cache.CountedObjects[index] = (-1, dataIdx);
                     }
                     else
                     {
                         ++missing;
-                        cache.CountedObjects[modIndex] = (-1, -1);
+                        cache.CountedObjects[index] = (-1, -1);
                     }
+                }
+                else
+                {
+                    ++missing;
+                    cache.CountedObjects[index] = (-1, -1);
                 }
             }
 
