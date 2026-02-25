@@ -8,8 +8,11 @@ public struct ModifiableHotkey : IEquatable<ModifiableHotkey>
     /// <summary> The hotkey to press. </summary>
     public VirtualKey Hotkey { get; private set; } = VirtualKey.NO_KEY;
 
+    private DoubleModifier _modifiers = DoubleModifier.NoKey;
+
     /// <summary> The optional modifiers. </summary>
-    public DoubleModifier Modifiers { get; private set; } = DoubleModifier.NoKey;
+    public DoubleModifier Modifiers
+        => _modifiers;
 
     /// <summary> An empty hotkey representing no keys. </summary>
     public ModifiableHotkey()
@@ -31,7 +34,7 @@ public struct ModifiableHotkey : IEquatable<ModifiableHotkey>
     {
         SetHotkey(hotkey, validKeys);
         if (hotkey is not VirtualKey.NO_KEY)
-            Modifiers = new DoubleModifier(modifier1);
+            _modifiers = new DoubleModifier(modifier1);
     }
 
     /// <summary> Create a hotkey with up to two modifiers, optionally checking against a set of valid keys. </summary>
@@ -44,7 +47,7 @@ public struct ModifiableHotkey : IEquatable<ModifiableHotkey>
     {
         SetHotkey(hotkey, validKeys);
         if (hotkey is not VirtualKey.NO_KEY)
-            Modifiers = new DoubleModifier(modifier1, modifier2);
+            _modifiers = new DoubleModifier(modifier1, modifier2);
     }
 
     /// <summary> Create a hotkey with up to two modifiers, optionally checking against a set of valid keys. </summary>
@@ -55,7 +58,7 @@ public struct ModifiableHotkey : IEquatable<ModifiableHotkey>
     {
         SetHotkey(hotkey, validKeys);
         if (hotkey is not VirtualKey.NO_KEY)
-            Modifiers = modifiers;
+            _modifiers = modifiers;
     }
 
     /// <summary>
@@ -72,7 +75,7 @@ public struct ModifiableHotkey : IEquatable<ModifiableHotkey>
             return false;
 
         if (hotkey == VirtualKey.NO_KEY)
-            Modifiers = DoubleModifier.NoKey;
+            _modifiers = DoubleModifier.NoKey;
 
         Hotkey = hotkey;
         return true;
@@ -89,7 +92,7 @@ public struct ModifiableHotkey : IEquatable<ModifiableHotkey>
         if (Hotkey is VirtualKey.NO_KEY)
             return false;
 
-        return Modifiers.SetModifier1(modifier1);
+        return _modifiers.SetModifier1(modifier1);
     }
 
     /// <summary>
@@ -103,13 +106,13 @@ public struct ModifiableHotkey : IEquatable<ModifiableHotkey>
         if (Hotkey is VirtualKey.NO_KEY)
             return false;
 
-        return Modifiers.SetModifier2(modifier2);
+        return _modifiers.SetModifier2(modifier2);
     }
 
     /// <inheritdoc/>
     public bool Equals(ModifiableHotkey other)
         => Hotkey == other.Hotkey
-         && Modifiers == other.Modifiers;
+         && _modifiers == other._modifiers;
 
     /// <inheritdoc/>
     public override bool Equals(object? obj)
@@ -117,7 +120,7 @@ public struct ModifiableHotkey : IEquatable<ModifiableHotkey>
 
     /// <inheritdoc/>
     public override int GetHashCode()
-        => HashCode.Combine((int)Hotkey, Modifiers.GetHashCode());
+        => HashCode.Combine((int)Hotkey, _modifiers.GetHashCode());
 
     public static bool operator ==(ModifiableHotkey lhs, ModifiableHotkey rhs)
         => lhs.Equals(rhs);
@@ -129,13 +132,13 @@ public struct ModifiableHotkey : IEquatable<ModifiableHotkey>
     public override string ToString()
         => Hotkey is VirtualKey.NO_KEY
             ? "No Key"
-            : Modifiers.Modifier1.Modifier is VirtualKey.NO_KEY
+            : _modifiers.Modifier1.Modifier is VirtualKey.NO_KEY
                 ? Hotkey.GetFancyName()
-                : Modifiers.Modifier2.Modifier is VirtualKey.NO_KEY
-                    ? $"{Modifiers.Modifier1} + {Hotkey.GetFancyName()}"
-                    : $"{Modifiers.Modifier1} + {Modifiers.Modifier2} + {Hotkey.GetFancyName()}";
+                : _modifiers.Modifier2.Modifier is VirtualKey.NO_KEY
+                    ? $"{_modifiers.Modifier1} + {Hotkey.GetFancyName()}"
+                    : $"{_modifiers.Modifier1} + {_modifiers.Modifier2} + {Hotkey.GetFancyName()}";
 
     /// <summary> Check whether both required modifiers are currently held and the associated hotkey is pressed this frame according to ImGui. </summary>
     public bool IsPressed()
-        => Modifiers.IsActive() && Im.Keyboard.IsPressed(Hotkey.ToImGuiKey());
+        => _modifiers.IsActive() && Im.Keyboard.IsPressed(Hotkey.ToImGuiKey());
 }
