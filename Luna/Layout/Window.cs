@@ -8,12 +8,20 @@ public abstract class Window : Dalamud.Interface.Windowing.Window, IUiService
     /// <inheritdoc/>
     protected Window(string name, WindowFlags flags = WindowFlags.None, bool forceMainWindow = false)
         : base(name, (ImGuiWindowFlags)flags, forceMainWindow)
-    { }
+    {
+        DisableWindowSounds = true;
+        AllowClickthrough   = false;
+        AllowPinning        = false;
+    }
 
     /// <inheritdoc/>
     protected Window(string name)
         : base(name)
-    { }
+    {
+        DisableWindowSounds = true;
+        AllowClickthrough   = false;
+        AllowPinning        = false;
+    }
 
     /// <inheritdoc cref="Dalamud.Interface.Windowing.Window.PositionCondition"/>
     public new Condition PositionCondition

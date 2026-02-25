@@ -77,7 +77,6 @@ public sealed class Changelog : Window
         Position            = null;
         RespectCloseHotkey  = false;
         ShowCloseButton     = false;
-        DisableWindowSounds = true;
     }
 
     /// <inheritdoc/>
