@@ -9,7 +9,24 @@ public static class FileSystemUtility
     ///   The empty string as name signifies the root, so it can also not be used.
     /// </remarks>
     public static string FixName(this string name)
-        => FixName(name.AsSpan()).ToString();
+    {
+        var trimmed = name.AsSpan().Trim();
+        if (trimmed.Length is 0)
+            return "<None>";
+
+        var idx = trimmed.IndexOf('/');
+        if (idx < 0)
+            return trimmed.Length == name.Length ? name : trimmed.ToString();
+
+        return string.Create(trimmed.Length, trimmed, (c, state) =>
+        {
+            for (var i = 0; i < state.Length; ++i)
+            {
+                var character = state[i];
+                c[i] = character is '/' ? '\\' : character;
+            }
+        });
+    }
 
     /// <summary> Given a full path string, return the base name and folder to save. </summary>
     /// <param name="fullPath"> The full filesystem path of a node. </param>
@@ -22,7 +39,6 @@ public static class FileSystemUtility
     /// </returns>
     public static ReadOnlySpan<char> GetBaseName(this ReadOnlySpan<char> fullPath, ReadOnlySpan<char> dataName, out ReadOnlySpan<char> folder)
     {
-        
         var nodeName = fullPath;
         folder = ReadOnlySpan<char>.Empty;
 
@@ -31,7 +47,7 @@ public static class FileSystemUtility
         {
             folder = nodeName[..nameIdx];
             ++nameIdx;
-            nodeName   = nameIdx == fullPath.Length ? ReadOnlySpan<char>.Empty : nodeName[nameIdx..];
+            nodeName = nameIdx == fullPath.Length ? ReadOnlySpan<char>.Empty : nodeName[nameIdx..];
         }
 
         var fixedData = dataName.FixName();
@@ -46,7 +62,7 @@ public static class FileSystemUtility
     }
 
     /// <inheritdoc cref="FixName(string)"/>
-    public static ReadOnlySpan<char> FixName(this ReadOnlySpan<char> name)
+    public static string FixName(this ReadOnlySpan<char> name)
     {
         var trimmed = name.Trim();
         if (trimmed.Length is 0)
@@ -54,9 +70,16 @@ public static class FileSystemUtility
 
         var idx = trimmed.IndexOf('/');
         if (idx < 0)
-            return trimmed;
+            return trimmed.ToString();
 
-        return string.Create(trimmed.Length, name, (c, state) => { state.Replace(c, '/', '\\'); });
+        return string.Create(trimmed.Length, trimmed, (c, state) =>
+        {
+            for (var i = 0; i < state.Length; ++i)
+            {
+                var character = state[i];
+                c[i] = character is '/' ? '\\' : character;
+            }
+        });
     }
 
     /// <summary> Check if a string is a duplicated string with appended number. </summary>
