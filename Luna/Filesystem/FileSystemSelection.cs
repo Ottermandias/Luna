@@ -54,6 +54,7 @@ public sealed class FileSystemSelection : IDisposable
     {
         UnselectAll();
         _fileSystem.ChangeSelectedState(node, true);
+        _fileSystem.ExpandAllAncestors(node);
     }
 
     /// <summary> Toggle the selection state of a single node. </summary>
