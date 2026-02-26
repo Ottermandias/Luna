@@ -7,6 +7,9 @@ namespace Luna;
 /// <summary> A basic notification that does not print to chat. </summary>
 public class Notification : IMessage
 {
+    /// <summary> The duration, in milliseconds, that will be used if the corresponding parameter is omitted from the constructor. </summary>
+    public const uint DefaultDurationMilliseconds = 5000;
+
     /// <inheritdoc/>
     public NotificationType NotificationType { get; }
 
@@ -40,7 +43,7 @@ public class Notification : IMessage
     /// <param name="content"> The message to display in the notification and write to log.  </param>
     /// <param name="type"> The severity of the message. </param>
     /// <param name="duration"> The duration the notification is visible in milliseconds. </param>
-    public Notification(string content, NotificationType type = NotificationType.Warning, uint duration = 5000)
+    public Notification(string content, NotificationType type = NotificationType.Warning, uint duration = DefaultDurationMilliseconds)
     {
         NotificationType     = type;
         NotificationMessage  = content;
@@ -57,7 +60,7 @@ public class Notification : IMessage
     /// <param name="content2"> The message to display in the log before the exception's message and stack trace. </param>
     /// <param name="type"> The severity of the message. </param>
     /// <param name="duration"> The duration the notification is visible in milliseconds. </param>
-    public Notification(Exception ex, string content1, string content2, NotificationType type = NotificationType.Error, uint duration = 5000)
+    public Notification(Exception ex, string content1, string content2, NotificationType type = NotificationType.Error, uint duration = DefaultDurationMilliseconds)
     {
         NotificationType     = type;
         NotificationMessage  = content1;
@@ -68,3 +71,4 @@ public class Notification : IMessage
         StoredTooltip        = new StringU8($"{ex}");
     }
 }
+
