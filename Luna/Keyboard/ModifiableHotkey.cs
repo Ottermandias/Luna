@@ -3,6 +3,7 @@ using Dalamud.Game.ClientState.Keys;
 namespace Luna;
 
 /// <summary> A single arbitrary hotkey with up to two modifiers. </summary>
+[JsonConverter(typeof(Converter))]
 public struct ModifiableHotkey : IEquatable<ModifiableHotkey>
 {
     /// <summary> The hotkey to press. </summary>
@@ -141,4 +142,36 @@ public struct ModifiableHotkey : IEquatable<ModifiableHotkey>
     /// <summary> Check whether both required modifiers are currently held and the associated hotkey is pressed this frame according to ImGui. </summary>
     public bool IsPressed()
         => _modifiers.IsActive() && Im.Keyboard.IsPressed(Hotkey.ToImGuiKey());
+
+    private sealed class Converter : JsonConverter<ModifiableHotkey>
+    {
+        public override void WriteJson(JsonWriter writer, ModifiableHotkey value, JsonSerializer serializer)
+        {
+            writer.WriteStartObject();
+            writer.WritePropertyName("Hotkey");
+            writer.WriteValue((ushort)value.Hotkey);
+            if (value._modifiers.Modifier1 != ModifierHotkey.NoKey)
+            {
+                writer.WritePropertyName("Modifier1");
+                writer.WriteValue((ushort)value._modifiers.Modifier1.Modifier);
+                if (value._modifiers.Modifier2 != ModifierHotkey.NoKey)
+                {
+                    writer.WritePropertyName("Modifier2");
+                    writer.WriteValue((ushort)value._modifiers.Modifier2.Modifier);
+                }
+            }
+
+            writer.WriteEndObject();
+        }
+
+        public override ModifiableHotkey ReadJson(JsonReader reader, Type objectType, ModifiableHotkey existingValue, bool hasExistingValue,
+            JsonSerializer serializer)
+        {
+            var data = serializer.Deserialize<Data>(reader);
+            return new ModifiableHotkey((VirtualKey)data.Hotkey, new ModifierHotkey((VirtualKey)(data.Modifier1 ?? 0)),
+                new ModifierHotkey((VirtualKey)(data.Modifier2 ?? 0)));
+        }
+
+        private record struct Data(ushort Hotkey, ushort? Modifier1, ushort? Modifier2);
+    }
 }

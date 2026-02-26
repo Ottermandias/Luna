@@ -3,6 +3,7 @@ using Dalamud.Game.ClientState.Keys;
 namespace Luna;
 
 /// <summary> Doubled <see cref="ModifierHotkey"/> to handle one or two required modifiers. </summary>
+[JsonConverter(typeof(Converter))]
 public struct DoubleModifier : IEquatable<DoubleModifier>
 {
     /// <summary> A static instance representing no required modifiers. </summary>
@@ -96,4 +97,30 @@ public struct DoubleModifier : IEquatable<DoubleModifier>
     /// <summary> Check whether both required modifiers are currently held according to ImGui. </summary>
     public bool IsActive()
         => Modifier1.IsActive() && Modifier2.IsActive();
+
+    private sealed class Converter : JsonConverter<DoubleModifier>
+    {
+        public override void WriteJson(JsonWriter writer, DoubleModifier value, JsonSerializer serializer)
+        {
+            writer.WriteStartObject();
+            writer.WritePropertyName("Modifier1");
+            writer.WriteValue((ushort)value.Modifier1.Modifier);
+            if (value.Modifier2.Modifier != ModifierHotkey.NoKey)
+            {
+                writer.WritePropertyName("Modifier2");
+                writer.WriteValue((ushort)value.Modifier2.Modifier);
+            }
+
+            writer.WriteEndObject();
+        }
+
+        public override DoubleModifier ReadJson(JsonReader reader, Type objectType, DoubleModifier existingValue, bool hasExistingValue,
+            JsonSerializer serializer)
+        {
+            var data = serializer.Deserialize<Data>(reader);
+            return new DoubleModifier(new ModifierHotkey((VirtualKey)data.Modifier1), new ModifierHotkey((VirtualKey)(data.Modifier2 ?? 0)));
+        }
+
+        private record struct Data(ushort Modifier1, ushort? Modifier2);
+    }
 }
