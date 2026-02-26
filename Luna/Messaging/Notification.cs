@@ -60,7 +60,8 @@ public class Notification : IMessage
     /// <param name="content2"> The message to display in the log before the exception's message and stack trace. </param>
     /// <param name="type"> The severity of the message. </param>
     /// <param name="duration"> The duration the notification is visible in milliseconds. </param>
-    public Notification(Exception ex, string content1, string content2, NotificationType type = NotificationType.Error, uint duration = DefaultDurationMilliseconds)
+    public Notification(Exception ex, string content1, string content2, NotificationType type = NotificationType.Error,
+        uint duration = DefaultDurationMilliseconds)
     {
         NotificationType     = type;
         NotificationMessage  = content1;
