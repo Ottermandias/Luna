@@ -117,24 +117,26 @@ public class BaseFileSystem
 
     /// <summary> Expand all descendants of a particular folder and itself. </summary>
     /// <param name="node"> The folder. </param>
+    /// <param name="temporary"> Change the temporary instead of the regular expanded state. </param>
     /// <returns> True if any folder was expanded that was collapsed before. </returns>
-    public bool ExpandAllDescendants(IFileSystemFolder node)
+    public bool ExpandAllDescendants(IFileSystemFolder node, bool temporary)
     {
-        var result = ChangeExpandedState(node, true);
+        var result = temporary ? ChangeTemporaryExpandedState(node, true) : ChangeExpandedState(node, true);
         foreach (var folder in node.GetSubFolders())
-            result |= ExpandAllDescendants(folder);
+            result |= ExpandAllDescendants(folder, temporary);
         return result;
     }
 
     /// <summary> Collapse all descendants of a particular folder and itself. </summary>
     /// <param name="node"> The folder. </param>
+    /// <param name="temporary"> Change the temporary instead of the regular expanded state. </param>
     /// <returns> True if any folder was collapsed that was expanded before. </returns>
     /// <remarks> This will not collapse the root folder if this is passed as <paramref name="node"/>, but all other folders. </remarks>
-    public bool CollapseAllDescendants(IFileSystemFolder node)
+    public bool CollapseAllDescendants(IFileSystemFolder node, bool temporary)
     {
-        var result = ChangeExpandedState(node, false);
+        var result = temporary ? ChangeTemporaryExpandedState(node, false) : ChangeExpandedState(node, false);
         foreach (var folder in node.GetSubFolders())
-            result |= CollapseAllDescendants(folder);
+            result |= CollapseAllDescendants(folder, temporary);
         return result;
     }
 

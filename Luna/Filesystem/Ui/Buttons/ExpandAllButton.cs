@@ -2,7 +2,8 @@ namespace Luna;
 
 /// <summary> The menu item to expand all folders in the file system. </summary>
 /// <param name="fileSystem"> The file system. </param>
-public sealed class ExpandAllButton(BaseFileSystem fileSystem) : BaseButton
+/// <param name="filter"> The filter used by the file system drawer. </param>
+public sealed class ExpandAllButton(BaseFileSystem fileSystem, IFilter filter) : BaseButton
 {
     /// <inheritdoc/>
     public override ReadOnlySpan<byte> Label
@@ -10,5 +11,5 @@ public sealed class ExpandAllButton(BaseFileSystem fileSystem) : BaseButton
 
     /// <inheritdoc/>
     public override void OnClick()
-        => fileSystem.ExpandAllDescendants(fileSystem.Root);
+        => fileSystem.ExpandAllDescendants(fileSystem.Root, !filter.IsEmpty);
 }

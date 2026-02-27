@@ -2,7 +2,8 @@ namespace Luna;
 
 /// <summary> The base class to draw a full file system UI. </summary>
 /// <param name="fileSystem"> The parent file system to draw. </param>
-public abstract class FileSystemDrawer(BaseFileSystem fileSystem) : IPanel
+/// <param name="filter"> The filter used by the drawer to pass to the buttons. </param>
+public abstract class FileSystemDrawer(BaseFileSystem fileSystem, IFilter filter) : IPanel
 {
     /// <inheritdoc/>>
     public abstract ReadOnlySpan<byte> Id { get; }
@@ -17,10 +18,10 @@ public abstract class FileSystemDrawer(BaseFileSystem fileSystem) : IPanel
     public readonly ButtonFooter Footer = SetupBaseFooter(fileSystem);
 
     /// <summary> The buttons shown in the main right-click context menu without an associated node. </summary>
-    public readonly ButtonList MainContext = SetupBaseMainContext(fileSystem);
+    public readonly ButtonList MainContext = SetupBaseMainContext(fileSystem, filter);
 
     /// <summary> The menu items shown in the context menu for folder nodes. </summary>
-    public readonly ButtonList<IFileSystemFolder> FolderContext = SetupBaseFolderContext(fileSystem);
+    public readonly ButtonList<IFileSystemFolder> FolderContext = SetupBaseFolderContext(fileSystem, filter);
 
     /// <summary> The menu items shown in the context menu for data nodes. </summary>
     public readonly ButtonList<IFileSystemData> DataContext = new();
@@ -54,23 +55,23 @@ public abstract class FileSystemDrawer(BaseFileSystem fileSystem) : IPanel
     }
 
     /// <summary> Create the default menu items available in the main context menu. </summary>
-    private static ButtonList SetupBaseMainContext(BaseFileSystem fileSystem)
+    private static ButtonList SetupBaseMainContext(BaseFileSystem fileSystem, IFilter filter)
     {
         var ret = new ButtonList();
-        ret.AddButton(new ExpandAllButton(fileSystem),   20);
-        ret.AddButton(new CollapseAllButton(fileSystem), 10);
+        ret.AddButton(new ExpandAllButton(fileSystem, filter),   20);
+        ret.AddButton(new CollapseAllButton(fileSystem, filter), 10);
         return ret;
     }
 
     /// <summary> Create the default menu items available in the folder context menu. </summary>
-    private static ButtonList<IFileSystemFolder> SetupBaseFolderContext(BaseFileSystem fileSystem)
+    private static ButtonList<IFileSystemFolder> SetupBaseFolderContext(BaseFileSystem fileSystem, IFilter filter)
     {
         var ret = new ButtonList<IFileSystemFolder>();
-        ret.AddButton(new ExpandDescendantsButton(fileSystem),   100);
-        ret.AddButton(new CollapseDescendantsButton(fileSystem), 90);
-        ret.AddButton(new LockFolderButton(fileSystem),          80);
-        ret.AddButton(new DissolveFolderButton(fileSystem),      70);
-        ret.AddButton(new RenameFolderInput(fileSystem),         -100);
+        ret.AddButton(new ExpandDescendantsButton(fileSystem, filter),   100);
+        ret.AddButton(new CollapseDescendantsButton(fileSystem, filter), 90);
+        ret.AddButton(new LockFolderButton(fileSystem),                  80);
+        ret.AddButton(new DissolveFolderButton(fileSystem),              70);
+        ret.AddButton(new RenameFolderInput(fileSystem),                 -100);
         return ret;
     }
 
@@ -124,7 +125,7 @@ public interface IFileSystemFilter<TNodeCache> : IFilter<TNodeCache>
 /// <param name="fileSystem"> The parent file system to draw. </param>
 /// <param name="filter"> The filter to use for the file system cache and a header above the panel in a 2-panel layout. </param>
 public abstract class FileSystemDrawer<TNodeCache>(BaseFileSystem fileSystem, IFileSystemFilter<TNodeCache>? filter)
-    : FileSystemDrawer(fileSystem)
+    : FileSystemDrawer(fileSystem, filter ?? NopFilter.Instance)
     where TNodeCache : IFileSystemNodeCache
 {
     /// <summary> The header containing the filter for this file system drawer. </summary>

@@ -2,7 +2,8 @@ namespace Luna;
 
 /// <summary> The button to collapse the descendants of a specific folder </summary>
 /// <param name="fileSystem"> The file system. </param>
-public sealed class CollapseDescendantsButton(BaseFileSystem fileSystem) : BaseButton<IFileSystemFolder>
+/// <param name="filter"> The filter used by the file system drawer. </param>
+public sealed class CollapseDescendantsButton(BaseFileSystem fileSystem, IFilter filter) : BaseButton<IFileSystemFolder>
 {
     /// <inheritdoc/>
     public override ReadOnlySpan<byte> Label(in IFileSystemFolder _)
@@ -10,7 +11,7 @@ public sealed class CollapseDescendantsButton(BaseFileSystem fileSystem) : BaseB
 
     /// <inheritdoc/>
     public override void OnClick(in IFileSystemFolder folder)
-        => fileSystem.CollapseAllDescendants(folder);
+        => fileSystem.CollapseAllDescendants(folder, !filter.IsEmpty);
 
     /// <inheritdoc/>
     public override bool HasTooltip
