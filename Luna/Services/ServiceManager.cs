@@ -73,7 +73,7 @@ public class ServiceManager : IDisposable
                 }
                 catch (Exception e)
                 {
-                    _logger.Error($"Could not instantiate required service {service.ServiceType}:\n{e}");
+                    _logger.Fatal($"Could not instantiate required service {service.ServiceType}:\n{e}");
                     throw;
                 }
             }
