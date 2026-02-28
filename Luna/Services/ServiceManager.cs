@@ -1,5 +1,7 @@
+using Dalamud.Interface.DragDrop;
 using Dalamud.IoC;
 using Dalamud.Plugin;
+using Dalamud.Plugin.Services;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
@@ -133,21 +135,30 @@ public class ServiceManager : IDisposable
         }
     }
 
-    /// <summary> Add a Dalamud-provided service to the collection as a singleton. </summary>
-    /// <typeparam name="T"> The Dalamud-provided service to add. </typeparam>
-    /// <param name="pi"> The plugin interface to fetch the object from. </param>
+    /// <summary> Add Dalamud-provided services to the collection as singletons. The <see cref="IDalamudPluginInterface"/> must be added separately. </summary>
     /// <returns> This object to chain calls. </returns>
-    public ServiceManager AddDalamudService<T>(IDalamudPluginInterface pi) where T : class
+    public ServiceManager AddDalamudServices()
     {
-        var wrapper = new DalamudServiceWrapper<T>(pi);
-        _collection.AddSingleton(wrapper.Service);
-        _collection.AddSingleton(pi);
-        if (wrapper.Service is IDisposable disposable)
-            _ownedObjects.Add(disposable);
-        if (pi is IDisposable disposableInterface)
-            _ownedObjects.Add(disposableInterface);
+        var iType  = typeof(IDalamudService);
+        IEnumerable<Type> extras =
+        [
+            typeof(IDragDropManager),
+        ];
+        foreach (var type in iType.Assembly.ExportedTypes.Where(t => iType.IsAssignableFrom(t)).Concat(extras))
+        {
+            if (_collection.All(t => t.ServiceType != type))
+                AddDalamudService(type);
+        }
         return this;
     }
+
+    /// <summary> Add Dalamud-provided services, including the plugin interface and UI builder, to the collection as singletons. </summary>
+    /// <param name="pi"> The plugin interface to fetch the services from. </param>
+    /// <returns> This object to chain calls. </returns>
+    public ServiceManager AddDalamudServices(IDalamudPluginInterface pi)
+        => AddExistingService(pi)
+            .AddExistingService(pi.UiBuilder)
+            .AddDalamudServices();
 
     /// <summary> Add an existing object as a singleton service for a specific type. </summary>
     /// <typeparam name="T"> The type of the object. </typeparam>
@@ -195,15 +206,22 @@ public class ServiceManager : IDisposable
         }
     }
 
-    /// <summary> Wrapper for adding Dalamud-provided services. </summary>
-    private class DalamudServiceWrapper<T>
+    /// <summary> Wrapper for adding singletons from Dalamud with some custom logging and timing. </summary>
+    public void AddDalamudService(Type type)
     {
-        [PluginService]
-        public T Service { get; private set; } = default!;
+        _collection.AddSingleton(type, Func);
+        return;
 
-        public DalamudServiceWrapper(IDalamudPluginInterface pi)
+        object Func(IServiceProvider p)
         {
-            pi.Inject(this);
+            var pi = p.GetRequiredService<IDalamudPluginInterface>();
+            _logger.Verbose($"Constructing Service {type.Name} using Dalamud service provider.");
+            object service;
+            using (Timers.Measure(type.Name))
+                service = pi.GetRequiredService(type);
+            if (service is IDisposable disposableInterface)
+                _ownedObjects.Add(disposableInterface);
+            return service;
         }
     }
 }
