@@ -44,18 +44,21 @@ public abstract class FilterComboColors : FilterComboBase<FilterComboColors.Item
     /// <inheritdoc/>
     protected internal override float ItemHeight
         => Im.Style.FrameHeight;
-    
+
     /// <summary> Draw the combo updating its own current selection. </summary>
     /// <param name="label"> The label to use. </param>
     /// <returns> True if the selection was changed this frame. </returns>
     public bool Draw(Utf8LabelHandler label)
     {
         // Push the preview color.
-        using var color = ImGuiColor.FrameBackground.Push(CurrentSelection.Color, !CurrentSelection.Color.IsTransparent);
+        using var color = ImGuiColor.FrameBackground.Push(CurrentSelection.Color, !CurrentSelection.Color.IsTransparent)
+            .Push(ImGuiColor.FrameBackgroundHovered, CurrentSelection.Color, !CurrentSelection.Color.IsTransparent);
 
         // Skip the named preview if it does not fit.
         var name = Im.Font.CalculateSize(CurrentSelection.Name).X <= Im.Style.FrameHeight ? CurrentSelection.Name : StringU8.Empty;
         var ret  = base.Draw(label, name, StringU8.Empty, Im.Style.FrameHeight, out var newStain);
+        if (name.IsEmpty)
+            Im.Tooltip.OnHover(CurrentSelection.Name);
         if (ret)
             CurrentSelection = newStain;
 
