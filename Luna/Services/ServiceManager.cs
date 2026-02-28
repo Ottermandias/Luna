@@ -66,7 +66,6 @@ public class ServiceManager : IDisposable
         {
             if (service.ServiceType.IsAssignableTo(typeof(IRequiredService)))
             {
-                _logger.Debug($"Ensuring instantiation of required service {service.ServiceType}.");
                 try
                 {
                     Provider!.GetRequiredService(service.ServiceType);
@@ -83,11 +82,7 @@ public class ServiceManager : IDisposable
     /// <summary> Create the provider. </summary>
     public void BuildProvider()
     {
-        if (Provider is not null)
-            return;
-
-        _logger.Debug("Building service provider.");
-        Provider = _collection.BuildServiceProvider(new ServiceProviderOptions
+        Provider ??= _collection.BuildServiceProvider(new ServiceProviderOptions
         {
             ValidateOnBuild = true,
             ValidateScopes  = false,
