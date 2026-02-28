@@ -1,5 +1,3 @@
-using Dalamud.Interface.DragDrop;
-using Dalamud.IoC;
 using Dalamud.Plugin;
 using Dalamud.Plugin.Services;
 using Microsoft.Extensions.DependencyInjection;
@@ -142,7 +140,8 @@ public class ServiceManager : IDisposable
         var iType  = typeof(IDalamudService);
         IEnumerable<Type> extras =
         [
-            typeof(IDragDropManager),
+            typeof(Dalamud.Interface.DragDrop.IDragDropManager),
+            typeof(Dalamud.Storage.Assets.IDalamudAssetManager),
         ];
         foreach (var type in iType.Assembly.ExportedTypes.Where(t => iType.IsAssignableFrom(t)).Concat(extras))
         {
