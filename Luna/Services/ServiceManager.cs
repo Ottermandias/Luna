@@ -65,14 +65,29 @@ public class ServiceManager : IDisposable
         foreach (var service in _collection)
         {
             if (service.ServiceType.IsAssignableTo(typeof(IRequiredService)))
-                Provider!.GetRequiredService(service.ServiceType);
+            {
+                _logger.Debug($"Ensuring instantiation of required service {service.ServiceType}.");
+                try
+                {
+                    Provider!.GetRequiredService(service.ServiceType);
+                }
+                catch (Exception e)
+                {
+                    _logger.Error($"Could not instantiate required service {service.ServiceType}:\n{e}");
+                    throw;
+                }
+            }
         }
     }
 
     /// <summary> Create the provider. </summary>
     public void BuildProvider()
     {
-        Provider ??= _collection.BuildServiceProvider(new ServiceProviderOptions
+        if (Provider is not null)
+            return;
+
+        _logger.Debug("Building service provider.");
+        Provider = _collection.BuildServiceProvider(new ServiceProviderOptions
         {
             ValidateOnBuild = true,
             ValidateScopes  = false,
