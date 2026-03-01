@@ -12,6 +12,9 @@ public sealed class FileSystemSelection : IDisposable
     /// <summary> The current selection changed. </summary>
     public event Action? Changed;
 
+    /// <summary> Invoked when any subscribing drawers should try to jump to a node. </summary>
+    public event Action<IFileSystemNode>? JumpTo;
+
     /// <summary> Whether this selection object allows multiple nodes to be selected at once. </summary>
     public readonly bool AllowsMultiSelection;
 
@@ -50,12 +53,20 @@ public sealed class FileSystemSelection : IDisposable
 
     /// <summary> Select a single node and unselect all other nodes. </summary>
     /// <param name="node"> The node to select. </param>
-    public void Select(IFileSystemData node)
+    /// <param name="jumpTo"> Whether to tell any drawers to jump to the newly selected node or not. </param>
+    public void Select(IFileSystemData node, bool jumpTo)
     {
         UnselectAll();
         _fileSystem.ChangeSelectedState(node, true);
         _fileSystem.ExpandAllAncestors(node);
+        if (jumpTo)
+            JumpTo?.Invoke(node);
     }
+
+    /// <summary> Tell any drawers to jump to a newly selected node. </summary>
+    /// <param name="node"> The node to jump to. </param>
+    public void Jump(IFileSystemNode node)
+        => JumpTo?.Invoke(node);
 
     /// <summary> Toggle the selection state of a single node. </summary>
     /// <param name="node"> The node to toggle. </param>
@@ -94,13 +105,10 @@ public sealed class FileSystemSelection : IDisposable
 
         switch (node)
         {
-            case IFileSystemData data:
-                _dataNodes.Remove(data);
-                break;
-            case IFileSystemFolder folder:
-                _folders.Remove(folder);
-                break;
+            case IFileSystemData data:     _dataNodes.Remove(data); break;
+            case IFileSystemFolder folder: _folders.Remove(folder); break;
         }
+
         Selection = null;
         Changed?.Invoke();
     }
@@ -125,9 +133,7 @@ public sealed class FileSystemSelection : IDisposable
                 if (_orderedNodes.Count is 1)
                     Selection = data;
                 break;
-            case IFileSystemFolder folder:
-                _folders.Add(folder);
-                break;
+            case IFileSystemFolder folder: _folders.Add(folder); break;
         }
 
         Changed?.Invoke();

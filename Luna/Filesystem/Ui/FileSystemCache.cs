@@ -160,7 +160,7 @@ public abstract class FileSystemCache : BasicCache
         if (!FileSystem.Selection.AllowsMultiSelection)
         {
             if (node is IFileSystemData data)
-                Parent.FileSystem.Selection.Select(data);
+                Parent.FileSystem.Selection.Select(data, false);
             return;
         }
 
@@ -200,7 +200,7 @@ public abstract class FileSystemCache : BasicCache
         // Without modifiers, we just remove the prior selection and then select the new node.
         else if (node is IFileSystemData data)
         {
-            Parent.FileSystem.Selection.Select(data);
+            Parent.FileSystem.Selection.Select(data, false);
         }
 
         // Set the last selected node for further shift-modified operations.
@@ -342,6 +342,8 @@ public abstract class FileSystemCache : BasicCache
 public abstract class FileSystemCache<TData> : FileSystemCache
     where TData : IFileSystemNodeCache
 {
+    protected readonly WeakReference<IFileSystemNode> JumpToNode = new(null!);
+
     /// <inheritdoc cref="FileSystemCache.Parent"/>
     public new FileSystemDrawer<TData> Parent
         => (FileSystemDrawer<TData>)base.Parent;
@@ -355,7 +357,8 @@ public abstract class FileSystemCache<TData> : FileSystemCache
     public FileSystemCache(FileSystemDrawer<TData> parent)
         : base(parent)
     {
-        Filter.FilterChanged += OnFilterChanged;
+        Filter.FilterChanged               += OnFilterChanged;
+        Parent.FileSystem.Selection.JumpTo += OnJumpTo;
         InitializeNodes();
     }
 
@@ -366,6 +369,15 @@ public abstract class FileSystemCache<TData> : FileSystemCache
         using var style = ImStyleDouble.FramePadding.PushX(Im.Style.GlobalScale)
             .PushY(ImStyleDouble.ItemSpacing, Im.Style.GlobalScale)
             .Push(ImStyleSingle.IndentSpacing, 14 * Im.Style.GlobalScale);
+
+        if (JumpToNode.TryGetTarget(out var node))
+        {
+            var index = InternalNodes.IndexOf(i => i.ParentNode == node);
+            if (index >= 0)
+                Im.Scroll.SetFromPositionY(index * Im.Style.TextHeightWithSpacing - Im.Scroll.Y);
+            JumpToNode.SetTarget(null!);
+        }
+
         TreeLine.Draw(VisibleNodes, LineColor);
     }
 
@@ -466,6 +478,10 @@ public abstract class FileSystemCache<TData> : FileSystemCache
         }
     }
 
+    /// <summary> The selection requested to jump the visible area of the drawers to a specific node if possible. </summary>
+    private void OnJumpTo(IFileSystemNode obj)
+        => JumpToNode.SetTarget(obj);
+
     /// <summary> The filter changed, so we need to rebuild the visible list. </summary>
     private void OnFilterChanged()
         => VisibleDirty = true;
@@ -474,6 +490,7 @@ public abstract class FileSystemCache<TData> : FileSystemCache
     protected override void Dispose(bool disposing)
     {
         base.Dispose(disposing);
-        Filter.FilterChanged -= OnFilterChanged;
+        Filter.FilterChanged               -= OnFilterChanged;
+        Parent.FileSystem.Selection.JumpTo -= OnJumpTo;
     }
 }
