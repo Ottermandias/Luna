@@ -305,6 +305,10 @@ public abstract class FileSystemCache : BasicCache
         public readonly IFileSystemNodeCache NodeData = nodeData;
 
         /// <inheritdoc/>
+        public int Identifier
+            => (int)ParentNode.Identifier.Value;
+
+        /// <inheritdoc/>
         public int ParentIndex { get; set; }
 
         /// <inheritdoc/>
