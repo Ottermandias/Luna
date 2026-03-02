@@ -1,15 +1,19 @@
 namespace Luna;
 
 /// <summary> The base class to draw a full file system UI. </summary>
+/// <param name="messager"> A messager to inform users of failed operations. </param>
 /// <param name="fileSystem"> The parent file system to draw. </param>
 /// <param name="filter"> The filter used by the drawer to pass to the buttons. </param>
-public abstract class FileSystemDrawer(BaseFileSystem fileSystem, IFilter filter) : IPanel
+public abstract class FileSystemDrawer(MessageService messager, BaseFileSystem fileSystem, IFilter filter) : IPanel
 {
     /// <inheritdoc/>>
     public abstract ReadOnlySpan<byte> Id { get; }
 
     /// <inheritdoc/>
     public abstract void Draw();
+
+    /// <summary> A messager to inform users of failed operations. </summary>
+    public readonly MessageService Messager = messager;
 
     /// <summary> The parent file system that is drawn by this. </summary>
     public readonly BaseFileSystem FileSystem = fileSystem;
@@ -122,10 +126,11 @@ public interface IFileSystemFilter<TNodeCache> : IFilter<TNodeCache>
 
 /// <summary> A file system drawer that uses a specific node cache type. </summary>
 /// <typeparam name="TNodeCache"> The cache to use. </typeparam>
+/// <param name="messager"> A messager to inform users of failed operations. </param>
 /// <param name="fileSystem"> The parent file system to draw. </param>
 /// <param name="filter"> The filter to use for the file system cache and a header above the panel in a 2-panel layout. </param>
-public abstract class FileSystemDrawer<TNodeCache>(BaseFileSystem fileSystem, IFileSystemFilter<TNodeCache>? filter)
-    : FileSystemDrawer(fileSystem, filter ?? NopFilter.Instance)
+public abstract class FileSystemDrawer<TNodeCache>(MessageService messager, BaseFileSystem fileSystem, IFileSystemFilter<TNodeCache>? filter)
+    : FileSystemDrawer(messager, fileSystem, filter ?? NopFilter.Instance)
     where TNodeCache : IFileSystemNodeCache
 {
     /// <summary> The header containing the filter for this file system drawer. </summary>

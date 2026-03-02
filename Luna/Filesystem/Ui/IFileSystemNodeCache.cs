@@ -1,3 +1,5 @@
+using Dalamud.Interface.ImGuiNotification;
+
 namespace Luna;
 
 /// <summary> A basic cache node for the flattened file system drawer. </summary>
@@ -49,7 +51,19 @@ public interface IFileSystemNodeCache
         // Apply the drop to the folder or the parent of the data node.
         var newParent = node as IFileSystemFolder ?? node.Parent!;
         foreach (var drag in cache.DraggedNodes)
-            cache.FileSystem.Move(drag, newParent);
+        {
+            try
+            {
+                cache.FileSystem.Move(drag, newParent);
+            }
+            catch (Exception ex)
+            {
+                cache.Parent.Messager.AddMessage(new Notification(ex,
+                    $"Could not move {drag.Name} to {newParent.Name} because a node with that name already exists.",
+                    "Failed to move filesystem node due to existing node of same name.", NotificationType.Warning), false);
+            }
+        }
+
         cache.ClearDragDrop();
         FileSystemCache.KeepDragAlive = false;
     }
