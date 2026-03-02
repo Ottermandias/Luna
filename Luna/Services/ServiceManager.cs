@@ -206,7 +206,7 @@ public class ServiceManager : IDisposable
     }
 
     /// <summary> Wrapper for adding singletons from Dalamud with some custom logging and timing. </summary>
-    public void AddDalamudService(Type type)
+    private void AddDalamudService(Type type)
     {
         _collection.AddSingleton(type, Func);
         return;
@@ -224,3 +224,4 @@ public class ServiceManager : IDisposable
         }
     }
 }
+
