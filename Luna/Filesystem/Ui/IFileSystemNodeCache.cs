@@ -59,7 +59,7 @@ public interface IFileSystemNodeCache
             catch (Exception ex)
             {
                 cache.Parent.Messager.AddMessage(new Notification(ex,
-                    $"Could not move {drag.Name} to {newParent.Name} because a node with that name already exists.",
+                    $"Could not move\n\t{drag.Name}\nto\n\t{newParent.Name}\nbecause a node with that name already exists.",
                     "Failed to move filesystem node due to existing node of same name.", NotificationType.Warning), false);
             }
         }

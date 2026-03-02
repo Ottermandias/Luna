@@ -183,7 +183,7 @@ public class ServiceManager : IDisposable
         object Func(IServiceProvider p)
         {
             var constructor = type.GetConstructors().MaxBy(c => c.GetParameters().Length);
-            if (constructor == null)
+            if (constructor is null)
                 return Activator.CreateInstance(type) ?? throw new Exception($"No constructor available for {type.Name}.");
 
             var parameterTypes = constructor.GetParameters();
