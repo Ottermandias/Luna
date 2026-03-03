@@ -137,13 +137,8 @@ public class ServiceManager : IDisposable
     /// <returns> This object to chain calls. </returns>
     public ServiceManager AddDalamudServices()
     {
-        var iType  = typeof(IDalamudService);
-        IEnumerable<Type> extras =
-        [
-            typeof(Dalamud.Interface.DragDrop.IDragDropManager),
-            typeof(Dalamud.Storage.Assets.IDalamudAssetManager),
-        ];
-        foreach (var type in iType.Assembly.ExportedTypes.Where(t => iType.IsAssignableFrom(t)).Concat(extras))
+        var iType = typeof(IDalamudService);
+        foreach (var type in iType.Assembly.ExportedTypes.Where(t => iType.IsAssignableFrom(t)))
         {
             if (_collection.All(t => t.ServiceType != type))
                 AddDalamudService(type);
@@ -224,4 +219,5 @@ public class ServiceManager : IDisposable
         }
     }
 }
+
 
