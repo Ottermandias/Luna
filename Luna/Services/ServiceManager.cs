@@ -65,7 +65,17 @@ public class ServiceManager : IDisposable
         foreach (var service in _collection)
         {
             if (service.ServiceType.IsAssignableTo(typeof(IRequiredService)))
-                Provider!.GetRequiredService(service.ServiceType);
+            {
+                try
+                {
+                    Provider!.GetRequiredService(service.ServiceType);
+                }
+                catch (Exception e)
+                {
+                    _logger.Fatal($"Could not instantiate required service {service.ServiceType}:\n{e}");
+                    throw;
+                }
+            }
         }
     }
 
