@@ -25,7 +25,7 @@ public class ServiceManager : IDisposable
     public ServiceManager(Logger logger, string? name = null)
     {
         _logger = logger;
-        
+
         // Add logging services and self.
         _collection.AddSingleton(ServiceDescriptor.Singleton(typeof(ILogger<>), typeof(Logger<>)));
         _collection.AddSingleton<ILogger>(_logger);
@@ -65,7 +65,6 @@ public class ServiceManager : IDisposable
         foreach (var service in _collection)
         {
             if (service.ServiceType.IsAssignableTo(typeof(IRequiredService)))
-            {
                 try
                 {
                     Provider!.GetRequiredService(service.ServiceType);
@@ -75,7 +74,6 @@ public class ServiceManager : IDisposable
                     _logger.Fatal($"Could not instantiate required service {service.ServiceType}:\n{e}");
                     throw;
                 }
-            }
         }
     }
 
@@ -201,7 +199,15 @@ public class ServiceManager : IDisposable
             _logger.Verbose(
                 $"Constructing Service {type.Name} with {string.Join(", ", parameterTypes.Select(name => $"{name.ParameterType}"))}.");
             using var timer = Timers.Measure(type.Name);
-            return constructor.Invoke(parameters);
+            try
+            {
+                return constructor.Invoke(parameters);
+            }
+            catch (Exception e)
+            {
+                _logger.Fatal($"Could not instantiate service {type}:\n{e}");
+                throw;
+            }
         }
     }
 
