@@ -141,19 +141,6 @@ public class ServiceManager : IDisposable
         }
     }
 
-    /// <summary> Add Dalamud-provided services to the collection as singletons. The <see cref="IDalamudPluginInterface"/> must be added separately. </summary>
-    /// <returns> This object to chain calls. </returns>
-    public ServiceManager AddDalamudServices()
-    {
-        var iType = typeof(IDalamudService);
-        foreach (var type in iType.Assembly.ExportedTypes.Where(t => iType.IsAssignableFrom(t)))
-        {
-            if (_collection.All(t => t.ServiceType != type))
-                AddDalamudService(type);
-        }
-        return this;
-    }
-
     /// <summary> Add Dalamud-provided services, including the plugin interface and UI builder, to the collection as singletons. </summary>
     /// <param name="pi"> The plugin interface to fetch the services from. </param>
     /// <returns> This object to chain calls. </returns>
@@ -214,6 +201,19 @@ public class ServiceManager : IDisposable
                 throw;
             }
         }
+    }
+
+    /// <summary> Add Dalamud-provided services to the collection as singletons. The <see cref="IDalamudPluginInterface"/> must be added separately. </summary>
+    /// <returns> This object to chain calls. </returns>
+    private ServiceManager AddDalamudServices()
+    {
+        var iType = typeof(IDalamudService);
+        foreach (var type in iType.Assembly.ExportedTypes.Where(t => iType.IsAssignableFrom(t)))
+        {
+            if (_collection.All(t => t.ServiceType != type))
+                AddDalamudService(type);
+        }
+        return this;
     }
 
     /// <summary> Wrapper for adding singletons from Dalamud with some custom logging and timing. </summary>
