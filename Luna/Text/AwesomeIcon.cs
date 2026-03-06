@@ -33,7 +33,7 @@ public readonly struct AwesomeIcon : IIconStandIn, IEquatable<AwesomeIcon>, IEqu
 
     /// <inheritdoc/>
     public static unsafe Im.Font Font
-        => (Im.Native.ImFont*)UiBuilder.IconFont.Handle;
+        => ImSharpDalamudContext.AwesomeFont;
 
     public bool Equals(AwesomeIcon other)
         => _data == other._data;

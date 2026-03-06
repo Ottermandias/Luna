@@ -8,6 +8,20 @@ namespace Luna;
 /// <summary> A helper class for sharing a single <see cref="ImSharpContext"/> across multiple instances of ImSharp or Luna through Dalamud IPC. </summary>
 public sealed unsafe class ImSharpDalamudContext : IRequiredService, IDisposable
 {
+    public static Im.Native.ImFont* AwesomeFont { get; private set; } = null;
+
+    public static Im.Native.ImFont* MonoFont
+    {
+        get => (Im.Native.ImFont*)ImSharpConfiguration.Context->MonoFont;
+        private set => ImSharpConfiguration.Context->MonoFont = value;
+    }
+
+    public static Im.Native.ImFont* DefaultFont
+    {
+        get => (Im.Native.ImFont*)ImSharpConfiguration.Context->DefaultFont;
+        private set => ImSharpConfiguration.Context->DefaultFont = value;
+    }
+
     private readonly string                  _contextTag;
     private readonly IUiBuilder              _uiBuilder;
     private readonly IDalamudPluginInterface _pluginInterface;
@@ -32,11 +46,12 @@ public sealed unsafe class ImSharpDalamudContext : IRequiredService, IDisposable
         ImSharpConfiguration.SetLogger(logger);
 
         // Set up the default cache manager.
-        _uiBuilder.DefaultFontChanged         += OnDefaultFontChanged;
-        _uiBuilder.DefaultGlobalScaleChanged  += OnDefaultGlobalScaleChanged;
-        _uiBuilder.DefaultStyleChanged        += OnDefaultStyleChanged;
+        _uiBuilder.DefaultFontChanged        += OnDefaultFontChanged;
+        _uiBuilder.DefaultGlobalScaleChanged += OnDefaultGlobalScaleChanged;
+        _uiBuilder.DefaultStyleChanged       += OnDefaultStyleChanged;
 
-        _uiBuilder.Draw += ImSharpPerFrame.OnUpdate;
+        _uiBuilder.Draw        += ImSharpPerFrame.OnUpdate;
+        ImSharpPerFrame.Update += OnFrameworkUpdate;
         var created = false;
         var holder = pluginInterface.GetOrCreateData(_contextTag, IReadOnlyList<nint> () =>
         {
@@ -58,6 +73,7 @@ public sealed unsafe class ImSharpDalamudContext : IRequiredService, IDisposable
         _uiBuilder.DefaultFontChanged        -= OnDefaultFontChanged;
         _uiBuilder.DefaultGlobalScaleChanged -= OnDefaultGlobalScaleChanged;
         _uiBuilder.DefaultStyleChanged       -= OnDefaultStyleChanged;
+        ImSharpPerFrame.Update               -= OnFrameworkUpdate;
         ImSharpConfiguration.SetContext(null, true);
         ImSharpConfiguration.SetLogger(null);
         _pluginInterface.RelinquishData(_contextTag);
@@ -185,5 +201,12 @@ public sealed unsafe class ImSharpDalamudContext : IRequiredService, IDisposable
     {
         CacheManager.Instance.SetStyleDirty();
         CacheManager.Instance.SetColorsDirty();
+    }
+
+    private void OnFrameworkUpdate()
+    {
+        MonoFont    = _uiBuilder.FontMono.IsLoaded() ? (Im.Native.ImFont*)_uiBuilder.FontMono.Handle : null;
+        DefaultFont = _uiBuilder.FontDefault.IsLoaded() ? (Im.Native.ImFont*)_uiBuilder.FontDefault.Handle : null;
+        AwesomeFont = _uiBuilder.FontIcon.IsLoaded() ? (Im.Native.ImFont*)_uiBuilder.FontIcon.Handle : null;
     }
 }
