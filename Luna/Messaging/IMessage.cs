@@ -46,4 +46,8 @@ public interface IMessage
     /// <summary> Will be subscribed to <see cref="IActiveNotification.DrawActions"/> when a notification is created. </summary>
     /// <param name="args"> The arguments passed by the event. </param>
     public void OnNotificationActions(INotificationDrawArgs args);
+
+    /// <summary> Invoked when a stored notification is deleted. </summary>
+    public void OnRemoval()
+    { }
 }

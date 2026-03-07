@@ -89,7 +89,7 @@ public class MessageService(Logger log, IChatGui chat, INotificationManager noti
             var notificationMessage = message.NotificationMessage;
             if (notificationMessage.Length > 0)
             {
-                var notification = NotificationManager.AddNotification(new Dalamud.Interface.ImGuiNotification.Notification()
+                var notification = NotificationManager.AddNotification(new Dalamud.Interface.ImGuiNotification.Notification
                 {
                     Content         = notificationMessage,
                     Title           = message.NotificationTitle,
@@ -157,8 +157,8 @@ public class MessageService(Logger log, IChatGui chat, INotificationManager noti
                     PrintMessage(table, index, date, message, ref deleteTime);
             }
 
-            if (deleteTime != DateTime.MinValue)
-                _messages.Remove(deleteTime);
+            if (deleteTime != DateTime.MinValue && _messages.Remove(deleteTime, out var message1))
+                message1.OnRemoval();
         }
     }
 
