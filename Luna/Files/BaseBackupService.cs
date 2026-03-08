@@ -8,6 +8,7 @@ public abstract class BaseBackupService<TFilePathProvider> : IAsyncService, IDis
     protected readonly Logger                  Log;
     protected readonly TFilePathProvider       Provider;
     protected readonly CancellationTokenSource Cancel = new();
+    protected          bool                    Disposed;
 
     /// <summary> Create an automatic backup. </summary>
     protected BaseBackupService(Logger log, TFilePathProvider provider)
@@ -26,7 +27,8 @@ public abstract class BaseBackupService<TFilePathProvider> : IAsyncService, IDis
     /// <param name="name"> The name to use for the backup. </param>
     /// <param name="additionalFiles"> Additional files to add to the migration backup that may not be in the backup files anymore. </param>
     public virtual void CreateMigrationBackup(string name, params IEnumerable<string> additionalFiles)
-        => Backup.CreatePermanentBackup(Log, new DirectoryInfo(Provider.ConfigurationDirectory), Provider.GetBackupFiles().Concat(additionalFiles.Select(s => new FileInfo(s))).ToList(), name);
+        => Backup.CreatePermanentBackup(Log, new DirectoryInfo(Provider.ConfigurationDirectory),
+            Provider.GetBackupFiles().Concat(additionalFiles.Select(s => new FileInfo(s))).ToList(), name);
 
     /// <inheritdoc/>
     public Task Awaiter { get; }
@@ -47,8 +49,12 @@ public abstract class BaseBackupService<TFilePathProvider> : IAsyncService, IDis
 
     protected virtual void Dispose(bool disposing)
     {
+        if (Disposed)
+            return;
+
         Cancel.Cancel();
         Cancel.Dispose();
         Awaiter.Dispose();
+        Disposed = true;
     }
 }
