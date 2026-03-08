@@ -1,6 +1,5 @@
 using System.Text;
 using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.Text;
 
 namespace Luna.Generators;
@@ -121,7 +120,7 @@ public sealed class TooltipEnumGenerator : IIncrementalGenerator
                 if (arguments[1].Value is true)
                     add = false;
                 if (arguments[0].Value is string t)
-                    tooltip = SymbolDisplay.FormatLiteral(t, false);
+                    tooltip = t;
             }
 
             if (add)
