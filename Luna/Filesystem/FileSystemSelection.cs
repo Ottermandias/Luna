@@ -108,8 +108,7 @@ public sealed class FileSystemSelection : IDisposable
             case IFileSystemData data:     _dataNodes.Remove(data); break;
             case IFileSystemFolder folder: _folders.Remove(folder); break;
         }
-
-        Selection = null;
+        Selection = OrderedNodes.Count is 1 && _dataNodes.Count is 1 ? _dataNodes[0] : null;
         Changed?.Invoke();
     }
 
