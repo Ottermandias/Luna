@@ -6,17 +6,18 @@ namespace Luna;
 /// <summary> A utility to asynchronously create hooks, and dispose of them. </summary>
 public sealed class HookManager(IGameInteropProvider provider) : IDisposable, IService
 {
-    public readonly  IGameInteropProvider                               Provider = provider;
-    private readonly ConcurrentDictionary<string, (IDalamudHook, long)> _hooks   = [];
-    private          Task?                                              _currentTask;
-    private          bool                                               _disposed;
+    public readonly  IGameInteropProvider                                               Provider = provider;
+    private readonly CancellationTokenSource                                            _cancel  = new();
+    private readonly ConcurrentDictionary<string, (IDalamudHook?, long, Exception? ex)> _hooks   = [];
+    private          Task?                                                              _currentTask;
+    private          bool                                                               _disposed;
 
     /// <summary> Get the data of all currently hooked methods. </summary>
     public IEnumerable<(string Name, nint Address, long Time, Type Delegate)> Diagnostics
         => _disposed
             ? []
-            : _hooks.Select(
-                kvp => (kvp.Key, kvp.Value.Item1.Address, kvp.Value.Item2, kvp.Value.Item1.GetType().GenericTypeArguments[0]));
+            : _hooks.Select(kvp => (kvp.Key, kvp.Value.Item1?.Address ?? nint.Zero, kvp.Value.Item2,
+                kvp.Value.Item1?.GetType().GenericTypeArguments[0] ?? typeof(void)));
 
     /// <summary> Create a hook for a given address. </summary>
     public Task<Hook<T>> CreateHook<T>(string name, nint address, T detour, bool enable = false) where T : Delegate
@@ -29,12 +30,29 @@ public sealed class HookManager(IGameInteropProvider provider) : IDisposable, IS
 
         Hook<T> Func()
         {
-            var timer = Stopwatch.StartNew();
-            var hook  = Provider.HookFromAddress(address, detour);
-            if (enable)
-                hook.Enable();
-            AddHook(name, hook, timer);
-            return hook;
+            _cancel.Token.ThrowIfCancellationRequested();
+            var      timer = Stopwatch.StartNew();
+            Hook<T>? hook  = null;
+            try
+            {
+                hook = Provider.HookFromAddress(address, detour);
+                if (enable)
+                    hook.Enable();
+
+                _cancel.Token.ThrowIfCancellationRequested();
+                AddHook(name, hook, timer);
+                return hook;
+            }
+            catch (OperationCanceledException)
+            {
+                throw;
+            }
+            catch (Exception ex)
+            {
+                AddHook(name, hook, timer, ex);
+            }
+
+
         }
     }
 
@@ -46,10 +64,21 @@ public sealed class HookManager(IGameInteropProvider provider) : IDisposable, IS
 
         Hook<T> Func()
         {
-            var timer = Stopwatch.StartNew();
-            var hook  = Provider.HookFromSignature(signature, detour);
-            if (enable)
-                hook.Enable();
+            _cancel.Token.ThrowIfCancellationRequested();
+            var      timer = Stopwatch.StartNew();
+            Hook<T>? hook  = null;
+            try
+            {
+                hook = Provider.HookFromSignature(signature, detour);
+                if (enable)
+                    hook.Enable();
+            }
+            catch (Exception ex)
+            {
+                _exceptions.Add(ex);
+            }
+
+            _cancel.Token.ThrowIfCancellationRequested();
             AddHook(name, hook, timer);
             return hook;
         }
@@ -63,15 +92,17 @@ public sealed class HookManager(IGameInteropProvider provider) : IDisposable, IS
 
         Hook<T>? Func()
         {
+            _cancel.Token.ThrowIfCancellationRequested();
             var timer = Stopwatch.StartNew();
             if (!_hooks.TryRemove(name, out var oldHook))
                 return null;
 
-            var enabled = oldHook.Item1.IsEnabled;
-            oldHook.Item1.Dispose();
-            var newHook = Provider.HookFromAddress(oldHook.Item1.Address, detour);
+            var enabled = oldHook.Item1?.IsEnabled ?? false;
+            oldHook.Item1?.Dispose();
+            var newHook = oldHook.Item1 is null ? null : Provider.HookFromAddress(oldHook.Item1.Address, detour);
             if (enabled)
-                newHook.Enable();
+                newHook?.Enable();
+            _cancel.Token.ThrowIfCancellationRequested();
             AddHook(name, newHook, timer);
             return newHook;
         }
@@ -85,10 +116,11 @@ public sealed class HookManager(IGameInteropProvider provider) : IDisposable, IS
 
         bool Func()
         {
+            _cancel.Token.ThrowIfCancellationRequested();
             if (!_hooks.TryRemove(name, out var hook))
                 return false;
 
-            hook.Item1.Dispose();
+            hook.Item1?.Dispose();
             return true;
         }
     }
@@ -99,9 +131,10 @@ public sealed class HookManager(IGameInteropProvider provider) : IDisposable, IS
         Task<T> task;
         lock (_hooks)
         {
-            task = _currentTask == null || _currentTask.IsCompleted
-                ? Task.Run(func)
-                : _currentTask.ContinueWith(_ => func(), TaskScheduler.Default);
+            task = _currentTask is null || _currentTask.IsCompleted
+                ? Task.Run(func, _cancel.Token)
+                : _currentTask.ContinueWith(_ => func(), _cancel.Token,
+                    TaskContinuationOptions.NotOnCanceled | TaskContinuationOptions.NotOnFaulted, TaskScheduler.Default);
             _currentTask = task;
         }
 
@@ -121,19 +154,21 @@ public sealed class HookManager(IGameInteropProvider provider) : IDisposable, IS
         if (_disposed)
             return;
 
+
         lock (_hooks)
         {
+            _cancel.Cancel();
             _currentTask?.Wait();
             _disposed = true;
             foreach (var (_, hook) in _hooks)
-                hook.Item1.Dispose();
+                hook.Item1?.Dispose();
             _hooks.Clear();
             _currentTask = null;
         }
     }
 
     /// <summary> Add the hook and throw on failure. </summary>
-    private void AddHook(string name, IDalamudHook hook, Stopwatch timer)
+    private void AddHook(string name, IDalamudHook? hook, Stopwatch timer)
     {
         if (!_hooks.TryAdd(name, (hook, timer.ElapsedMilliseconds)))
             throw new Exception($"A hook with the name of {name} already exists.");
