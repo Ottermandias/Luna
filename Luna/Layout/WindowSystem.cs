@@ -23,6 +23,10 @@ public sealed class WindowSystem : Dalamud.Interface.Windowing.WindowSystem, IUi
     public static Func<IServiceProvider, WindowSystem> Factory(string name)
         => p => new WindowSystem(p.GetRequiredService<IUiBuilder>(), name);
 
+    /// <returns> A factory function. </returns>
+    public static WindowSystem Create(IUiBuilder builder, string name)
+        => new(builder, name);
+
     /// <inheritdoc/>
     public void Dispose()
         => UiBuilder.Draw -= Draw;
