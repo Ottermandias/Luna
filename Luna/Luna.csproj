@@ -10,6 +10,7 @@
         <OutputPath>bin\$(Configuration)\</OutputPath>
 
         <LangVersion>preview</LangVersion>
+        <SuppressNETCoreSdkPreviewMessage>true</SuppressNETCoreSdkPreviewMessage>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <Deterministic>true</Deterministic>

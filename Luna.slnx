@@ -1,0 +1,21 @@
+<Solution>
+  <Configurations>
+    <Platform Name="x64" />
+  </Configurations>
+  <Folder Name="/Solution Items/">
+    <File Path=".editorconfig" />
+    <File Path=".gitignore" />
+  </Folder>
+  <Project Path="ImSharp/ImSharp/ImSharp.csproj">
+    <Platform Project="x64" />
+  </Project>
+  <Project Path="Luna.Generators/Luna.Generators.csproj">
+    <Platform Project="x64" />
+  </Project>
+  <Project Path="Luna.Tests/Luna.Tests.csproj">
+    <Platform Project="x64" />
+  </Project>
+  <Project Path="Luna/Luna.csproj">
+    <Platform Project="x64" />
+  </Project>
+</Solution>

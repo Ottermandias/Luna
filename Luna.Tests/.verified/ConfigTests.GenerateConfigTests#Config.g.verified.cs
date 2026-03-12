@@ -17,7 +17,7 @@ partial class Config
                 OnIntPropChanging(value, _intProp);
                 _intProp = value;
                 OnIntPropChanged(_intProp, __oldValue);
-                IntChanged(_intProp, __oldValue);
+                IntChanged?.Invoke(_intProp, __oldValue);
                 Save();
             }
         }
