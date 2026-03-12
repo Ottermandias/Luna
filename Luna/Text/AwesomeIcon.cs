@@ -12,12 +12,16 @@ public readonly struct AwesomeIcon : IIconStandIn, IEquatable<AwesomeIcon>, IEqu
     {
         var iconChar = icon.ToIconChar();
         var tmp      = 0ul;
-        var bytes    = (byte)Encoding.UTF8.GetBytes(&iconChar, 1, (byte*)&tmp, 8);
+        var bytes    = iconChar is '\0' ? 0 : (byte)Encoding.UTF8.GetBytes(&iconChar, 1, (byte*)&tmp, 8);
         _data = tmp | ((ulong)bytes << 40);
     }
 
     public static implicit operator AwesomeIcon(FontAwesomeIcon icon)
         => new(icon);
+
+    /// <inheritdoc/>
+    public bool IsEmpty
+        => _data is 0ul;
 
     /// <inheritdoc/>
     public unsafe ReadOnlySpan<byte> Span
