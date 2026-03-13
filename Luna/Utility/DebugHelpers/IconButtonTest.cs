@@ -1,6 +1,6 @@
 ﻿using Dalamud.Interface;
 
-namespace Luna.Debug;
+namespace Luna.DebugHelpers;
 
 public static class IconButtonTest
 {
