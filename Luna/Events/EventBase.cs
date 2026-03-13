@@ -116,7 +116,7 @@ public abstract class EventBase<TPriority>(string name, ILogger log, IComparer<T
             }
             catch (Exception ex)
             {
-                Log.LogError(ex, "[{Event}] Exception thrown during invocation.", Name);
+                Log.LogError(ex, "[{Event:l}] Exception thrown during invocation.", Name);
                 throw;
             }
         }
