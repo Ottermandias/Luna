@@ -93,4 +93,56 @@ public static class EnumerableExtensions
                 yield return transform!;
         }
     }
+
+    /// <summary> Compute the maximum value in a set, or return a default value if the set is empty. </summary>
+    /// <typeparam name="TObject"> The type of the objects. </typeparam>
+    /// <typeparam name="TValue"> The type of the value to compare. </typeparam>
+    /// <param name="enumerable"> The set of objects. </param>
+    /// <param name="selector"> The selector to reduce the objects to a specific value. </param>
+    /// <param name="ifEmpty"> The default value to return if the set of objects is empty. </param>
+    /// <returns> The maximum selected value in the set or <paramref name="ifEmpty"/> if there are no elements in the set. </returns>
+    public static TValue Max<TObject, TValue>(this IEnumerable<TObject> enumerable, Func<TObject, TValue> selector, TValue ifEmpty)
+        where TValue : IComparable<TValue>
+    {
+        using var enumerator = enumerable.GetEnumerator();
+        if (!enumerator.MoveNext())
+            return ifEmpty;
+
+        var comparer = Comparer<TValue>.Default;
+        var max      = selector(enumerator.Current);
+        while (enumerator.MoveNext())
+        {
+            var value = selector(enumerator.Current);
+            if (comparer.Compare(max, value) < 0)
+                max = value;
+        }
+
+        return max;
+    }
+
+    /// <summary> Compute the minimum value in a set, or return a default value if the set is empty. </summary>
+    /// <typeparam name="TObject"> The type of the objects. </typeparam>
+    /// <typeparam name="TValue"> The type of the value to compare. </typeparam>
+    /// <param name="enumerable"> The set of objects. </param>
+    /// <param name="selector"> The selector to reduce the objects to a specific value. </param>
+    /// <param name="ifEmpty"> The default value to return if the set of objects is empty. </param>
+    /// <returns> The minimum selected value in the set or <paramref name="ifEmpty"/> if there are no elements in the set. </returns>
+    public static TValue Min<TObject, TValue>(this IEnumerable<TObject> enumerable, Func<TObject, TValue> selector, TValue ifEmpty)
+        where TValue : IComparable<TValue>
+    {
+        using var enumerator = enumerable.GetEnumerator();
+        if (!enumerator.MoveNext())
+            return ifEmpty;
+
+        var comparer = Comparer<TValue>.Default;
+        var min      = selector(enumerator.Current);
+        while (enumerator.MoveNext())
+        {
+            var value = selector(enumerator.Current);
+            if (comparer.Compare(min, value) > 0)
+                min = value;
+        }
+
+        return min;
+    }
 }
