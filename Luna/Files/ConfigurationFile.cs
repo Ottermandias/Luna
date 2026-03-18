@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Dalamud.Interface.ImGuiNotification;
 
 namespace Luna;
@@ -22,7 +23,7 @@ public abstract class ConfigurationFile<TProvider>(BaseSaveService<TProvider> sa
 
     /// <summary> The function that writes this file's specific data to the JSON stream. </summary>
     /// <param name="j"> The JSON writer. </param>
-    protected abstract void AddData(JsonTextWriter j);
+    protected abstract void AddData(Utf8JsonWriter j);
 
     /// <summary> The function that parses the JObject and fills this files data with the result. </summary>
     /// <param name="j"> The deserialized JObject. </param>
@@ -40,14 +41,12 @@ public abstract class ConfigurationFile<TProvider>(BaseSaveService<TProvider> sa
         => SaveService.DelaySave(this, SaveDelay);
 
     /// <summary> Save this file with common data, indentation and using <see cref="AddData"/>. </summary>
-    /// <param name="writer"> The stream writer to write to.</param>
-    public virtual void Save(StreamWriter writer)
+    /// <param name="stream"> The stream to write to.</param>
+    public virtual void Save(Stream stream)
     {
-        using var j = new JsonTextWriter(writer);
-        j.Formatting = Formatting.Indented;
+        using var j = new Utf8JsonWriter(stream, JsonFunctions.WriterOptions);
         j.WriteStartObject();
-        j.WritePropertyName("Version");
-        j.WriteValue(CurrentVersion);
+        j.WriteNumber("Version"u8, CurrentVersion);
         AddData(j);
         j.WriteEndObject();
     }

@@ -9,6 +9,9 @@ namespace Luna;
 public abstract class BaseSaveService<T>(Logger log, FrameworkManager framework, T fileNames, Task? awaiter = null) : IDisposable
     where T : BaseFilePathProvider
 {
+    /// <summary> An encoding that omits the BOM. </summary>
+    private static readonly Encoding Utf8WithoutBom = new UTF8Encoding(false);
+
     /// <summary> The default delay when using <see cref="SaveType.Delay"/> without specifying a custom delay. </summary>
 #if DEBUG
     private static readonly TimeSpan StandardDelay = TimeSpan.FromSeconds(2);
@@ -133,8 +136,7 @@ public abstract class BaseSaveService<T>(Logger log, FrameworkManager framework,
                 // Open the new or temporary file as a stream and write to it.
                 using (var s = file.Exists ? file.Open(FileMode.Truncate) : file.Open(FileMode.CreateNew))
                 {
-                    using var w = new StreamWriter(s, Encoding.UTF8);
-                    value.Save(w);
+                    value.Save(s);
                 }
 
                 // If we wrote to a temporary file, move the fully written file to replace the original file when done.

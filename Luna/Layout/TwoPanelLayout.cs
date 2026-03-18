@@ -1,3 +1,5 @@
+using System.Text.Json;
+
 namespace Luna;
 
 /// <summary> The scaling mode for a panel. </summary>
@@ -50,6 +52,18 @@ public readonly record struct TwoPanelWidth(float Width, ScalingMode Mode)
         j.WriteValue(Mode is ScalingMode.Absolute ? "Absolute" : "Percentage");
         j.WritePropertyName("Width");
         j.WriteValue(Width);
+        j.WriteEndObject();
+    }
+
+    /// <summary> Write the width to a JSON stream, giving the object a specific name. </summary>
+    /// <param name="j"> The JSON writer. </param>
+    /// <param name="name"> The name for the object. </param>
+    public void WriteJson(Utf8JsonWriter j, ReadOnlySpan<byte> name)
+    {
+        j.WritePropertyName(name);
+        j.WriteStartObject();
+        j.WriteString("Mode"u8, Mode is ScalingMode.Absolute ? "Absolute"u8 : "Percentage"u8);
+        j.WriteNumber("Width"u8, Width);
         j.WriteEndObject();
     }
 

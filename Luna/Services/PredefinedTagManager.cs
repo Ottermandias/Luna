@@ -1,4 +1,6 @@
-﻿namespace Luna;
+﻿using System.Text.Json;
+
+namespace Luna;
 
 /// <summary> A utility to more easily handle predefined tags for tagging objects. </summary>
 /// <typeparam name="TProvider"> The file name provider for the predefined tags file. </typeparam>
@@ -52,12 +54,12 @@ public abstract class PredefinedTagManager<TProvider, TObj>(BaseSaveService<TPro
         => PredefinedTags.Count > 0;
 
     /// <inheritdoc/>
-    protected override void AddData(JsonTextWriter j)
+    protected override void AddData(Utf8JsonWriter j)
     {
-        j.WritePropertyName("Tags");
+        j.WritePropertyName("Tags"u8);
         j.WriteStartArray();
         foreach (var tag in PredefinedTags)
-            j.WriteValue(tag);
+            j.WriteStringValue(tag);
 
         j.WriteEndArray();
     }

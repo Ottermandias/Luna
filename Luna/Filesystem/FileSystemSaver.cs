@@ -1,3 +1,5 @@
+using System.Text.Json;
+
 namespace Luna;
 
 /// <summary> Shared base class for file system savers. </summary>
@@ -436,19 +438,17 @@ public abstract class FileSystemSaver<TSaveService, TProvider> : FileSystemSaver
         public string ToFilePath(TProvider fileNames)
             => saver.LockedFile(fileNames);
 
-        public void Save(StreamWriter writer)
+        public void Save(Stream stream)
         {
-            using var jWriter = new JsonTextWriter(writer);
-            jWriter.Formatting = Formatting.Indented;
-            jWriter.WriteStartObject();
-            jWriter.WritePropertyName("Version");
-            jWriter.WriteValue(CurrentVersion);
-            jWriter.WritePropertyName("Nodes");
-            jWriter.WriteStartArray();
+            using var j = new Utf8JsonWriter(stream, JsonFunctions.WriterOptions);
+            j.WriteStartObject();
+            j.WriteNumber("Version"u8, CurrentVersion);
+            j.WritePropertyName("Nodes"u8);
+            j.WriteStartArray();
             foreach (var node in saver.FileSystem.Root.GetDescendants().Where(n => n.Locked))
-                jWriter.WriteValue(node is IFileSystemData d ? $":{d.Value.Identifier}" : node.FullPath);
-            jWriter.WriteEndArray();
-            jWriter.WriteEndObject();
+                j.WriteStringValue(node is IFileSystemData d ? $":{d.Value.Identifier}" : node.FullPath);
+            j.WriteEndArray();
+            j.WriteEndObject();
         }
     }
 
@@ -457,19 +457,17 @@ public abstract class FileSystemSaver<TSaveService, TProvider> : FileSystemSaver
         public string ToFilePath(TProvider fileNames)
             => saver.SelectionFile(fileNames);
 
-        public void Save(StreamWriter writer)
+        public void Save(Stream stream)
         {
-            using var jWriter = new JsonTextWriter(writer);
-            jWriter.Formatting = Formatting.Indented;
-            jWriter.WriteStartObject();
-            jWriter.WritePropertyName("Version");
-            jWriter.WriteValue(CurrentVersion);
-            jWriter.WritePropertyName("Nodes");
-            jWriter.WriteStartArray();
+            using var j = new Utf8JsonWriter(stream, JsonFunctions.WriterOptions);
+            j.WriteStartObject();
+            j.WriteNumber("Version"u8, CurrentVersion);
+            j.WritePropertyName("Nodes"u8);
+            j.WriteStartArray();
             foreach (var node in saver.FileSystem.Selection.OrderedNodes)
-                jWriter.WriteValue(node is IFileSystemData d ? $":{d.Value.Identifier}" : node.FullPath);
-            jWriter.WriteEndArray();
-            jWriter.WriteEndObject();
+                j.WriteStringValue(node is IFileSystemData d ? $":{d.Value.Identifier}" : node.FullPath);
+            j.WriteEndArray();
+            j.WriteEndObject();
         }
     }
 
@@ -478,19 +476,17 @@ public abstract class FileSystemSaver<TSaveService, TProvider> : FileSystemSaver
         public string ToFilePath(TProvider fileNames)
             => saver.ExpandedFile(fileNames);
 
-        public void Save(StreamWriter writer)
+        public void Save(Stream stream)
         {
-            using var jWriter = new JsonTextWriter(writer);
-            jWriter.Formatting = Formatting.Indented;
-            jWriter.WriteStartObject();
-            jWriter.WritePropertyName("Version");
-            jWriter.WriteValue(CurrentVersion);
-            jWriter.WritePropertyName("Nodes");
-            jWriter.WriteStartArray();
+            using var j = new Utf8JsonWriter(stream, JsonFunctions.WriterOptions);
+            j.WriteStartObject();
+            j.WriteNumber("Version"u8, CurrentVersion);
+            j.WritePropertyName("Nodes"u8);
+            j.WriteStartArray();
             foreach (var folder in saver.FileSystem.Root.GetDescendants().Where(n => n is IFileSystemFolder { Expanded: true }))
-                jWriter.WriteValue(folder.FullPath);
-            jWriter.WriteEndArray();
-            jWriter.WriteEndObject();
+                j.WriteStringValue(folder.FullPath);
+            j.WriteEndArray();
+            j.WriteEndObject();
         }
     }
 
@@ -499,19 +495,17 @@ public abstract class FileSystemSaver<TSaveService, TProvider> : FileSystemSaver
         public string ToFilePath(TProvider fileNames)
             => saver.EmptyFoldersFile(fileNames);
 
-        public void Save(StreamWriter writer)
+        public void Save(Stream stream)
         {
-            using var jWriter = new JsonTextWriter(writer);
-            jWriter.Formatting = Formatting.Indented;
-            jWriter.WriteStartObject();
-            jWriter.WritePropertyName("Version");
-            jWriter.WriteValue(CurrentVersion);
-            jWriter.WritePropertyName("Nodes");
-            jWriter.WriteStartArray();
+            using var j = new Utf8JsonWriter(stream, JsonFunctions.WriterOptions);
+            j.WriteStartObject();
+            j.WriteNumber("Version"u8, CurrentVersion);
+            j.WritePropertyName("Nodes"u8);
+            j.WriteStartArray();
             foreach (var folder in saver.FileSystem.Root.GetDescendants().Where(n => n is IFileSystemFolder { Children.Count: 0 }))
-                jWriter.WriteValue(folder.FullPath);
-            jWriter.WriteEndArray();
-            jWriter.WriteEndObject();
+                j.WriteStringValue(folder.FullPath);
+            j.WriteEndArray();
+            j.WriteEndObject();
         }
     }
 

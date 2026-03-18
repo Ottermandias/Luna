@@ -6,8 +6,8 @@ public interface ISavable<in T> where T : BaseFilePathProvider
     /// <summary> Get The full file path of a given object. </summary>
     public string ToFilePath(T fileNames);
 
-    /// <summary> Write the objects data to the given stream writer. </summary>
-    public void Save(StreamWriter writer);
+    /// <summary> Write the objects data to the given stream. </summary>
+    public void Save(Stream stream);
 
     /// <summary> An arbitrary message printed to Debug before saving. </summary>
     public string LogName(string fileName)
