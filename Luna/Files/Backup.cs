@@ -42,7 +42,7 @@ public static partial class Backup
                 using var oldFileStream = File.Open(existingBackup.FullName, FileMode.Open);
                 using var oldZip        = new ZipArchive(oldFileStream, ZipArchiveMode.Read);
                 var       entry         = oldZip.GetEntry(fileName);
-                if (entry == null)
+                if (entry is null)
                 {
                     message += $"\nBackup from {existingBackup.CreationTime} did not contain the file {fileName}";
                     continue;
@@ -52,7 +52,7 @@ public static partial class Backup
                 using var tr   = new StreamReader(file, Encoding.UTF8);
                 var       text = tr.ReadToEnd();
                 parsedFile = parse(text);
-                if (parsedFile != null)
+                if (parsedFile is not null)
                 {
                     message += $"\nBackup from {existingBackup.CreationTime} successfully loaded {fileName}.";
                     return true;
