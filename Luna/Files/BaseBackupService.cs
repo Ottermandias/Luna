@@ -23,12 +23,17 @@ public abstract class BaseBackupService<TFilePathProvider> : IAsyncService, IDis
             Awaiter = Task.CompletedTask;
     }
 
-    /// <summary> Generate a named, permanent backup of the current file state. </summary>
-    /// <param name="name"> The name to use for the backup. </param>
-    /// <param name="additionalFiles"> Additional files to add to the migration backup that may not be in the backup files anymore. </param>
+    /// <inheritdoc cref="CreateMigrationBackup(string,IEnumerable{FileInfo})"/>
     public virtual void CreateMigrationBackup(string name, params IEnumerable<string> additionalFiles)
         => Backup.CreatePermanentBackup(Log, new DirectoryInfo(Provider.ConfigurationDirectory),
             Provider.GetBackupFiles().Concat(additionalFiles.Select(s => new FileInfo(s))).ToList(), name);
+
+    /// <summary> Generate a named, permanent backup of the current file state. </summary>
+    /// <param name="name"> The name to use for the backup. </param>
+    /// <param name="additionalFiles"> Additional files to add to the migration backup that may not be in the backup files anymore. </param>
+    public virtual void CreateMigrationBackup(string name, params IEnumerable<FileInfo> additionalFiles)
+        => Backup.CreatePermanentBackup(Log, new DirectoryInfo(Provider.ConfigurationDirectory),
+            Provider.GetBackupFiles().Concat(additionalFiles).ToList(), name);
 
     /// <inheritdoc/>
     public Task Awaiter { get; }

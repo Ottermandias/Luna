@@ -76,11 +76,11 @@ public static partial class Backup
             var configDirectory = dir.Parent!.FullName;
             var directory       = CreateBackupDirectory(dir);
             cancel.ThrowIfCancellationRequested();
-            if (name == null)
+            if (name is null)
             {
                 var (newestFile, oldestFile, numFiles) = CheckExistingBackups(directory, cancel);
                 var newBackupName = Path.Combine(directory.FullName, $"{DateTime.Now:yyyyMMddHHmmss}.zip");
-                if (newestFile == null || CheckNewestBackup(logger, newestFile, configDirectory, files.Count, cancel))
+                if (newestFile is null || CheckNewestBackup(logger, newestFile, configDirectory, files.Count, cancel))
                 {
                     CreateBackupFile(files, newBackupName, configDirectory);
                     if (numFiles > MaxNumBackups)
