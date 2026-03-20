@@ -145,6 +145,31 @@ public static class JsonFunctions
 
     /// <inheritdoc cref="TryReadProperty(in JsonElement,ReadOnlySpan{byte},out string?)"/>
     [MethodImpl(ImSharpConfiguration.Inl)]
+    public static bool TryReadProperty(this in JsonElement parent, ReadOnlySpan<byte> property, out bool value)
+    {
+        Debug.Assert(parent.ValueKind is JsonValueKind.Object, "JSON parent value is not an object.");
+        if (!parent.TryGetProperty(property, out var element))
+        {
+            value = false;
+            return true;
+        }
+
+        switch (element.ValueKind)
+        {
+            case JsonValueKind.True:
+                value = true;
+                return true;
+            case JsonValueKind.False:
+                value = false;
+                return true;
+            default:
+                value = false;
+                return false;
+        }
+    }
+
+    /// <inheritdoc cref="TryReadProperty(in JsonElement,ReadOnlySpan{byte},out string?)"/>
+    [MethodImpl(ImSharpConfiguration.Inl)]
     public static bool TryReadProperty(this in JsonElement parent, ReadOnlySpan<byte> property, out sbyte value)
     {
         Debug.Assert(parent.ValueKind is JsonValueKind.Object, "JSON parent value is not an object.");
