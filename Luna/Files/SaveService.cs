@@ -120,7 +120,7 @@ public abstract class BaseSaveService<T>(Logger log, FrameworkManager framework,
         {
             try
             {
-                if (name.Length == 0)
+                if (name.Length is 0)
                     throw new Exception("Invalid object returned empty filename.");
 
                 // Check if the file written to already exists, and if it does, write to a temporary file first.
