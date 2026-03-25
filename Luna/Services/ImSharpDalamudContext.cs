@@ -207,6 +207,6 @@ public sealed unsafe class ImSharpDalamudContext : IRequiredService, IDisposable
     {
         MonoFont    = _uiBuilder.FontMono.IsLoaded() ? (Im.Native.ImFont*)_uiBuilder.FontMono.Handle : null;
         DefaultFont = _uiBuilder.FontDefault.IsLoaded() ? (Im.Native.ImFont*)_uiBuilder.FontDefault.Handle : null;
-        AwesomeFont = _uiBuilder.FontIcon.IsLoaded() ? (Im.Native.ImFont*)_uiBuilder.FontIcon.Handle : null;
+        AwesomeFont = _uiBuilder.FontIcon.IsLoaded() ? (Im.Native.ImFont*)_uiBuilder.FontIconFixedWidth.Handle : null;
     }
 }
