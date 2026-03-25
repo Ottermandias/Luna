@@ -19,7 +19,7 @@ public class SplitButtonHeader : IHeader
 
     public virtual void Draw(Vector2 size)
     {
-        var width = Im.Style.FrameHeight + Im.Style.ItemSpacing.X;
+        var width = Im.Style.FrameHeight + Im.Style.ItemInnerSpacing.X;
         using var style = new Im.ColorStyleDisposable()
             .Push(ImStyleDouble.ItemSpacing,          Vector2.Zero)
             .Push(ImStyleSingle.FrameRounding,        0)
