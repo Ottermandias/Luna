@@ -34,8 +34,8 @@ public static class FormattingFunctions
         var diff = now - DateTimeOffset.FromUnixTimeMilliseconds(timestamp - timestamp % 1000);
         return diff.TotalSeconds switch
         {
-            > 300 * TimeSpan.SecondsPerDay => string.Create(CultureInfo.InvariantCulture, $"{diff.TotalSeconds / 300.0 / TimeSpan.SecondsPerDay:F2} Years"),
-            > 10 * TimeSpan.SecondsPerDay  => string.Create(CultureInfo.InvariantCulture, $"{diff.TotalSeconds / 10.0 / TimeSpan.SecondsPerDay:F2} Months"),
+            > 300 * TimeSpan.SecondsPerDay => string.Create(CultureInfo.InvariantCulture, $"{diff.TotalSeconds / 365.0 / TimeSpan.SecondsPerDay:F2} Years"),
+            > 10 * TimeSpan.SecondsPerDay  => string.Create(CultureInfo.InvariantCulture, $"{diff.TotalSeconds / 30.0 / TimeSpan.SecondsPerDay:F2} Months"),
             > TimeSpan.SecondsPerDay       => string.Create(CultureInfo.InvariantCulture, $"{diff.TotalSeconds / TimeSpan.SecondsPerDay:F2} Days"),
             > TimeSpan.SecondsPerHour      => $"{diff.Hours}:{diff.Minutes:D2} Hours",
             _                              => $"{diff.Minutes}:{diff.Seconds:D2} Minutes",

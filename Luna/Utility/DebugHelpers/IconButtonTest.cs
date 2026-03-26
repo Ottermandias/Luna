@@ -24,7 +24,7 @@ public static class IconButtonTest
             if (ImEx.Icon.LabeledButton(default(AwesomeIcon), "Save As"u8))
                 _buttonTestLastClicked = 102;
             Im.Line.SameInner();
-            if (ImEx.Icon.LabeledButton(LunaStyle.ExpandDownIcon, "##saveMoreOptions"u8, "More options for saving"u8))
+            if (ImEx.Icon.LabeledButton(LunaStyle.TreeExpandIcon, "##saveMoreOptions"u8, "More options for saving"u8))
                 _buttonTestLastClicked = 103;
         }
 
@@ -93,7 +93,7 @@ public static class IconButtonTest
             if (ImEx.Icon.Button(LunaStyle.SaveIcon, "Save"u8, true))
                 _buttonTestLastClicked = 501;
             Im.Line.SameInner();
-            if (ImEx.Icon.Button(LunaStyle.ExpandDownIcon, "More options for saving"u8))
+            if (ImEx.Icon.Button(LunaStyle.TreeExpandIcon, "More options for saving"u8))
                 _buttonTestLastClicked = 502;
         }
     }
