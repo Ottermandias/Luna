@@ -443,8 +443,15 @@ public abstract class FileSystemCache<TData> : FileSystemCache
                             foreach (var child in folder.GetChildren(Parent.SortMode))
                                 AddNode(child, index, currentDepth + 1);
                             // We have visible children, so the folder is also visible either way.
-                            if (InternalNodes.Count > index + 1)
-                                data.StartsLineTo = InternalNodes.Count - 1;
+                            // The line should only go to the last child nested one deeper, if that is a folder, it may not be the newest child.
+                            for (var i = InternalNodes.Count - 1; i > index; i--)
+                            {
+                                if (InternalNodes[i].IndentationDepth == currentDepth + 1)
+                                {
+                                    data.StartsLineTo = i;
+                                    break;
+                                }
+                            }
                         }
                     }
                     else
@@ -465,7 +472,15 @@ public abstract class FileSystemCache<TData> : FileSystemCache
                                 AddNode(child, index, currentDepth + 1);
 
                             if (InternalNodes.Count > index + 1)
-                                data.StartsLineTo = InternalNodes.Count - 1;
+                                // The line should only go to the last child nested one deeper, if that is a folder, it may not be the newest child.
+                                for (var i = InternalNodes.Count - 1; i > index; i--)
+                                {
+                                    if (InternalNodes[i].IndentationDepth == currentDepth + 1)
+                                    {
+                                        data.StartsLineTo = i;
+                                        break;
+                                    }
+                                }
                             // The folder has neither visible children, nor is visible by itself. Remove it again.
                             else if (!visible)
                                 InternalNodes.RemoveAt(index);
