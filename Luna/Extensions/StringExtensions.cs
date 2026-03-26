@@ -16,15 +16,8 @@ public static class StringExtensions
     public static unsafe bool Contains(this ISpanFormattable data, ReadOnlySpan<char> needle,
         StringComparison comparison = StringComparison.Ordinal, ReadOnlySpan<char> format = default, IFormatProvider? provider = null)
     {
-        Span<char> span = stackalloc char[64];
-        if (!data.TryFormat(span, out var written, format, provider))
-        {
-            span = stackalloc char[1024];
-            if (!data.TryFormat(span, out written, format, provider))
-                return false;
-        }
-
-        return span[..written].Contains(needle, comparison);
+        Span<char> span = stackalloc char[1024];
+        return data.TryFormat(span, out var written, format, provider) && span[..written].Contains(needle, comparison);
     }
 
     /// <summary> Normalize for nicer names, and remove invalid symbols or invalid paths, trim whitespace from the start and end. </summary>
