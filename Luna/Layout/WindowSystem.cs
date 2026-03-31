@@ -30,4 +30,11 @@ public sealed class WindowSystem : Dalamud.Interface.Windowing.WindowSystem, IUi
     /// <inheritdoc/>
     public void Dispose()
         => UiBuilder.Draw -= Draw;
+
+    /// <summary> Draw only if our context has been initialized. </summary>
+    private new void Draw()
+    {
+        if (ImSharpConfiguration.IsInitialized)
+            base.Draw();
+    }
 }
