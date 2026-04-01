@@ -3,7 +3,7 @@ namespace Luna;
 /// <summary> Triggered whenever the specific file system changes. </summary>
 /// <param name="name"> The name of the event. </param>
 /// <param name="log"> A logger. </param>
-public sealed class FileSystemChanged(string name, Logger log) : EventBase<FileSystemChanged.Arguments, uint>(name, log)
+public sealed class FileSystemChanged(string name, LunaLogger log) : EventBase<FileSystemChanged.Arguments, uint>(name, log)
 {
     /// <summary> Arguments for a FileSystemChanged event. </summary>
     /// <param name="Type"> The type of change. </param>

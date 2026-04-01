@@ -16,7 +16,7 @@ public sealed class HookManager(IGameInteropProvider provider) : IDisposable, IS
     /// <summary> Log all exceptions that occured while creating hooks. </summary>
     /// <param name="log"> The logger to log to. </param>
     /// <returns> True if any exceptions occured, false otherwise. </returns>
-    public bool LogExceptions(Logger log)
+    public bool LogExceptions(LunaLogger log)
     {
         _currentTask?.Wait();
         if (!HasExceptions)

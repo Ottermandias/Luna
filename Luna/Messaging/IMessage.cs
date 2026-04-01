@@ -23,15 +23,15 @@ public interface IMessage
     public string LogMessage { get; }
 
     /// <summary> The log level to use for the log message. </summary>
-    public Logger.LogLevel LogLevel
+    public LogLevel LogLevel
         => NotificationType switch
         {
-            NotificationType.None    => Logger.LogLevel.Excessive,
-            NotificationType.Success => Logger.LogLevel.Verbose,
-            NotificationType.Warning => Logger.LogLevel.Warning,
-            NotificationType.Error   => Logger.LogLevel.Error,
-            NotificationType.Info    => Logger.LogLevel.Debug,
-            _                        => Logger.LogLevel.Fatal,
+            NotificationType.None    => LogLevel.Excessive,
+            NotificationType.Success => LogLevel.Verbose,
+            NotificationType.Warning => LogLevel.Warning,
+            NotificationType.Error   => LogLevel.Error,
+            NotificationType.Info    => LogLevel.Debug,
+            _                        => LogLevel.Fatal,
         };
 
     /// <summary> The message printed to the game's chat. </summary>

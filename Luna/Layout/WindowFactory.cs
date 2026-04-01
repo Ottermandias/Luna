@@ -4,11 +4,11 @@ namespace Luna;
 /// <typeparam name="TWindow"> The actual type of the indexed window. </typeparam>
 /// <param name="log"> <inheritdoc cref="Log"/> </param>
 /// <param name="windowSystem"> <inheritdoc cref="WindowSystem"/> </param>
-public abstract class WindowFactory<TWindow>(Logger log, WindowSystem windowSystem) : IReadOnlyCollection<TWindow>
+public abstract class WindowFactory<TWindow>(LunaLogger log, WindowSystem windowSystem) : IReadOnlyCollection<TWindow>
     where TWindow : IndexedWindow
 {
     /// <summary> The logger used for logging messages from this factory. </summary>
-    protected readonly Logger Log = log;
+    protected readonly LunaLogger Log = log;
 
     /// <summary> The window system to add created windows to. </summary>
     protected readonly WindowSystem WindowSystem = windowSystem;

@@ -1,59 +1,26 @@
 using Microsoft.Extensions.Logging;
 using Serilog.Events;
+using EventId = Microsoft.Extensions.Logging.EventId;
 
 // ReSharper disable MethodOverloadWithOptionalParameter
 
 namespace Luna;
 
-/// <summary> Get the Serilog log, convert it to a Microsoft ILogger and set a plugin specific prefix. </summary>
-/// <typeparam name="T"> Unused type for dependency injection. </typeparam>
-public class Logger<T> : ILogger<T>, Serilog.ILogger
+/// <summary> A logger wrapper using a Serilog logger as base, but implementing Microsoft.Extensions.Logging and some custom utility. </summary>
+public abstract class LunaLogger : ILogger, Serilog.ILogger
 {
-    /// <summary> Get the loggers prefix. </summary>
-    public string GlobalPrefix
-        => Logger.GlobalPrefix;
+    private static readonly ConcurrentDictionary<string, string> DestructureDictionary = [];
+    private static readonly ConcurrentDictionary<string, string> StringifyDictionary   = [];
+    private static readonly CachingMessageTemplateParser         MessageTemplateParser = new();
 
-    /// <summary> Get the name of the plugin. </summary>
-    public string GlobalPluginName
-        => Logger.GlobalPluginName;
+    private readonly EventIdPropertyCache _eventIdPropertyCache = new();
 
-    /// <summary> Get the Serilog logger provided by Dalamud. </summary>
-    public Serilog.ILogger MainLogger
-        => Logger.GlobalPluginLogger;
+    /// <summary> Get the Serilog logger this logger uses. </summary>
+    public abstract Serilog.ILogger Logger { get; }
 
-    /// <summary> Create a new instance by getting the assembly name as a plugin name and fetching Dalamuds context. </summary>
-    public Logger(string? pluginName = null)
-    {
-        // The statics are null!-initialized.
-        Logger.GlobalPluginName   ??= pluginName ?? Assembly.GetCallingAssembly().GetName().Name ?? "Unknown";
-        Logger.GlobalPluginLogger ??= Serilog.Log.ForContext("Dalamud.PluginName", Logger.GlobalPluginName);
-        Logger.GlobalPrefix       ??= $"[{Logger.GlobalPluginName}] ";
-    }
-
-    /// <summary> The supported log levels. </summary>
-    public enum LogLevel
-    {
-        /// <summary> Excessive is only logged when <c>EXCESSIVE_LOGGING</c> is defined. Use this to keep logging statements that are not generally useful and too much for even verbose logging. </summary>
-        Excessive = LogEventLevel.Verbose,
-
-        /// <summary> Verbose logging should be used for very detailed information but should be refrained from for permanent per-frame log statements. </summary>
-        Verbose = LogEventLevel.Verbose,
-
-        /// <summary> Debug logging should be used for user interactions and irregularly occuring events. </summary>
-        Debug = LogEventLevel.Debug,
-
-        /// <summary> Information logging should be used for rarely occuring events like plugin load and unload info. </summary>
-        Information = LogEventLevel.Information,
-
-        /// <summary> Warning logging should be used whenever unexpected and potentially harmful events occur. </summary>
-        Warning = LogEventLevel.Warning,
-
-        /// <summary> Warning logging should be used whenever recoverable errors occur. </summary>
-        Error = LogEventLevel.Error,
-
-        /// <summary> Warning logging should be used whenever unrecoverable errors occur. </summary>
-        Fatal = LogEventLevel.Fatal,
-    }
+    /// <summary> Get an optional prefix to prepend to all log entries. </summary>
+    public virtual string Prefix
+        => string.Empty;
 
     /// <summary> Write a string message if the logger fulfills the log level. </summary>
     /// <param name="level"> The minimum level the logger must have enabled. </param>
@@ -84,8 +51,8 @@ public class Logger<T> : ILogger<T>, Serilog.ILogger
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Fatal([InterpolatedStringHandlerArgument("")] FatalInterpolatedStringHandler text)
     {
-        if (MainLogger.IsEnabled(LogEventLevel.Fatal))
-            MainLogger.Fatal(text.GetFormattedText());
+        if (Logger.IsEnabled(LogEventLevel.Fatal))
+            Logger.Fatal(text.GetFormattedText());
     }
 
     /// <summary> Write a string message if the logger fulfills <see cref="LogLevel.Error"/>. </summary>
@@ -99,8 +66,8 @@ public class Logger<T> : ILogger<T>, Serilog.ILogger
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Error([InterpolatedStringHandlerArgument("")] ErrorInterpolatedStringHandler text)
     {
-        if (MainLogger.IsEnabled(LogEventLevel.Error))
-            MainLogger.Error(text.GetFormattedText());
+        if (Logger.IsEnabled(LogEventLevel.Error))
+            Logger.Error(text.GetFormattedText());
     }
 
     /// <summary> Write a string message if the logger fulfills <see cref="LogLevel.Warning"/>. </summary>
@@ -114,8 +81,8 @@ public class Logger<T> : ILogger<T>, Serilog.ILogger
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Warning([InterpolatedStringHandlerArgument("")] WarningInterpolatedStringHandler text)
     {
-        if (MainLogger.IsEnabled(LogEventLevel.Warning))
-            MainLogger.Warning(text.GetFormattedText());
+        if (Logger.IsEnabled(LogEventLevel.Warning))
+            Logger.Warning(text.GetFormattedText());
     }
 
     /// <summary> Write a string message if the logger fulfills <see cref="LogLevel.Information"/>. </summary>
@@ -129,8 +96,8 @@ public class Logger<T> : ILogger<T>, Serilog.ILogger
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Information([InterpolatedStringHandlerArgument("")] InformationInterpolatedStringHandler text)
     {
-        if (MainLogger.IsEnabled(LogEventLevel.Information))
-            MainLogger.Information(text.GetFormattedText());
+        if (Logger.IsEnabled(LogEventLevel.Information))
+            Logger.Information(text.GetFormattedText());
     }
 
     /// <summary> Write a string message if the logger fulfills <see cref="LogLevel.Debug"/>. </summary>
@@ -144,8 +111,8 @@ public class Logger<T> : ILogger<T>, Serilog.ILogger
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Debug([InterpolatedStringHandlerArgument("")] DebugInterpolatedStringHandler text)
     {
-        if (MainLogger.IsEnabled(LogEventLevel.Debug))
-            MainLogger.Debug(text.GetFormattedText());
+        if (Logger.IsEnabled(LogEventLevel.Debug))
+            Logger.Debug(text.GetFormattedText());
     }
 
     /// <summary> Write a string message if the logger fulfills <see cref="LogLevel.Verbose"/>. </summary>
@@ -159,15 +126,15 @@ public class Logger<T> : ILogger<T>, Serilog.ILogger
     /// <param name="args"> The additional parameters for the format. </param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Verbose(string format, params object?[]? args)
-        => MainLogger.Verbose(GlobalPrefix + format, args);
+        => Logger.Verbose(Prefix + format, args);
 
     /// <summary> Write an optimized string message if the logger fulfills <see cref="LogLevel.Verbose"/> but do not interpolate the string if it does not. </summary>
     /// <param name="text"> The message. </param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Verbose([InterpolatedStringHandlerArgument("")] VerboseInterpolatedStringHandler text)
     {
-        if (MainLogger.IsEnabled(LogEventLevel.Verbose))
-            MainLogger.Verbose(text.GetFormattedText());
+        if (Logger.IsEnabled(LogEventLevel.Verbose))
+            Logger.Verbose(text.GetFormattedText());
     }
 
     [Conditional("EXCESSIVE_LOGGING")]
@@ -178,28 +145,16 @@ public class Logger<T> : ILogger<T>, Serilog.ILogger
     [Conditional("EXCESSIVE_LOGGING")]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Excessive(string format, params object?[] args)
-        => MainLogger.Verbose(GlobalPrefix + format, args);
+        => Logger.Verbose(Prefix + format, args);
 
 
     [Conditional("EXCESSIVE_LOGGING")]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Excessive([InterpolatedStringHandlerArgument("")] VerboseInterpolatedStringHandler builder)
     {
-        if (MainLogger.IsEnabled(LogEventLevel.Verbose))
-            MainLogger.Verbose(builder.GetFormattedText());
+        if (Logger.IsEnabled(LogEventLevel.Verbose))
+            Logger.Verbose(builder.GetFormattedText());
     }
-
-    /// <inheritdoc/>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void Write(LogEvent logEvent)
-        => MainLogger.Write(logEvent);
-
-    private static readonly ConcurrentDictionary<string, string> DestructureDictionary = [];
-    private static readonly ConcurrentDictionary<string, string> StringifyDictionary   = [];
-    private static readonly CachingMessageTemplateParser         MessageTemplateParser = new();
-
-    private readonly EventIdPropertyCache _eventIdPropertyCache = new();
-
 
     public void Log<TState>(Microsoft.Extensions.Logging.LogLevel logLevel, EventId eventId, TState state, Exception? exception,
         Func<TState, Exception?, string> formatter)
@@ -207,8 +162,8 @@ public class Logger<T> : ILogger<T>, Serilog.ILogger
         if (logLevel is Microsoft.Extensions.Logging.LogLevel.None)
             return;
 
-        var level = ToSerilogLevel(logLevel);
-        if (!MainLogger.IsEnabled(level))
+        var level = logLevel.Serilog;
+        if (!Logger.IsEnabled(level))
             return;
 
         LogEvent? @event = null;
@@ -218,12 +173,21 @@ public class Logger<T> : ILogger<T>, Serilog.ILogger
         }
         catch (Exception ex)
         {
-            MainLogger.Error(ex, "Failed to write event: {Exception}", ex);
+            Logger.Error(ex, "Failed to write event: {Exception}", ex);
         }
 
         if (@event is not null)
-            MainLogger.Write(@event);
+            Logger.Write(@event);
     }
+
+    public bool IsEnabled(Microsoft.Extensions.Logging.LogLevel logLevel)
+        => Logger.IsEnabled(logLevel.Serilog);
+
+    public IDisposable? BeginScope<TState>(TState state) where TState : notnull
+        => null;
+
+    public void Write(LogEvent logEvent)
+        => Logger.Write(logEvent);
 
     private LogEvent PrepareWrite<TState>(LogEventLevel level, EventId eventId, TState state, Exception? exception,
         Func<TState, Exception?, string> formatter)
@@ -242,13 +206,13 @@ public class Logger<T> : ILogger<T>, Serilog.ILogger
                 }
                 else if (property.Key.StartsWith('@'))
                 {
-                    if (MainLogger.BindProperty(GetKeyWithoutFirstSymbol(DestructureDictionary, property.Key), property.Value, true,
+                    if (Logger.BindProperty(GetKeyWithoutFirstSymbol(DestructureDictionary, property.Key), property.Value, true,
                             out var destructured))
                         properties[destructured.Name] = destructured.Value;
                 }
                 else if (property.Key.StartsWith('$'))
                 {
-                    if (MainLogger.BindProperty(GetKeyWithoutFirstSymbol(StringifyDictionary, property.Key), property.Value?.ToString(),
+                    if (Logger.BindProperty(GetKeyWithoutFirstSymbol(StringifyDictionary, property.Key), property.Value?.ToString(),
                             true, out var stringified))
                         properties[stringified.Name] = stringified.Value;
                 }
@@ -257,7 +221,7 @@ public class Logger<T> : ILogger<T>, Serilog.ILogger
                     // Simple micro-optimization for the most common and reliably scalar values; could go further here.
                     if (property.Value is null or string or int or long && LogEventProperty.IsValidName(property.Key))
                         properties[property.Key] = new ScalarValue(property.Value);
-                    else if (MainLogger.BindProperty(property.Key, property.Value, false, out var bound))
+                    else if (Logger.BindProperty(property.Key, property.Value, false, out var bound))
                         properties[bound.Name] = bound.Value;
                 }
             }
@@ -268,7 +232,7 @@ public class Logger<T> : ILogger<T>, Serilog.ILogger
             if (messageTemplate is null && !stateTypeInfo.IsGenericType)
             {
                 messageTemplate = $"{{{stateType.Name}:l}}";
-                if (MainLogger.BindProperty(stateType.Name, AsLoggableValue(state, formatter), false, out var stateTypeProperty))
+                if (Logger.BindProperty(stateType.Name, AsLoggableValue(state, formatter), false, out var stateTypeProperty))
                     properties[stateTypeProperty.Name] = stateTypeProperty.Value;
             }
         }
@@ -290,7 +254,7 @@ public class Logger<T> : ILogger<T>, Serilog.ILogger
             }
 
             if (propertyName is not null)
-                if (MainLogger.BindProperty(propertyName, AsLoggableValue(state, formatter!), false, out var property))
+                if (Logger.BindProperty(propertyName, AsLoggableValue(state, formatter!), false, out var property))
                     properties[property.Name] = property.Value;
         }
 
@@ -303,34 +267,16 @@ public class Logger<T> : ILogger<T>, Serilog.ILogger
             : (default(ActivityTraceId), default(ActivitySpanId));
 
         if (messageTemplate is not null)
-            messageTemplate = GlobalPrefix + messageTemplate;
+            messageTemplate = Prefix + messageTemplate;
 
-        var parsedTemplate = messageTemplate != null ? MessageTemplateParser.Parse(messageTemplate) : MessageTemplate.Empty;
+        var parsedTemplate = messageTemplate is not null ? MessageTemplateParser.Parse(messageTemplate) : MessageTemplate.Empty;
         return LogEvent.UnstableAssembleFromParts(DateTimeOffset.Now, level, exception, parsedTemplate, properties, traceId, spanId);
     }
-
-    public bool IsEnabled(Microsoft.Extensions.Logging.LogLevel logLevel)
-        => MainLogger.IsEnabled(ToSerilogLevel(logLevel));
-
-    public IDisposable? BeginScope<TState>(TState state) where TState : notnull
-        => null;
-
-    public static LogEventLevel ToSerilogLevel(Microsoft.Extensions.Logging.LogLevel logLevel)
-        => logLevel switch
-        {
-            Microsoft.Extensions.Logging.LogLevel.None        => LevelAlias.Off,
-            Microsoft.Extensions.Logging.LogLevel.Critical    => LogEventLevel.Fatal,
-            Microsoft.Extensions.Logging.LogLevel.Error       => LogEventLevel.Error,
-            Microsoft.Extensions.Logging.LogLevel.Warning     => LogEventLevel.Warning,
-            Microsoft.Extensions.Logging.LogLevel.Information => LogEventLevel.Information,
-            Microsoft.Extensions.Logging.LogLevel.Debug       => LogEventLevel.Debug,
-            _                                                 => LogEventLevel.Verbose,
-        };
 
     private static object? AsLoggableValue<TState>(TState state, Func<TState, Exception?, string>? formatter)
     {
         object? stateObj = null;
-        if (formatter != null)
+        if (formatter is not null)
             stateObj = formatter(state, null);
         return stateObj ?? state;
     }
@@ -343,19 +289,18 @@ public class Logger<T> : ILogger<T>, Serilog.ILogger
         return source.Count < 1000 ? source.GetOrAdd(key, k => k[1..]) : key[1..];
     }
 
-
     [InterpolatedStringHandler]
     public ref struct LogLevelInterpolatedStringHandler
     {
         private DefaultInterpolatedStringHandler _builder;
 
-        public LogLevelInterpolatedStringHandler(int literalLength, int formattedCount, Logger<T> logger, LogLevel level, out bool isEnabled)
+        public LogLevelInterpolatedStringHandler(int literalLength, int formattedCount, LunaLogger logger, LogLevel level, out bool isEnabled)
         {
-            isEnabled = logger.MainLogger.IsEnabled((LogEventLevel)level);
+            isEnabled = logger.Logger.IsEnabled((LogEventLevel)level);
             if (isEnabled)
             {
-                _builder = new DefaultInterpolatedStringHandler(literalLength + logger.GlobalPluginName.Length + 3, formattedCount);
-                _builder.AppendLiteral(logger.GlobalPrefix);
+                _builder = new DefaultInterpolatedStringHandler(literalLength + logger.Prefix.Length, formattedCount);
+                _builder.AppendLiteral(logger.Prefix);
             }
             else
             {
@@ -393,13 +338,13 @@ public class Logger<T> : ILogger<T>, Serilog.ILogger
     {
         private DefaultInterpolatedStringHandler _builder;
 
-        public FatalInterpolatedStringHandler(int literalLength, int formattedCount, Logger<T> logger, out bool isEnabled)
+        public FatalInterpolatedStringHandler(int literalLength, int formattedCount, LunaLogger logger, out bool isEnabled)
         {
-            isEnabled = logger.MainLogger.IsEnabled(LogEventLevel.Fatal);
+            isEnabled = logger.Logger.IsEnabled(LogEventLevel.Fatal);
             if (isEnabled)
             {
-                _builder = new DefaultInterpolatedStringHandler(literalLength + logger.GlobalPluginName.Length + 3, formattedCount);
-                _builder.AppendLiteral(logger.GlobalPrefix);
+                _builder = new DefaultInterpolatedStringHandler(literalLength + logger.Prefix.Length, formattedCount);
+                _builder.AppendLiteral(logger.Prefix);
             }
             else
             {
@@ -434,13 +379,13 @@ public class Logger<T> : ILogger<T>, Serilog.ILogger
     {
         private DefaultInterpolatedStringHandler _builder;
 
-        public ErrorInterpolatedStringHandler(int literalLength, int formattedCount, Logger<T> logger, out bool isEnabled)
+        public ErrorInterpolatedStringHandler(int literalLength, int formattedCount, LunaLogger logger, out bool isEnabled)
         {
-            isEnabled = logger.MainLogger.IsEnabled(LogEventLevel.Error);
+            isEnabled = logger.Logger.IsEnabled(LogEventLevel.Error);
             if (isEnabled)
             {
-                _builder = new DefaultInterpolatedStringHandler(literalLength + logger.GlobalPluginName.Length + 3, formattedCount);
-                _builder.AppendLiteral(logger.GlobalPrefix);
+                _builder = new DefaultInterpolatedStringHandler(literalLength + logger.Prefix.Length, formattedCount);
+                _builder.AppendLiteral(logger.Prefix);
             }
             else
             {
@@ -478,13 +423,13 @@ public class Logger<T> : ILogger<T>, Serilog.ILogger
     {
         private DefaultInterpolatedStringHandler _builder;
 
-        public WarningInterpolatedStringHandler(int literalLength, int formattedCount, Logger<T> logger, out bool isEnabled)
+        public WarningInterpolatedStringHandler(int literalLength, int formattedCount, LunaLogger logger, out bool isEnabled)
         {
-            isEnabled = logger.MainLogger.IsEnabled(LogEventLevel.Warning);
+            isEnabled = logger.Logger.IsEnabled(LogEventLevel.Warning);
             if (isEnabled)
             {
-                _builder = new DefaultInterpolatedStringHandler(literalLength + logger.GlobalPluginName.Length + 3, formattedCount);
-                _builder.AppendLiteral(logger.GlobalPrefix);
+                _builder = new DefaultInterpolatedStringHandler(literalLength + logger.Prefix.Length, formattedCount);
+                _builder.AppendLiteral(logger.Prefix);
             }
             else
             {
@@ -522,13 +467,13 @@ public class Logger<T> : ILogger<T>, Serilog.ILogger
     {
         private DefaultInterpolatedStringHandler _builder;
 
-        public InformationInterpolatedStringHandler(int literalLength, int formattedCount, Logger<T> logger, out bool isEnabled)
+        public InformationInterpolatedStringHandler(int literalLength, int formattedCount, LunaLogger logger, out bool isEnabled)
         {
-            isEnabled = logger.MainLogger.IsEnabled(LogEventLevel.Information);
+            isEnabled = logger.Logger.IsEnabled(LogEventLevel.Information);
             if (isEnabled)
             {
-                _builder = new DefaultInterpolatedStringHandler(literalLength + logger.GlobalPluginName.Length + 3, formattedCount);
-                _builder.AppendLiteral(logger.GlobalPrefix);
+                _builder = new DefaultInterpolatedStringHandler(literalLength + logger.Prefix.Length, formattedCount);
+                _builder.AppendLiteral(logger.Prefix);
             }
             else
             {
@@ -566,13 +511,13 @@ public class Logger<T> : ILogger<T>, Serilog.ILogger
     {
         private DefaultInterpolatedStringHandler _builder;
 
-        public DebugInterpolatedStringHandler(int literalLength, int formattedCount, Logger<T> logger, out bool isEnabled)
+        public DebugInterpolatedStringHandler(int literalLength, int formattedCount, LunaLogger logger, out bool isEnabled)
         {
-            isEnabled = logger.MainLogger.IsEnabled(LogEventLevel.Debug);
+            isEnabled = logger.Logger.IsEnabled(LogEventLevel.Debug);
             if (isEnabled)
             {
-                _builder = new DefaultInterpolatedStringHandler(literalLength + logger.GlobalPluginName.Length + 3, formattedCount);
-                _builder.AppendLiteral(logger.GlobalPrefix);
+                _builder = new DefaultInterpolatedStringHandler(literalLength + logger.Prefix.Length, formattedCount);
+                _builder.AppendLiteral(logger.Prefix);
             }
             else
             {
@@ -610,13 +555,13 @@ public class Logger<T> : ILogger<T>, Serilog.ILogger
     {
         private DefaultInterpolatedStringHandler _builder;
 
-        public VerboseInterpolatedStringHandler(int literalLength, int formattedCount, Logger<T> logger, out bool isEnabled)
+        public VerboseInterpolatedStringHandler(int literalLength, int formattedCount, LunaLogger logger, out bool isEnabled)
         {
-            isEnabled = logger.MainLogger.IsEnabled(LogEventLevel.Verbose);
+            isEnabled = logger.Logger.IsEnabled(LogEventLevel.Verbose);
             if (isEnabled)
             {
-                _builder = new DefaultInterpolatedStringHandler(literalLength + logger.GlobalPluginName.Length + 3, formattedCount);
-                _builder.AppendLiteral(logger.GlobalPrefix);
+                _builder = new DefaultInterpolatedStringHandler(literalLength + logger.Prefix.Length, formattedCount);
+                _builder.AppendLiteral(logger.Prefix);
             }
             else
             {
@@ -648,13 +593,4 @@ public class Logger<T> : ILogger<T>, Serilog.ILogger
         internal string GetFormattedText()
             => _builder.ToStringAndClear();
     }
-}
-
-/// <summary> An untyped version of <see cref="Logger{T}"/> for when no type is necessary. </summary>
-public sealed class Logger(string? pluginName = null) : Logger<object>(pluginName)
-{
-    // Keep loggers footprint a bit smaller by keeping those fields static. </summary>
-    public new static string          GlobalPluginName   = null!;
-    public new static string          GlobalPrefix       = null!;
-    public static     Serilog.ILogger GlobalPluginLogger = null!;
 }

@@ -9,7 +9,7 @@ public abstract class FileSystemSaver : IDisposable
     public const int CurrentVersion = 1;
 
     /// <summary> The logger to use for logging. </summary>
-    protected readonly Logger Log;
+    protected readonly LunaLogger Log;
 
     /// <summary> The parent file system to monitor. </summary>
     protected readonly BaseFileSystem FileSystem;
@@ -20,7 +20,7 @@ public abstract class FileSystemSaver : IDisposable
     protected abstract void SaveDataValue(IFileSystemValue value);
 
     /// <summary> Create the basic file system saver. </summary>
-    protected FileSystemSaver(Logger log, BaseFileSystem fileSystem)
+    protected FileSystemSaver(LunaLogger log, BaseFileSystem fileSystem)
     {
         Log        = log;
         FileSystem = fileSystem;
@@ -110,7 +110,7 @@ public abstract class FileSystemSaver<TSaveService, TProvider> : FileSystemSaver
     protected abstract void CreateDataNodes();
 
     /// <summary> Creates a new file system saver instance and subscribe to the necessary events. </summary>
-    protected FileSystemSaver(Logger log, BaseFileSystem fileSystem, TSaveService saveService)
+    protected FileSystemSaver(LunaLogger log, BaseFileSystem fileSystem, TSaveService saveService)
         : base(log, fileSystem)
     {
         SaveService = saveService;

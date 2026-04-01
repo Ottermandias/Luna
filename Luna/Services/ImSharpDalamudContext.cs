@@ -64,7 +64,7 @@ public sealed unsafe class ImSharpDalamudContext : IRequiredService, IDisposable
             logger.LogDebug("Created new ImSharp Context at 0x{Context:X} with tag {Tag:l}.", (nint)context, _contextTag);
         else
             logger.LogDebug("Shared existing ImSharp Context at 0x{Context:X} with tag {Tag:l}.", (nint)context, _contextTag);
-        ImSharpConfiguration.SetContext(context, false);
+        framework.RunOnTick(() => ImSharpConfiguration.SetContext(context, false));
     }
 
     /// <summary> Clear all ImSharp configuration data and relinquish the context from Dalamud's data store.  </summary>

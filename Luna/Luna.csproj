@@ -33,6 +33,9 @@
     </ItemGroup>
 
     <ItemGroup>
+        <Reference Include="Serilog.Sinks.File">
+            <HintPath>$(DalamudLibPath)Serilog.Sinks.File.dll</HintPath>
+        </Reference>
         <Reference Remove="Dalamud.Bindings.ImGuizmo" />
         <Reference Remove="Dalamud.Bindings.ImPlot" />
 

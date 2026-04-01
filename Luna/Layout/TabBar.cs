@@ -5,7 +5,7 @@ namespace Luna;
 /// <param name="barName"> The name of the tab bar used for the event and logging and as the label of the bar. </param>
 /// <param name="log"> A logger. </param>
 /// <param name="tabs"> The list of all possible tabs in this tab bar. </param>
-public abstract class TabBar<T>(string barName, Logger log, params IReadOnlyList<ITab<T>> tabs) : IUiService
+public abstract class TabBar<T>(string barName, LunaLogger log, params IReadOnlyList<ITab<T>> tabs) : IUiService
     where T : unmanaged, Enum
 {
     /// <summary> The label used to draw the bar. </summary>
@@ -80,5 +80,5 @@ public abstract class TabBar<T>(string barName, Logger log, params IReadOnlyList
     }
 
     /// <summary> The event for changing tabs. </summary>
-    public sealed class TabEvent(string name, Logger log) : EventBase<T, uint>(name, log), IConstructedService;
+    public sealed class TabEvent(string name, LunaLogger log) : EventBase<T, uint>(name, log), IConstructedService;
 }

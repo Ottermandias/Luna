@@ -9,7 +9,7 @@ public sealed class FrameworkManager : IDisposable, IService
     public readonly IFramework Framework;
 
     /// <summary> The logger to use. </summary>
-    private readonly Logger _log;
+    private readonly LunaLogger _log;
 
     /// <summary> All actions queued as Important are invoked together on separate awaited threads every frame. </summary>
     private readonly Dictionary<string, Action> _important = [];
@@ -23,7 +23,7 @@ public sealed class FrameworkManager : IDisposable, IService
     /// <summary> Create a framework manager and subscribe to the update event. </summary>
     /// <param name="framework"> The game's framework service. </param>
     /// <param name="log"> The logger to use. </param>
-    public FrameworkManager(IFramework framework, Logger log)
+    public FrameworkManager(IFramework framework, LunaLogger log)
     {
         Framework        =  framework;
         _log             =  log;

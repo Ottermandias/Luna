@@ -9,7 +9,7 @@ namespace Luna;
 /// <remarks> Call <see cref="EnsureRequiredServices"/> when finished setting up to create the service provider. </remarks>
 public class ServiceManager : IDisposable
 {
-    private readonly Logger               _logger;
+    private readonly MainLogger           _logger;
     private readonly ServiceCollection    _collection   = [];
     private readonly HashSet<IDisposable> _ownedObjects = [];
 
@@ -22,13 +22,14 @@ public class ServiceManager : IDisposable
     /// <summary> Create a service manager. </summary>
     /// <param name="logger"> The logger to use. </param>
     /// <param name="name"> The name for the window system if requested. Requires IUiBuilder to be available. </param>
-    public ServiceManager(Logger logger, string? name = null)
+    public ServiceManager(MainLogger logger, string? name = null)
     {
         _logger = logger;
 
         // Add logging services and self.
-        _collection.AddSingleton(ServiceDescriptor.Singleton(typeof(ILogger<>), typeof(Logger<>)));
+        _collection.AddSingleton(ServiceDescriptor.Singleton(typeof(ILogger<>), typeof(MainLogger<>)));
         _collection.AddSingleton<ILogger>(_logger);
+        _collection.AddSingleton<LunaLogger>(_logger);
         _collection.AddSingleton(_logger);
         _collection.AddSingleton(this);
         if (name is not null)
@@ -93,6 +94,16 @@ public class ServiceManager : IDisposable
     /// <remarks> Singletons are objects that are only instantiated once. This needs to be called before <see cref="EnsureRequiredServices"/>. </remarks>
     public ServiceManager AddSingleton<T>()
         => AddSingleton(typeof(T));
+
+    /// <summary> Add an open generic type singleton to the collection. </summary>
+    /// <param name="queryType"> The type of the objects queried from the service provider. </param>
+    /// <param name="implementationType"> The type implementing the query type. If null, <see cref="queryType"/> will be used. </param>
+    /// <remarks> Use for example with <c>typeof(Generic&lt;&gt;)</c>. </remarks>
+    public ServiceManager AddGenericSingleton(Type queryType, Type? implementationType = null)
+    {
+        _collection.AddSingleton(queryType, implementationType ?? queryType);
+        return this;
+    }
 
     /// <summary> Add a specific type as a singleton to the collection but so that it is constructed via factory method. </summary>
     /// <param name="factory"> The function that gets invoked to create this type. </param>
@@ -213,6 +224,7 @@ public class ServiceManager : IDisposable
             if (_collection.All(t => t.ServiceType != type))
                 AddDalamudService(type);
         }
+
         return this;
     }
 
@@ -228,12 +240,13 @@ public class ServiceManager : IDisposable
             _logger.Verbose($"Constructing Service {type.Name} using Dalamud service provider.");
             object service;
             using (Timers.Measure(type.Name))
+            {
                 service = pi.GetRequiredService(type);
+            }
+
             if (service is IDisposable disposableInterface)
                 _ownedObjects.Add(disposableInterface);
             return service;
         }
     }
 }
-
-

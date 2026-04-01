@@ -6,7 +6,7 @@ public static partial class Backup
     public const int MaxNumBackups = 10;
 
     /// <summary> Create a backup named by ISO 8601 of the current time. </summary>
-    public static void CreatePermanentBackup<T>(Logger<T> logger, DirectoryInfo dir, IReadOnlyCollection<FileInfo> files, string name,
+    public static void CreatePermanentBackup(LunaLogger logger, DirectoryInfo dir, IReadOnlyCollection<FileInfo> files, string name,
         CancellationToken cancel = default)
         => CreateBackupInternal(logger, dir, files, name, cancel);
 
@@ -15,7 +15,7 @@ public static partial class Backup
     /// If the newest previously existing backup equals the current state of files, do not create a new backup. <br/>
     /// If the maximum number of backups is exceeded afterward, delete the oldest backup.
     /// </remarks>
-    public static void CreateAutomaticBackup<T>(Logger<T> logger, DirectoryInfo dir, IReadOnlyCollection<FileInfo> files,
+    public static void CreateAutomaticBackup(LunaLogger logger, DirectoryInfo dir, IReadOnlyCollection<FileInfo> files,
         CancellationToken cancel)
         => CreateBackupInternal(logger, dir, files, null, cancel);
 
@@ -68,7 +68,7 @@ public static partial class Backup
         return false;
     }
 
-    private static void CreateBackupInternal<T>(Logger<T> logger, DirectoryInfo dir, IReadOnlyCollection<FileInfo> files, string? name,
+    private static void CreateBackupInternal(LunaLogger logger, DirectoryInfo dir, IReadOnlyCollection<FileInfo> files, string? name,
         CancellationToken cancel)
     {
         try
@@ -150,7 +150,7 @@ public static partial class Backup
     /// Compare the newest backup against the currently existing files.
     /// If there are any differences, return true, and if they are completely identical, return false.
     /// </summary>
-    private static bool CheckNewestBackup<T>(Logger<T> logger, FileInfo newestFile, string configDirectory, int fileCount,
+    private static bool CheckNewestBackup(LunaLogger logger, FileInfo newestFile, string configDirectory, int fileCount,
         CancellationToken cancel)
     {
         try

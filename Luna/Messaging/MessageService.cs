@@ -7,11 +7,11 @@ namespace Luna;
 /// <param name="chat"> The game's chat UI to write messages to. </param>
 /// <param name="notificationManager"> The popup notification handler to use. </param>
 /// <remarks> This can also handle messages with a tag to prevent message flooding. </remarks>
-public class MessageService(Logger log, IChatGui chat, INotificationManager notificationManager)
+public class MessageService(LunaLogger log, IChatGui chat, INotificationManager notificationManager)
     : IReadOnlyDictionary<DateTime, IMessage>
 {
     /// <summary> The logger used by the service. </summary>
-    public readonly Logger Log = log;
+    public readonly LunaLogger Log = log;
 
     /// <summary> The popup notification handler used by the service. </summary>
     public readonly INotificationManager NotificationManager = notificationManager;

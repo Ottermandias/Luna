@@ -5,13 +5,13 @@ namespace Luna;
 public abstract class BaseBackupService<TFilePathProvider> : IAsyncService, IDisposable
     where TFilePathProvider : BaseFilePathProvider
 {
-    protected readonly Logger                  Log;
+    protected readonly LunaLogger              Log;
     protected readonly TFilePathProvider       Provider;
     protected readonly CancellationTokenSource Cancel = new();
     protected          bool                    Disposed;
 
     /// <summary> Create an automatic backup. </summary>
-    protected BaseBackupService(Logger log, TFilePathProvider provider)
+    protected BaseBackupService(MainLogger log, TFilePathProvider provider)
     {
         Log      = log;
         Provider = provider;

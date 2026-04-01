@@ -8,7 +8,7 @@ namespace Luna;
 public class DynamisIpc : IDisposable, IService
 {
     private readonly IDalamudPluginInterface _pluginInterface;
-    private readonly Logger                  _log;
+    private readonly LunaLogger              _log;
 
     private readonly ICallGateSubscriber<uint, uint, ulong, Version, object?> _initialized;
     private readonly ICallGateSubscriber<object?>                             _disposed;
@@ -38,7 +38,7 @@ public class DynamisIpc : IDisposable, IService
     /// <summary> The exception thrown when setting up the IPC subscription, if any. </summary>
     public Exception? Error { get; private set; }
 
-    public DynamisIpc(IDalamudPluginInterface pi, Logger log)
+    public DynamisIpc(IDalamudPluginInterface pi, LunaLogger log)
     {
         _pluginInterface = pi;
         _log             = log;

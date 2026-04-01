@@ -6,7 +6,7 @@ namespace Luna;
 /// <param name="framework"> The framework event handler to use. </param>
 /// <param name="fileNames"> The file path provider for saving <see cref="ISavable{T}"/>. </param>
 /// <param name="awaiter"> An optional awaiter that is waited before any file writes can take place. </param>
-public abstract class BaseSaveService<T>(Logger log, FrameworkManager framework, T fileNames, Task? awaiter = null) : IDisposable
+public abstract class BaseSaveService<T>(LunaLogger log, FrameworkManager framework, T fileNames, Task? awaiter = null) : IDisposable
     where T : BaseFilePathProvider
 {
     /// <summary> An encoding that omits the BOM. </summary>
@@ -20,7 +20,7 @@ public abstract class BaseSaveService<T>(Logger log, FrameworkManager framework,
 #endif
 
     /// <summary> The logger to use. </summary>
-    protected readonly Logger Log = log;
+    protected readonly LunaLogger Log = log;
 
     /// <summary> The framework event handler to use. </summary>
     protected readonly FrameworkManager Framework = framework;

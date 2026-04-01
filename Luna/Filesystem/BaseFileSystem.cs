@@ -27,7 +27,7 @@ public class BaseFileSystem
     /// <param name="log"> A logger. </param>
     /// <param name="allowsMultiSelection"> Whether this file system allows multiple nodes to be selected at the same time. </param>
     /// <param name="comparer"> The comparer to use to compare names with. </param>
-    public BaseFileSystem(string name, Logger log, bool allowsMultiSelection, IComparer<ReadOnlySpan<char>>? comparer = null)
+    public BaseFileSystem(string name, LunaLogger log, bool allowsMultiSelection, IComparer<ReadOnlySpan<char>>? comparer = null)
     {
         Changed         = new FileSystemChanged($"{name}Changed", log);
         DataNodeChanged = new DataNodePathChange($"{name}DataNodeChanged", log);
