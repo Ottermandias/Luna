@@ -59,4 +59,8 @@ public class FileLogger : LunaLogger
         FilePath = filePath;
         _logger  = logger;
     }
+
+    /// <inheritdoc/>
+    public override bool IsEnabled(LogLevel level)
+        => Level <= level;
 }

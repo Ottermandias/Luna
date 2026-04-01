@@ -137,17 +137,21 @@ public abstract class LunaLogger : ILogger, Serilog.ILogger
             Logger.Verbose(text.GetFormattedText());
     }
 
+    /// <summary> Same log level as <see cref="Verbose(string)"/>, but only logged when <c>EXCESSIVE_LOGGING</c> is defined. </summary>
+    /// <param name="text"> The message. </param>
+    /// <remarks> Use this for logging statements that are not generally useful and too much for even verbose logging. </remarks>
     [Conditional("EXCESSIVE_LOGGING")]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Excessive(string text)
         => Verbose($"{text}");
 
+    /// <inheritdoc cref="Excessive(string)"/>
     [Conditional("EXCESSIVE_LOGGING")]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Excessive(string format, params object?[] args)
         => Logger.Verbose(Prefix + format, args);
 
-
+    /// <inheritdoc cref="Excessive(string)"/>
     [Conditional("EXCESSIVE_LOGGING")]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Excessive([InterpolatedStringHandlerArgument("")] VerboseInterpolatedStringHandler builder)
@@ -156,6 +160,7 @@ public abstract class LunaLogger : ILogger, Serilog.ILogger
             Logger.Verbose(builder.GetFormattedText());
     }
 
+    /// <inheritdoc/>
     public void Log<TState>(Microsoft.Extensions.Logging.LogLevel logLevel, EventId eventId, TState state, Exception? exception,
         Func<TState, Exception?, string> formatter)
     {
@@ -180,12 +185,21 @@ public abstract class LunaLogger : ILogger, Serilog.ILogger
             Logger.Write(@event);
     }
 
+    /// <inheritdoc/>
     public bool IsEnabled(Microsoft.Extensions.Logging.LogLevel logLevel)
         => Logger.IsEnabled(logLevel.Serilog);
 
+    /// <summary> Whether the logger is enabled for the given log level. </summary>
+    /// <param name="level"> The level to check. </param>
+    /// <returns> True if the logger logs this level. </returns>
+    public virtual bool IsEnabled(LogLevel level)
+        => Logger.IsEnabled(level.Serilog);
+
+    /// <inheritdoc/>
     public IDisposable? BeginScope<TState>(TState state) where TState : notnull
         => null;
 
+    /// <inheritdoc/>
     public void Write(LogEvent logEvent)
         => Logger.Write(logEvent);
 
