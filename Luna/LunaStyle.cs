@@ -128,6 +128,9 @@ public static partial class LunaStyle
     /// <summary> The icon that should be used to resize something to its default values or auto-fit values. </summary>
     public static readonly AwesomeIcon AutoResizeIcon = FontAwesomeIcon.Expand;
 
+    /// <summary> The icon that should be used to resize something to its default values or auto-fit values. </summary>
+    public static readonly AwesomeIcon CompressIcon = FontAwesomeIcon.Compress;
+
     /// <summary> The default color for error borders in inputs. </summary>
     public static readonly Vector4 ErrorBorderColor = new(0.95f, 0.25f, 0.25f, 1);
 
@@ -167,6 +170,14 @@ public static partial class LunaStyle
             NotificationType.Info    => (FontAwesomeIcon.QuestionCircle, 0xFFFF4040),
             _                        => (FontAwesomeIcon.None, 0),
         };
+
+    /// <summary> Draw a separator with inner spacing above and below. </summary>
+    public static void DrawSeparator()
+    {
+        Im.Cursor.Y += Im.Style.ItemInnerSpacing.Y;
+        Im.Separator();
+        Im.Cursor.Y += Im.Style.ItemInnerSpacing.Y;
+    }
 
     /// <summary> Draw a full GUID in mono font that can be copied on click. </summary>
     /// <param name="id"> The GUID to draw. </param>
