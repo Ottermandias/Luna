@@ -9,6 +9,19 @@ public abstract class FileSystemCache : BasicCache
     /// <summary> Whether the list of <see cref="InternalNodes"/> needs to be rebuilt. </summary>
     public bool VisibleDirty { get; protected set; } = true;
 
+    /// <summary> Whether folders that have a single child that is also a folder should be flattened. </summary>
+    /// <remarks> Flattening will only happen when the folder physically has a single child, not when the filter makes only a single child visible. </remarks>
+    public bool FlattenSingleChildFolders
+    {
+        get;
+        protected set
+        {
+            if (value != field)
+                VisibleDirty = true;
+            field = value;
+        }
+    }
+
     /// <summary> The file system drawer that created this cache. </summary>
     public readonly FileSystemDrawer Parent;
 
@@ -391,12 +404,12 @@ public abstract class FileSystemCache<TData> : FileSystemCache
         // Recursively add nodes in the correct order, starting from the children of root.
         InternalNodes.Clear();
         foreach (var node in FileSystem.Root.GetChildren(Parent.SortMode))
-            AddNode(node, -1, 0);
+            AddNode(node, -1, 0, 0);
 
         VisibleDirty = false;
         return true;
 
-        void AddNode(IFileSystemNode node, int parentIndex, int currentDepth)
+        void AddNode(IFileSystemNode node, int parentIndex, int currentDepth, int flattenedAncestors)
         {
             // Create the cache if necessary, this should not happen.
             if (!AllNodes.TryGetValue(node, out var cache))
@@ -421,13 +434,28 @@ public abstract class FileSystemCache<TData> : FileSystemCache
                 }
                 case IFileSystemFolder folder:
                 {
+                    var skipDescendents = false;
+                    if (FlattenSingleChildFolders && folder.Children is [IFileSystemFolder])
+                    {
+                        var index = InternalNodes.Count;
+                        AddNode(folder.Children[0], parentIndex, currentDepth, flattenedAncestors + 1);
+                        if (InternalNodes.Count > index)
+                            break;
+
+                        // If we reach this point, the single child is invisible, and has no visible descendents.
+                        // Knowing that, we can skip any further evaluation of them.
+                        skipDescendents = true;
+                    }
+
+                    (cache as FileSystemFolderCache)?.FlattenedAncestors = flattenedAncestors;
+
                     // Create a new flattened node entry with the node and its cache,
                     // and the current tree data.
                     var data = new FileSystemTreeNode(this, node, cache)
                     {
-                        IndentationDepth = currentDepth,
-                        ParentIndex      = parentIndex,
-                        StartsLineTo     = -1,
+                        IndentationDepth   = currentDepth,
+                        ParentIndex        = parentIndex,
+                        StartsLineTo       = -1,
                     };
 
                     // We only respect the expanded state of folders if the filter is currently empty.
@@ -437,11 +465,11 @@ public abstract class FileSystemCache<TData> : FileSystemCache
                         data.TemporaryFilter = false;
                         var index = InternalNodes.Count;
                         InternalNodes.Add(data);
-                        if (folder.Expanded)
+                        if (folder.Expanded && !skipDescendents)
                         {
                             // Add all visible children.
                             foreach (var child in folder.GetChildren(Parent.SortMode))
-                                AddNode(child, index, currentDepth + 1);
+                                AddNode(child, index, currentDepth + 1, 0);
                             // We have visible children, so the folder is also visible either way.
                             // The line should only go to the last child nested one deeper, if that is a folder, it may not be the newest child.
                             for (var i = InternalNodes.Count - 1; i > index; i--)
@@ -459,7 +487,9 @@ public abstract class FileSystemCache<TData> : FileSystemCache
                         data.TemporaryFilter = true;
                         if (!folder.FilterExpanded)
                         {
-                            if (visible || folder.GetDescendants().Any(d => AllNodes.TryGetValue(d, out var c) && Filter.WouldBeVisible(c)))
+                            if (visible
+                             || !skipDescendents
+                             && folder.GetDescendants().Any(d => AllNodes.TryGetValue(d, out var c) && Filter.WouldBeVisible(c)))
                                 InternalNodes.Add(data);
                         }
                         else
@@ -468,8 +498,9 @@ public abstract class FileSystemCache<TData> : FileSystemCache
                             // The folder is added regardless of visibility.
                             InternalNodes.Add(data);
                             // Add all visible children.
-                            foreach (var child in folder.GetChildren(Parent.SortMode))
-                                AddNode(child, index, currentDepth + 1);
+                            if (!skipDescendents)
+                                foreach (var child in folder.GetChildren(Parent.SortMode))
+                                    AddNode(child, index, currentDepth + 1, 0);
 
                             if (InternalNodes.Count > index + 1)
                                 // The line should only go to the last child nested one deeper, if that is a folder, it may not be the newest child.

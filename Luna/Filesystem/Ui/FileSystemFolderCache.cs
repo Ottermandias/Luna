@@ -3,6 +3,17 @@ namespace Luna;
 /// <summary> The cached object for folder nodes. </summary>
 public sealed class FileSystemFolderCache : IFileSystemNodeCache
 {
+    public int FlattenedAncestors
+    {
+        get;
+        set
+        {
+            if (value != field)
+                Dirty = true;
+            field = value;
+        }
+    }
+
     /// <inheritdoc/>
     public bool Dirty { get; set; } = true;
 
@@ -18,9 +29,34 @@ public sealed class FileSystemFolderCache : IFileSystemNodeCache
     /// <inheritdoc/>
     public void Update(FileSystemCache _, IFileSystemNode node)
     {
-        Label    = new StringU8(node.Name);
         FullPath = node.FullPath;
-        Name     = node.Name.ToString();
+        string name;
+        if (FlattenedAncestors is 0)
+            name = node.Name.ToString();
+        else
+        {
+            var builder = new StringBuilder();
+            AppendFlattenedPath(builder, node.Parent, FlattenedAncestors - 1);
+            builder.Append(node.Name);
+            name = builder.ToString();
+        }
+
+        Label = new StringU8(name);
+        Name  = name;
+
+        return;
+
+        static void AppendFlattenedPath(StringBuilder builder, IFileSystemNode? node, int flattenedAncestors)
+        {
+            if (node is null)
+                return;
+
+            if (flattenedAncestors > 0)
+                AppendFlattenedPath(builder, node.Parent, flattenedAncestors - 1);
+
+            builder.Append(node.Name);
+            builder.Append('/');
+        }
     }
 
     /// <inheritdoc/>
