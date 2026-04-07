@@ -30,7 +30,7 @@ public sealed class FileSystemFolderCache : IFileSystemNodeCache
             name = node.Name.ToString();
         else
         {
-            var builder = new StringBuilder();
+            var builder = new StringBuilder(256);
             AppendFlattenedPath(builder, node.Parent, FlattenedAncestors - 1);
             builder.Append(node.Name);
             name = builder.ToString();

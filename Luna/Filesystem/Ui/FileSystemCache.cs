@@ -9,8 +9,8 @@ public abstract class FileSystemCache : BasicCache
     /// <summary> Whether the list of <see cref="InternalNodes"/> needs to be rebuilt. </summary>
     public bool VisibleDirty { get; protected set; } = true;
 
-    /// <summary> Whether folders that have a single child that is also a folder should be flattened. </summary>
-    /// <remarks> Flattening will only happen when the folder physically has a single child, not when the filter makes only a single child visible. </remarks>
+    /// <summary> Whether nested folders that have exactly one child folder and no other children should be visually flattened. </summary>
+    /// <remarks> Flattening will only happen when a folder has exactly one child folder, not when the filter makes only a single child visible. </remarks>
     public bool FlattenSingleChildFolders
     {
         get;
@@ -429,7 +429,7 @@ public abstract class FileSystemCache<TData> : FileSystemCache
                 }
                 case IFileSystemFolder folder:
                 {
-                    var skipDescendents = false;
+                    var skipDescendants = false;
                     if (FlattenSingleChildFolders && folder.Children is [IFileSystemFolder])
                     {
                         var index = InternalNodes.Count;
@@ -437,9 +437,9 @@ public abstract class FileSystemCache<TData> : FileSystemCache
                         if (InternalNodes.Count > index)
                             break;
 
-                        // If we reach this point, the single child is invisible, and has no visible descendents.
+                        // If we reach this point, the single child is invisible, and has no visible descendants.
                         // Knowing that, we can skip any further evaluation of them.
-                        skipDescendents = true;
+                        skipDescendants = true;
                     }
 
                     (cache as FileSystemFolderCache)?.FlattenedAncestors = flattenedAncestors;
@@ -448,9 +448,9 @@ public abstract class FileSystemCache<TData> : FileSystemCache
                     // and the current tree data.
                     var data = new FileSystemTreeNode(this, node, cache)
                     {
-                        IndentationDepth   = currentDepth,
-                        ParentIndex        = parentIndex,
-                        StartsLineTo       = -1,
+                        IndentationDepth = currentDepth,
+                        ParentIndex      = parentIndex,
+                        StartsLineTo     = -1,
                     };
 
                     // We only respect the expanded state of folders if the filter is currently empty.
@@ -460,7 +460,7 @@ public abstract class FileSystemCache<TData> : FileSystemCache
                         data.TemporaryFilter = false;
                         var index = InternalNodes.Count;
                         InternalNodes.Add(data);
-                        if (folder.Expanded && !skipDescendents)
+                        if (folder.Expanded && !skipDescendants)
                         {
                             // Add all visible children.
                             foreach (var child in folder.GetChildren(Parent.SortMode))
@@ -483,7 +483,7 @@ public abstract class FileSystemCache<TData> : FileSystemCache
                         if (!folder.FilterExpanded)
                         {
                             if (visible
-                             || !skipDescendents
+                             || !skipDescendants
                              && folder.GetDescendants().Any(d => AllNodes.TryGetValue(d, out var c) && Filter.WouldBeVisible(c)))
                                 InternalNodes.Add(data);
                         }
@@ -493,7 +493,7 @@ public abstract class FileSystemCache<TData> : FileSystemCache
                             // The folder is added regardless of visibility.
                             InternalNodes.Add(data);
                             // Add all visible children.
-                            if (!skipDescendents)
+                            if (!skipDescendants)
                                 foreach (var child in folder.GetChildren(Parent.SortMode))
                                     AddNode(child, index, currentDepth + 1, 0);
 
