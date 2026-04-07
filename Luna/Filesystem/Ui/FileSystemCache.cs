@@ -14,12 +14,7 @@ public abstract class FileSystemCache : BasicCache
     public bool FlattenSingleChildFolders
     {
         get;
-        protected set
-        {
-            if (value != field)
-                VisibleDirty = true;
-            field = value;
-        }
+        protected set => VisibleDirty |= LunaHelpers.SetDifferent(ref field, value);
     }
 
     /// <summary> The file system drawer that created this cache. </summary>

@@ -6,12 +6,7 @@ public sealed class FileSystemFolderCache : IFileSystemNodeCache
     public int FlattenedAncestors
     {
         get;
-        set
-        {
-            if (value != field)
-                Dirty = true;
-            field = value;
-        }
+        set => Dirty |= LunaHelpers.SetDifferent(ref field, value);
     }
 
     /// <inheritdoc/>
