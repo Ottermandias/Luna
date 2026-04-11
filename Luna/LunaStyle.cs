@@ -1,4 +1,5 @@
 using Dalamud.Interface;
+using Dalamud.Interface.Colors;
 using Dalamud.Interface.ImGuiNotification;
 
 namespace Luna;
@@ -131,11 +132,48 @@ public static partial class LunaStyle
     /// <summary> The icon that should be used to resize something to its default values or auto-fit values. </summary>
     public static readonly AwesomeIcon CompressIcon = FontAwesomeIcon.Compress;
 
-    /// <summary> The default color for error borders in inputs. </summary>
-    public static readonly Vector4 ErrorBorderColor = new(0.95f, 0.25f, 0.25f, 1);
+    /// <summary> The icon that should be used to add horizontal separators. </summary>
+    public static readonly AwesomeIcon AddSeparatorIcon = FontAwesomeIcon.XmarksLines;
 
-    /// <summary> The default color for warning borders in inputs. </summary>
-    public static readonly Vector4 WarningBorderColor = new(0.95f, 0.95f, 0.25f, 1);
+    /// <summary> The color for info texts, icons or borders. </summary>
+    public static Vector4 InfoForeground
+        => ImGuiColors.InfoForeground;
+
+    /// <summary> The color for success texts, icons or borders. </summary>
+    public static Vector4 SuccessForeground
+        => ImGuiColors.SuccessForeground;
+
+    /// <summary> The color for warning texts, icons or borders. </summary>
+    public static Vector4 WarningForeground
+        => ImGuiColors.WarningForeground;
+
+    /// <summary> The color for error texts, icons or borders. </summary>
+    public static Vector4 ErrorForeground
+        => ImGuiColors.ErrorForeground;
+
+    /// <summary> The color for texts, icons or borders that require attention. </summary>
+    public static Vector4 AttentionForeground
+        => ImGuiColors.AttentionForeground;
+
+    /// <summary> The color for info button or frame backgrounds. </summary>
+    public static Vector4 InfoBackground
+        => ImGuiColors.InfoBackground;
+
+    /// <summary> The color for success button or frame backgrounds. </summary>
+    public static Vector4 SuccessBackground
+        => ImGuiColors.SuccessBackground;
+
+    /// <summary> The color for warning button or frame backgrounds. </summary>
+    public static Vector4 WarningBackground
+        => ImGuiColors.WarningForeground;
+
+    /// <summary> The color for error button or frame backgrounds. </summary>
+    public static Vector4 ErrorBackground
+        => ImGuiColors.ErrorBackground;
+
+    /// <summary> The color for button or frame backgrounds that require attention. </summary>
+    public static Vector4 AttentionBackground
+        => ImGuiColors.AttentionBackground;
 
     /// <summary> The color for activated favorites icons. </summary>
     public static readonly Vector4 FavoriteColor = new(1, 1, 0, 1);
@@ -161,14 +199,14 @@ public static partial class LunaStyle
     /// <summary> Get the icon and color associated with a specific notification type. </summary>
     /// <param name="notification"> The notification type. </param>
     /// <returns> The associated icon and it's default color. </returns>
-    public static (AwesomeIcon Icon, Rgba32 Color) GetIcon(this NotificationType notification)
+    public static (AwesomeIcon Icon, Vector4 Color) GetIcon(this NotificationType notification)
         => notification switch
         {
-            NotificationType.Success => (FontAwesomeIcon.CheckCircle, 0xFF40FF40),
-            NotificationType.Warning => (WarningIcon, 0xFF40FFFF),
-            NotificationType.Error   => (ErrorIcon, 0xFF4040FF),
-            NotificationType.Info    => (FontAwesomeIcon.QuestionCircle, 0xFFFF4040),
-            _                        => (FontAwesomeIcon.None, 0),
+            NotificationType.Success => (FontAwesomeIcon.CheckCircle, SuccessForeground),
+            NotificationType.Warning => (WarningIcon, WarningForeground),
+            NotificationType.Error   => (ErrorIcon, ErrorForeground),
+            NotificationType.Info    => (FontAwesomeIcon.QuestionCircle, InfoForeground),
+            _                        => (FontAwesomeIcon.None, Vector4.Zero),
         };
 
     /// <summary> Draw a separator with inner spacing above and below. </summary>
