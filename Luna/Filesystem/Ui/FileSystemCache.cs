@@ -69,10 +69,12 @@ public abstract class FileSystemCache : BasicCache
     /// <returns> The cached data for the node. </returns>
     protected IFileSystemNodeCache ConvertNodeInternal(in IFileSystemNode node)
     {
-        if (node is IFileSystemFolder)
-            return new FileSystemFolderCache();
-
-        return ConvertNode(node);
+        return node switch
+        {
+            IFileSystemFolder    => new FileSystemFolderCache(),
+            IFileSystemSeparator => new FileSystemSeparatorCache(),
+            _                    => ConvertNode(node),
+        };
     }
 
     /// <summary> Reactions to file system changes. </summary>
@@ -83,10 +85,12 @@ public abstract class FileSystemCache : BasicCache
             case FileSystemChangeType.ObjectRenamed:
             case FileSystemChangeType.FolderAdded:
             case FileSystemChangeType.DataAdded:
+            case FileSystemChangeType.SeparatorAdded:
             case FileSystemChangeType.ObjectMoved:
             case FileSystemChangeType.LockedChange:
             case FileSystemChangeType.ExpandedChange:
             case FileSystemChangeType.FilterExpandedChange:
+            case FileSystemChangeType.SeparatorChanged:
                 if (!AllNodes.TryGetValue(arguments.ChangedObject, out var node))
                     AllNodes.TryAdd(arguments.ChangedObject, ConvertNodeInternal(arguments.ChangedObject));
                 else
@@ -417,9 +421,10 @@ public abstract class FileSystemCache<TData> : FileSystemCache
             switch (node)
             {
                 // Skip filtered out nodes and add visible data nodes.
-                case IFileSystemData data when visible:
-                {
-                    InternalNodes.Add(new FileSystemTreeNode(this, data, cache)
+                case IFileSystemData when visible:
+                case IFileSystemSeparator when visible:
+                    {
+                    InternalNodes.Add(new FileSystemTreeNode(this, node, cache)
                     {
                         IndentationDepth = currentDepth,
                         ParentIndex      = parentIndex,

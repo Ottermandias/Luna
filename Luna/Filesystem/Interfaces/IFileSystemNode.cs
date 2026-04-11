@@ -23,6 +23,9 @@ public interface IFileSystemNode
     public bool IsRoot
         => Parent is null;
 
+    /// <summary> Whether this node should be grouped with folders or leaves. </summary>
+    public bool BehavesLikeFolder { get; }
+
     /// <summary> An arbitrary runtime identifier for this node that is unique during execution. </summary>
     public FileSystemIdentifier Identifier { get; }
 

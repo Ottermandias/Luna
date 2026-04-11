@@ -15,6 +15,10 @@ internal sealed class FileSystemFolder(FileSystemIdentifier identifier)
     internal readonly List<FileSystemNode> Children = [];
 
     /// <inheritdoc/>
+    public override bool BehavesLikeFolder
+        => true;
+
+    /// <inheritdoc/>
     public bool Expanded
         => Flags.HasFlag(PathFlags.Expanded);
 

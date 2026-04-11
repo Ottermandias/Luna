@@ -208,6 +208,69 @@ public class BaseFileSystem
         return CreateDataNode(parent, name, data);
     }
 
+    /// <summary> Create a new separator node. </summary>
+    /// <param name="parent"> The parent folder to create the separator node in. </param>
+    /// <param name="name"> The name to assign the separator node. </param>
+    /// <param name="color"> The color to render the separator in. </param>
+    /// <param name="timestamp"> The creation date timestamp for the separator. </param>
+    /// <param name="isFolder"> Whether the separator should behave like a folder or like a data node. </param>
+    /// <returns> The newly created separator node and its index in <paramref name="parent"/>. </returns>
+    /// <exception cref="Exception"> Throws if a child of that name already exists in parent. </exception>
+    public (IFileSystemSeparator, int) CreateSeparator(IFileSystemFolder parent, ReadOnlySpan<char> name, ColorParameter color, long timestamp,
+        bool isFolder)
+    {
+        var node = new FileSystemSeparator(_idCounter + 1u)
+        {
+            Color        = color,
+            CreationDate = timestamp,
+            IsFolder     = isFolder,
+            Parent       = (FileSystemFolder)parent,
+        };
+        UpdateFullPath(node, name, true);
+        if (SetChild(node.Parent, node, out var idx) is Result.ItemExists)
+            throw new Exception($"Could not add separator node {node.Name} to {parent.FullPath}: Child of that name already exists.");
+
+        ++_idCounter;
+        Changed.Invoke(new FileSystemChanged.Arguments(FileSystemChangeType.SeparatorAdded, node, null, parent));
+        return (node, idx);
+    }
+
+    /// <summary> Change the associated color of a separator. </summary>
+    /// <param name="node"> The separator node. If this is not a separator, nothing is done. </param>
+    /// <param name="color"> The new color. If this is the same as before, nothing is done. </param>
+    public void ChangeSeparator(IFileSystemNode node, ColorParameter color)
+    {
+        if (node is not FileSystemSeparator separator || separator.Color == color)
+            return;
+
+        separator.Color = color;
+        Changed.Invoke(new FileSystemChanged.Arguments(FileSystemChangeType.SeparatorChanged, node, null, null));
+    }
+
+    /// <summary> Change the associated creation date of a separator. </summary>
+    /// <param name="node"> The separator node. If this is not a separator, nothing is done. </param>
+    /// <param name="timestamp"> The new creation date. If this is the same as before, nothing is done. </param>
+    public void ChangeSeparator(IFileSystemNode node, long timestamp)
+    {
+        if (node is not FileSystemSeparator separator || separator.CreationDate == timestamp)
+            return;
+
+        separator.CreationDate = timestamp;
+        Changed.Invoke(new FileSystemChanged.Arguments(FileSystemChangeType.SeparatorChanged, node, null, null));
+    }
+
+    /// <summary> Change whether a separator is treated as a folder or an item. </summary>
+    /// <param name="node"> The separator node. If this is not a separator, nothing is done. </param>
+    /// <param name="isFolder"> The new value. If this is the same as before, nothing is done. </param>
+    public void ChangeSeparator(IFileSystemNode node, bool isFolder)
+    {
+        if (node is not FileSystemSeparator separator || separator.IsFolder == isFolder)
+            return;
+
+        separator.IsFolder = isFolder;
+        Changed.Invoke(new FileSystemChanged.Arguments(FileSystemChangeType.SeparatorChanged, node, null, null));
+    }
+
     /// <summary> Create a new folder. </summary>
     /// <param name="parent"> The parent to create the folder in. </param>
     /// <param name="name"> The name of the new folder, which will be stripped of trailing and leading whitespace, and all '/' will be replaced by '\'. </param>

@@ -55,6 +55,12 @@ public abstract class FileSystemSaver : IDisposable
 
         /// <summary> The list of nodes in the file. </summary>
         public List<string> Nodes = [];
+
+        /// <summary> The list of separators in the file. </summary>
+        public Dictionary<string, Separator> Separators = [];
+
+        /// <summary> Separator data. </summary>
+        public readonly record struct Separator(uint? Color, bool Folder, long CreationDate);
     }
 
     public virtual void Dispose()
@@ -163,6 +169,10 @@ public abstract class FileSystemSaver<TSaveService, TProvider> : FileSystemSaver
                     if (folder.Expanded)
                         SaveService.DelaySave(new ExpandedFiles(this), ExpandedDelay);
                 }
+                else if (arguments.ChangedObject is IFileSystemSeparator)
+                {
+                    SaveService.DelaySave(new EmptyFoldersFiles(this), EmptyFolderDelay);
+                }
 
                 break;
             case FileSystemChangeType.FolderAdded: SaveService.DelaySave(new EmptyFoldersFiles(this), EmptyFolderDelay); break;
@@ -185,6 +195,10 @@ public abstract class FileSystemSaver<TSaveService, TProvider> : FileSystemSaver
                 SaveService.DelaySave(new LockedFiles(this),       LockedDelay);
                 SaveService.DelaySave(new EmptyFoldersFiles(this), EmptyFolderDelay);
                 SaveService.DelaySave(new ExpandedFiles(this),     ExpandedDelay);
+                break;
+            case FileSystemChangeType.SeparatorAdded:
+            case FileSystemChangeType.SeparatorChanged:
+                SaveService.DelaySave(new EmptyFoldersFiles(this), ExpandedDelay);
                 break;
             case FileSystemChangeType.LockedChange:   SaveService.DelaySave(new LockedFiles(this),   LockedDelay); break;
             case FileSystemChangeType.ExpandedChange: SaveService.DelaySave(new ExpandedFiles(this), ExpandedDelay); break;
@@ -210,6 +224,37 @@ public abstract class FileSystemSaver<TSaveService, TProvider> : FileSystemSaver
         catch (Exception ex)
         {
             Log.Debug($"Could not create empty folder {path}:\n{ex}");
+            return false;
+        }
+
+        return true;
+    }
+
+    /// <summary> Apply a separator saved in the file system. </summary>
+    /// <param name="path"> The sort order path for the separator. </param>
+    /// <param name="color"> The color for the separator line. </param>
+    /// <param name="timestamp"> The timestamp associated with the separator. </param>
+    /// <param name="isFolder"> Whether the separator behaves like a folder or like an item. </param>
+    /// <returns> True when the separator could be applied. </returns>
+    protected bool ApplySeparator(string path, uint? color, long timestamp, bool isFolder)
+    {
+        var name       = path.AsSpan();
+        var folderPath = ReadOnlySpan<char>.Empty;
+        var index      = path.LastIndexOf('/');
+        if (index >= 0)
+        {
+            name       = index == path.Length - 1 ? string.Empty : path.AsSpan(index + 1);
+            folderPath = path.AsSpan(0, index);
+        }
+
+        try
+        {
+            var folder = folderPath.Length is 0 ? FileSystem.Root : FileSystem.FindOrCreateAllFolders(folderPath);
+            FileSystem.CreateSeparator(folder, name, color ?? ColorParameter.Default, timestamp, isFolder);
+        }
+        catch (Exception ex)
+        {
+            Log.Debug($"Could not create separator {path}:\n{ex}");
             return false;
         }
 
@@ -380,6 +425,9 @@ public abstract class FileSystemSaver<TSaveService, TProvider> : FileSystemSaver
             foreach (var path in emptyFolders.Nodes)
                 changes |= !ApplyEmptyFolder(path);
 
+            foreach (var (node, (color, folder, timeStamp)) in emptyFolders.Separators)
+                changes |= !ApplySeparator(node, color, timeStamp, folder);
+
             if (changes)
                 SaveService.DelaySave(new EmptyFoldersFiles(this));
         }
@@ -513,6 +561,22 @@ public abstract class FileSystemSaver<TSaveService, TProvider> : FileSystemSaver
             foreach (var folder in saver.FileSystem.Root.GetDescendants().Where(n => n is IFileSystemFolder { Children.Count: 0 }))
                 j.WriteStringValue(folder.FullPath);
             j.WriteEndArray();
+
+            j.WritePropertyName("Separators"u8);
+            j.WriteStartObject();
+            foreach (var separator in saver.FileSystem.Root.GetDescendants().OfType<FileSystemSeparator>())
+            {
+                j.WriteStartObject(separator.FullPath);
+                if (separator.IsFolder)
+                    j.WriteBoolean("Folder"u8, separator.IsFolder);
+                if (!separator.Color.IsDefault)
+                    j.WriteNumber("Color"u8, separator.Color.Color!.Value.Color);
+                j.WriteNumber("CreationDate"u8, separator.CreationDate);
+                j.WriteEndObject();
+            }
+
+            j.WriteEndObject();
+
             j.WriteEndObject();
         }
     }

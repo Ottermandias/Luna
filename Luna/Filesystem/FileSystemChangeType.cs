@@ -12,8 +12,11 @@ public enum FileSystemChangeType
     /// <summary> A new, empty folder was added. </summary>
     FolderAdded,
 
-    /// <summary> A new non-folder object was added. </summary>
+    /// <summary> A new data object was added. </summary>
     DataAdded,
+
+    /// <summary> A new separator was added. </summary>
+    SeparatorAdded,
 
     /// <summary> An arbitrary object was moved. </summary>
     ObjectMoved,
@@ -41,4 +44,7 @@ public enum FileSystemChangeType
 
     /// <summary> The <see cref="IFileSystemFolder.FilterExpanded"/> state of a folder was changed. </summary>
     FilterExpandedChange,
+
+    /// <summary> A separator's data was changed. </summary>
+    SeparatorChanged,
 }

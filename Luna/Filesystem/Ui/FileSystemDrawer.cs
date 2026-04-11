@@ -54,7 +54,8 @@ public abstract class FileSystemDrawer(MessageService messager, BaseFileSystem f
     private static ButtonFooter SetupBaseFooter(BaseFileSystem fileSystem)
     {
         var ret = new ButtonFooter();
-        ret.Buttons.AddButton(new CreateFolderButton(fileSystem), 0);
+        ret.Buttons.AddButton(new CreateFolderButton(fileSystem),    0);
+        ret.Buttons.AddButton(new CreateSeparatorButton(fileSystem), -1);
         return ret;
     }
 
@@ -115,6 +116,7 @@ public interface IFileSystemFilter<TNodeCache> : IFilter<TNodeCache>
     public bool WouldBeVisible(in IFileSystemNodeCache node)
         => node switch
         {
+            FileSystemSeparatorCache     => IsEmpty,
             FileSystemFolderCache folder => WouldBeVisible(folder),
             TNodeCache dataNode          => WouldBeVisible(in dataNode, -1),
             _                            => false,

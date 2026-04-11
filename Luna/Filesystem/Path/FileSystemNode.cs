@@ -33,6 +33,9 @@ internal abstract class FileSystemNode(FileSystemIdentifier identifier) : IFileS
         => Parent;
 
     /// <inheritdoc/>
+    public abstract bool BehavesLikeFolder { get; }
+
+    /// <inheritdoc/>
     public abstract string FullPath { get; internal set; }
 
     /// <summary> The offset into the name part of the full path.  </summary>

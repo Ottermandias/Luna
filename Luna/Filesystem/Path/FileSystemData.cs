@@ -11,6 +11,10 @@ internal sealed class FileSystemData<TValue>(FileSystemIdentifier identifier, TV
     public TValue Value { get; } = value;
 
     /// <inheritdoc/>
+    public override bool BehavesLikeFolder
+        => false;
+
+    /// <inheritdoc/>
     public override string FullPath
     {
         get => Value.Path.CurrentPath;
