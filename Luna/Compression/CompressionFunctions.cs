@@ -2,6 +2,30 @@ namespace Luna;
 
 public static class CompressionFunctions
 {
+    /// <summary> Compress byte data to a base64 encoding of its compressed JSON representation, prepended with a version byte. </summary>
+    /// <param name="data"> The byte-wise data to serialize to JSON and compress. </param>
+    /// <param name="version"> The version byte to prepend to the UTF8 JSON data. </param>
+    /// <returns> An empty string on failure, otherwise the compressed, versioned data converted to Base64. </returns>
+    /// <remarks> See <see cref="FromCompressedBase64{T}"/> for the decompression steps. </remarks>
+    public static unsafe string ToCompressedBase64(ReadOnlySpan<byte> data, byte version)
+    {
+        try
+        {
+            using var compressedStream = new MemoryStream();
+            using (var zipStream = new GZipStream(compressedStream, CompressionMode.Compress))
+            {
+                zipStream.Write(new ReadOnlySpan<byte>(&version, 1));
+                zipStream.Write(data);
+            }
+
+            return Convert.ToBase64String(compressedStream.ToArray());
+        }
+        catch
+        {
+            return string.Empty;
+        }
+    }
+
     /// <summary> Compress any type to a base64 encoding of its compressed JSON representation, prepended with a version byte. </summary>
     /// <typeparam name="T"> The data type to compress via JSON. </typeparam>
     /// <param name="data"> The data to serialize to JSON and compress. </param>

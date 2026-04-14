@@ -27,6 +27,15 @@ public static class JsonFunctions
         NewLine         = "\n",
     };
 
+    /// <summary> The default JSON Writer options we use. </summary>
+    public static readonly JsonWriterOptions UnformattedOptions = new()
+    {
+        SkipValidation = true,
+        Indented        = false,
+        IndentSize      = 0,
+        NewLine         = "\n",
+    };
+
     /// <summary> The default JSON Reader options we use. </summary>
     public static readonly JsonReaderOptions ReaderOptions = new()
     {
@@ -144,7 +153,7 @@ public static class JsonFunctions
         /// <returns> True on success, false if the current token is not a string. </returns>
         public bool TryReadUtf8String([NotNullWhen(true)] out StringU8? text)
         {
-            if (reader.TokenType is not JsonTokenType.String)
+            if (reader.TokenType is not JsonTokenType.String and not JsonTokenType.PropertyName)
             {
                 text = null;
                 return false;
