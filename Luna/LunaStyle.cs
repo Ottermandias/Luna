@@ -54,6 +54,9 @@ public static partial class LunaStyle
     /// <summary> The icon that should be used to show reloading or refreshing. </summary>
     public static readonly AwesomeIcon RefreshIcon = FontAwesomeIcon.Recycle;
 
+    /// <summary> The icon that should be used to show reloading or refreshing. </summary>
+    public static readonly AwesomeIcon TestIcon = FontAwesomeIcon.Flask;
+
     /// <summary> The icon that should be used for buttons that expand something that behaves like a tree node. </summary>
     public static readonly AwesomeIcon TreeExpandIcon = FontAwesomeIcon.CaretRight;
 
