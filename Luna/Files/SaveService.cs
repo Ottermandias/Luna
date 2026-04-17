@@ -37,7 +37,7 @@ public abstract class BaseSaveService<T>(LunaLogger log, FrameworkManager framew
     /// <summary> Save an object according to type. </summary>
     /// <param name="type"> The save type to invoke. </param>
     /// <param name="value"> The file to save. </param>
-    public void Save(SaveType type, in ISavable<T> value)
+    public void Save<TSavable>(SaveType type, in TSavable value) where TSavable : ISavable<T>
     {
         switch (type)
         {
@@ -58,7 +58,7 @@ public abstract class BaseSaveService<T>(LunaLogger log, FrameworkManager framew
 
     /// <summary> Queue a file save for the next available framework tick. </summary>
     /// <param name="value"> The file to save. </param>
-    public void QueueSave(ISavable<T> value)
+    public void QueueSave<TSavable>(TSavable value) where TSavable : ISavable<T>
     {
         var file = value.ToFilePath(FileNames);
         Framework.RegisterOnTick($"{value.GetType().Name} ## {file}", () => { ImmediateSave(value); });
@@ -66,13 +66,13 @@ public abstract class BaseSaveService<T>(LunaLogger log, FrameworkManager framew
 
     /// <summary> Queue a delayed file save with the standard delay after the delay is over. </summary>
     /// <param name="value"> The file to save. </param>
-    public void DelaySave(ISavable<T> value)
+    public void DelaySave<TSavable>(in TSavable value) where TSavable : ISavable<T>
         => DelaySave(value, StandardDelay);
 
     /// <summary> Queue a delayed file save for after the delay is over. </summary>
     /// <param name="value"> The file to save. </param>
     /// <param name="delay"> The custom delay to wait before actually triggering the save. </param>
-    public void DelaySave(ISavable<T> value, TimeSpan delay)
+    public void DelaySave<TSavable>(TSavable value, TimeSpan delay) where TSavable : ISavable<T>
     {
         var file = value.ToFilePath(FileNames);
         Framework.RegisterDelayed($"{value.GetType().Name} ## {file}", () => { ImmediateSave(value); }, delay);
@@ -102,14 +102,14 @@ public abstract class BaseSaveService<T>(LunaLogger log, FrameworkManager framew
 
     /// <summary> Immediately trigger a save on the service's save thread. </summary>
     /// <param name="value"> The file to save. </param>
-    public void ImmediateSave(ISavable<T> value)
+    public void ImmediateSave<TSavable>(TSavable value) where TSavable : ISavable<T>
     {
         var name = value.ToFilePath(FileNames);
         // Lock the object before replacing it.
         // We only want one thread saving files at the same time.
         lock (_saveTaskLock)
         {
-            _saveTask = _saveTask == null || _saveTask.IsCompleted
+            _saveTask = _saveTask is null || _saveTask.IsCompleted
                 ? Task.Run(SaveAction)
                 : _saveTask.ContinueWith(_ => SaveAction(), TaskScheduler.Default);
         }
@@ -153,7 +153,7 @@ public abstract class BaseSaveService<T>(LunaLogger log, FrameworkManager framew
     /// <summary> Immediately trigger a save and wait for the save to complete. </summary>
     /// <param name="value"> The file to save. </param>
     /// <remarks> This will also finish all previously triggered file saves and prevent queueing of new ones until it is done. </remarks>
-    public void ImmediateSaveSync(ISavable<T> value)
+    public void ImmediateSaveSync<TSavable>(in TSavable value) where TSavable : ISavable<T>
     {
         ImmediateSave(value);
         lock (_saveTaskLock)
@@ -164,12 +164,14 @@ public abstract class BaseSaveService<T>(LunaLogger log, FrameworkManager framew
 
     /// <summary> Immediately delete a file on the service's file thread. </summary>
     /// <param name="value"> The file to delete. </param>
-    public void ImmediateDelete(ISavable<T> value)
+    public void ImmediateDelete<TSavable>(in TSavable value) where TSavable : ISavable<T>
     {
-        var name = value.ToFilePath(FileNames);
+        var name     = value.ToFilePath(FileNames);
+        var typeName = value.GetType().Name;
+        var logName  = value.LogName(name);
         lock (_saveTaskLock)
         {
-            _saveTask = _saveTask == null || _saveTask.IsCompleted
+            _saveTask = _saveTask is null || _saveTask.IsCompleted
                 ? Task.Run(DeleteAction)
                 : _saveTask.ContinueWith(_ => DeleteAction(), TaskScheduler.Default);
         }
@@ -180,18 +182,18 @@ public abstract class BaseSaveService<T>(LunaLogger log, FrameworkManager framew
         {
             try
             {
-                if (name.Length == 0)
+                if (name.Length is 0)
                     throw new Exception("Invalid object returned empty filename.");
 
                 if (!File.Exists(name))
                     return;
 
-                Log.Information($"{GetThreadPrefix()}Deleting {value.GetType().Name} {value.LogName(name)}...");
+                Log.Information($"{GetThreadPrefix()}Deleting {typeName} {logName}...");
                 File.Delete(name);
             }
             catch (Exception ex)
             {
-                Log.Error($"{GetThreadPrefix()}Could not delete {value.GetType().Name} {value.LogName(name)}:\n{ex}");
+                Log.Error($"{GetThreadPrefix()}Could not delete {typeName} {logName}:\n{ex}");
             }
         }
     }
@@ -199,7 +201,7 @@ public abstract class BaseSaveService<T>(LunaLogger log, FrameworkManager framew
     /// <summary> Immediately delete a file on the service's file thread and wait for the deletion to complete. </summary>
     /// <param name="value"> The file to delete. </param>
     /// <remarks> This will also finish all previously triggered file saves and deletes and prevent queueing of new ones until it is done. </remarks>
-    public void ImmediateDeleteSync(ISavable<T> value)
+    public void ImmediateDeleteSync<TSavable>(in TSavable value) where TSavable : ISavable<T>
     {
         ImmediateDelete(value);
         lock (_saveTaskLock)
