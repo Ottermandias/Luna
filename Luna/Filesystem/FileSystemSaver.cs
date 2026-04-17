@@ -1,9 +1,10 @@
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace Luna;
 
 /// <summary> Shared base class for file system savers. </summary>
-public abstract class FileSystemSaver : IDisposable
+public abstract partial class FileSystemSaver : IDisposable
 {
     /// <summary> The version of the generic files saved by this service. </summary>
     public const int CurrentVersion = 1;
@@ -13,6 +14,9 @@ public abstract class FileSystemSaver : IDisposable
 
     /// <summary> The parent file system to monitor. </summary>
     protected readonly BaseFileSystem FileSystem;
+
+    /// <summary> The function to return valid sort modes for folders. </summary>
+    protected abstract ISortMode? ParseSortMode(string name);
 
     /// <summary> The method to save local data for a data node when its containing folder or sort order name change. </summary>
     /// <param name="value"> The value with the changed path. </param>
@@ -30,7 +34,7 @@ public abstract class FileSystemSaver : IDisposable
     /// <summary> Load a single file containing a version and a list of nodes. </summary>
     /// <param name="filePath"> The path to the file. </param>
     /// <returns> The node data on success, empty node data on failure. </returns>
-    protected NodeData LoadFile(string filePath)
+    protected NodeData LoadNodeFile(string filePath)
     {
         try
         {
@@ -38,7 +42,7 @@ public abstract class FileSystemSaver : IDisposable
                 return new NodeData();
 
             var text = File.ReadAllText(filePath);
-            return JsonConvert.DeserializeObject<NodeData>(text) ?? new NodeData();
+            return System.Text.Json.JsonSerializer.Deserialize(text, SourceGenerationContext.Default.NodeData) ?? new NodeData();
         }
         catch (Exception ex)
         {
@@ -47,20 +51,24 @@ public abstract class FileSystemSaver : IDisposable
         }
     }
 
-    /// <summary> A versioned list of nodes. </summary>
-    protected class NodeData
+    /// <summary> Load a single file containing a version, folders, separators and their data. </summary>
+    /// <param name="filePath"> The path to the file. </param>
+    /// <returns> The organization data on success, empty data on failure. </returns>
+    protected Organization LoadOrganizationFile(string filePath)
     {
-        /// <summary> The version of the file. </summary>
-        public int Version = CurrentVersion;
+        try
+        {
+            if (!File.Exists(filePath))
+                return new Organization();
 
-        /// <summary> The list of nodes in the file. </summary>
-        public List<string> Nodes = [];
-
-        /// <summary> The list of separators in the file. </summary>
-        public Dictionary<string, Separator> Separators = [];
-
-        /// <summary> Separator data. </summary>
-        public readonly record struct Separator(uint? Color, bool Folder, long CreationDate);
+            var text = File.ReadAllText(filePath);
+            return System.Text.Json.JsonSerializer.Deserialize(text, SourceGenerationContext.Default.Organization) ?? new Organization();
+        }
+        catch (Exception ex)
+        {
+            Log.Error($"Could not load {filePath}:\n{ex}");
+            return new Organization();
+        }
     }
 
     public virtual void Dispose()
@@ -68,6 +76,52 @@ public abstract class FileSystemSaver : IDisposable
 
     private void OnDataNodeChanged(in DataNodePathChange.Arguments arguments)
         => SaveDataValue(arguments.ChangedNode.Value);
+
+    protected class MigrationData
+    {
+        public Dictionary<string, string> Data         = [];
+        public List<string>               EmptyFolders = [];
+        public List<string>               LockedPaths  = [];
+    }
+
+    protected class BaseFile
+    {
+        /// <summary> The version of the file. </summary>
+        public int Version = CurrentVersion;
+    }
+
+    protected class NodeData : BaseFile
+    {
+        /// <summary> The list of nodes in the file. </summary>
+        public List<string> Nodes = [];
+    }
+
+    protected class Organization : BaseFile
+    {
+        /// <summary> The list of folders in the file. </summary>
+        public Dictionary<string, FolderData> Folders = [];
+
+        /// <summary> The list of separators in the file. </summary>
+        public Dictionary<string, SeparatorData> Separators = [];
+
+        /// <summary> Folder data. </summary>
+        public readonly record struct FolderData(uint? ExpandedColor, uint? CollapsedColor, string? SortMode)
+        {
+            /// <summary> Empty folder data. </summary>
+            public static readonly FolderData Empty = new(null, null, null);
+        }
+
+        /// <summary> Separator data. </summary>
+        public readonly record struct SeparatorData(uint? Color, bool Folder, long CreationDate);
+    }
+
+
+    [JsonSourceGenerationOptions(WriteIndented = true, AllowTrailingCommas = true, IncludeFields = true, NewLine = "\n",
+        IndentCharacter = ' ',   IndentSize = 4)]
+    [JsonSerializable(typeof(NodeData))]
+    [JsonSerializable(typeof(Organization))]
+    [JsonSerializable(typeof(MigrationData))]
+    protected partial class SourceGenerationContext : JsonSerializerContext;
 }
 
 /// <summary> A general save service for any changes occuring in a file system. </summary>
@@ -90,15 +144,21 @@ public abstract class FileSystemSaver<TSaveService, TProvider> : FileSystemSaver
     /// <returns> The full path to save the file containing all currently expanded folders in this file system. </returns>
     protected abstract string ExpandedFile(TProvider provider);
 
-    /// <summary> The file path for the empty folder files data. </summary>
-    /// <param name="provider"> The file path provider passed by the save service. </param>
-    /// <returns> The full path to save the file containing all currently empty folders in this file system. </returns>
-    protected abstract string EmptyFoldersFile(TProvider provider);
-
     /// <summary> The file path to save the currently selected nodes. </summary>
     /// <param name="provider"> The file path provider passed by the save service. </param>
     /// <returns> The full path to save the file containing all currently selected nodes in this file system. </returns>
     protected abstract string SelectionFile(TProvider provider);
+
+    /// <summary> The file path to save the additional organization options and nodes. </summary>
+    /// <param name="provider"> The file path provider passed by the save service. </param>
+    /// <returns> The full path to save the file containing all additional organization options and nodes in this file system. </returns>
+    protected abstract string OrganizationFile(TProvider provider);
+
+    /// <summary> The file path for the (outdated) empty folder files data. </summary>
+    /// <param name="provider"> The file path provider passed by the save service. </param>
+    /// <returns> The full path to save the file containing all currently empty folders in this file system. </returns>
+    protected virtual string EmptyFoldersMigrationFile(TProvider provider)
+        => string.Empty;
 
     /// <summary> The file path for an old file system save file to migrate. </summary>
     /// <param name="provider"> The file path provider passed by the save service. </param>
@@ -126,8 +186,8 @@ public abstract class FileSystemSaver<TSaveService, TProvider> : FileSystemSaver
     /// <summary> The delay between attempts to save locked nodes. </summary>
     public TimeSpan LockedDelay = TimeSpan.FromSeconds(1);
 
-    /// <summary> The delay between attempts to save empty folders. </summary>
-    public TimeSpan EmptyFolderDelay = TimeSpan.FromSeconds(5);
+    /// <summary> The delay between attempts to save organization data. </summary>
+    public TimeSpan OrganizationDelay = TimeSpan.FromSeconds(5);
 
     /// <summary> The delay between attempts to save selected nodes. </summary>
     public TimeSpan SelectedDelay = TimeSpan.FromSeconds(30);
@@ -142,7 +202,8 @@ public abstract class FileSystemSaver<TSaveService, TProvider> : FileSystemSaver
         FileSystem.Clear();
         MigrateOldFileSystem();
         CreateDataNodes();
-        HandleEmptyFolders();
+        HandleOrganization();
+        MigrateEmptyFolders();
         HandleLockedNodes();
         HandleExpandedFolders();
         HandleSelectedNodes();
@@ -159,71 +220,73 @@ public abstract class FileSystemSaver<TSaveService, TProvider> : FileSystemSaver
             case FileSystemChangeType.ObjectRenamed:
             case FileSystemChangeType.ObjectRemoved:
                 if (arguments.ChangedObject.Locked)
-                    SaveService.DelaySave(new LockedFiles(this), LockedDelay);
+                    SaveService.DelaySave(new LockedData(this), LockedDelay);
                 if (arguments.ChangedObject.Selected)
-                    SaveService.DelaySave(new SelectedFiles(this), SelectedDelay);
+                    SaveService.DelaySave(new SelectedData(this), SelectedDelay);
                 if (arguments.ChangedObject is IFileSystemFolder folder)
                 {
-                    if (folder.Children.Count is 0)
-                        SaveService.DelaySave(new EmptyFoldersFiles(this), EmptyFolderDelay);
+                    SaveService.DelaySave(new OrganizationData(this), OrganizationDelay);
                     if (folder.Expanded)
-                        SaveService.DelaySave(new ExpandedFiles(this), ExpandedDelay);
+                        SaveService.DelaySave(new ExpandedData(this), ExpandedDelay);
                 }
                 else if (arguments.ChangedObject is IFileSystemSeparator)
                 {
-                    SaveService.DelaySave(new EmptyFoldersFiles(this), EmptyFolderDelay);
+                    SaveService.DelaySave(new OrganizationData(this), OrganizationDelay);
                 }
 
                 break;
-            case FileSystemChangeType.FolderAdded: SaveService.DelaySave(new EmptyFoldersFiles(this), EmptyFolderDelay); break;
-            case FileSystemChangeType.DataAdded:
-                if (arguments.ChangedObject.Parent!.Children.Count is 1)
-                    SaveService.DelaySave(new EmptyFoldersFiles(this), EmptyFolderDelay);
+            case FileSystemChangeType.FolderAdded:
+            case FileSystemChangeType.SeparatorAdded:
+            case FileSystemChangeType.SeparatorChanged:
+            case FileSystemChangeType.FolderChanged:
+                SaveService.DelaySave(new OrganizationData(this), OrganizationDelay);
                 break;
             case FileSystemChangeType.ObjectMoved:
                 if (arguments.ChangedObject.Locked)
-                    SaveService.DelaySave(new LockedFiles(this), LockedDelay);
+                    SaveService.DelaySave(new LockedData(this), LockedDelay);
                 if (arguments.ChangedObject.Selected)
-                    SaveService.DelaySave(new SelectedFiles(this), SelectedDelay);
-                SaveService.DelaySave(new EmptyFoldersFiles(this), EmptyFolderDelay);
-                SaveService.DelaySave(new ExpandedFiles(this),     ExpandedDelay);
+                    SaveService.DelaySave(new SelectedData(this), SelectedDelay);
+                SaveService.DelaySave(new ExpandedData(this), ExpandedDelay);
+                if (arguments.ChangedObject is not IFileSystemData)
+                    SaveService.DelaySave(new OrganizationData(this), OrganizationDelay);
                 break;
             case FileSystemChangeType.FolderMerged:
             case FileSystemChangeType.PartialMerge:
             case FileSystemChangeType.Reload:
-                SaveService.DelaySave(new SelectedFiles(this),     SelectedDelay);
-                SaveService.DelaySave(new LockedFiles(this),       LockedDelay);
-                SaveService.DelaySave(new EmptyFoldersFiles(this), EmptyFolderDelay);
-                SaveService.DelaySave(new ExpandedFiles(this),     ExpandedDelay);
+                SaveService.DelaySave(new SelectedData(this),     SelectedDelay);
+                SaveService.DelaySave(new LockedData(this),       LockedDelay);
+                SaveService.DelaySave(new OrganizationData(this), OrganizationDelay);
+                SaveService.DelaySave(new ExpandedData(this),     ExpandedDelay);
                 break;
-            case FileSystemChangeType.SeparatorAdded:
-            case FileSystemChangeType.SeparatorChanged:
-                SaveService.DelaySave(new EmptyFoldersFiles(this), ExpandedDelay);
-                break;
-            case FileSystemChangeType.LockedChange:   SaveService.DelaySave(new LockedFiles(this),   LockedDelay); break;
-            case FileSystemChangeType.ExpandedChange: SaveService.DelaySave(new ExpandedFiles(this), ExpandedDelay); break;
-            case FileSystemChangeType.SelectedChange: SaveService.DelaySave(new SelectedFiles(this), SelectedDelay); break;
+            case FileSystemChangeType.LockedChange:   SaveService.DelaySave(new LockedData(this),   LockedDelay); break;
+            case FileSystemChangeType.ExpandedChange: SaveService.DelaySave(new ExpandedData(this), ExpandedDelay); break;
+            case FileSystemChangeType.SelectedChange: SaveService.DelaySave(new SelectedData(this), SelectedDelay); break;
         }
     }
 
-    /// <summary> Apply an empty folder saved in the file system by its path. </summary>
+    /// <summary> Apply a folder saved in the file system by its path. </summary>
     /// <param name="path"> The path of the empty folder. </param>
-    /// <returns> True when the empty folder could be applied, false if it is not empty or could not be created. </returns>
+    /// <param name="folderData"> Additional data for the folder. </param>
+    /// <returns> True when the folder could be applied, false if it could not be created. </returns>
     /// <remarks> Logs failures. </remarks>
-    protected bool ApplyEmptyFolder(string path)
+    protected bool ApplyFolder(string path, in Organization.FolderData folderData)
     {
         try
         {
-            var folder = FileSystem.FindOrCreateAllFolders(path);
-            if (folder.Children.Count is not 0)
+            var folder = (FileSystemFolder)FileSystem.FindOrCreateAllFolders(path);
+            folder.ExpandedColor  = folderData.ExpandedColor.HasValue ? new Rgba32(folderData.ExpandedColor.Value) : ColorParameter.Default;
+            folder.CollapsedColor = folderData.CollapsedColor.HasValue ? new Rgba32(folderData.CollapsedColor.Value) : ColorParameter.Default;
+            if (folderData.SortMode is not null)
             {
-                Log.Debug($"Folder {path} saved as empty is not empty anymore.");
-                return false;
+                if (ParseSortMode(folderData.SortMode) is { } sortMode)
+                    folder.SortMode = sortMode;
+                else
+                    Log.Debug($"Could not apply unknown sort mode {folderData.SortMode} to folder {path}.");
             }
         }
         catch (Exception ex)
         {
-            Log.Debug($"Could not create empty folder {path}:\n{ex}");
+            Log.Debug($"Could not create folder {path}:\n{ex}");
             return false;
         }
 
@@ -350,12 +413,12 @@ public abstract class FileSystemSaver<TSaveService, TProvider> : FileSystemSaver
         try
         {
             var text = File.ReadAllText(oldFileSystemFile);
-            var data = JsonConvert.DeserializeObject<MigrationData>(text) ?? new MigrationData();
+            var data = System.Text.Json.JsonSerializer.Deserialize(text, SourceGenerationContext.Default.MigrationData) ?? new MigrationData();
             ret = true;
 
             _storedLockedPaths = data.LockedPaths;
             foreach (var folder in data.EmptyFolders)
-                ApplyEmptyFolder(folder);
+                ApplyFolder(folder, Organization.FolderData.Empty);
 
             foreach (var (identifier, path) in data.Data)
             {
@@ -412,30 +475,30 @@ public abstract class FileSystemSaver<TSaveService, TProvider> : FileSystemSaver
         FileSystem.Changed.Unsubscribe(OnFileSystemChange);
     }
 
-    private void HandleEmptyFolders()
+    private void HandleOrganization()
     {
-        var emptyFolders = LoadFile(EmptyFoldersFile(SaveService.FileNames));
-        if (emptyFolders.Version is not CurrentVersion)
+        var organization = LoadOrganizationFile(OrganizationFile(SaveService.FileNames));
+        if (organization.Version is not CurrentVersion)
         {
-            Log.Error($"Invalid version of empty folders file {emptyFolders.Version}");
+            Log.Error($"Invalid version of organization file {organization.Version}.");
         }
         else
         {
             var changes = false;
-            foreach (var path in emptyFolders.Nodes)
-                changes |= !ApplyEmptyFolder(path);
+            foreach (var (folder, data) in organization.Folders)
+                changes |= ApplyFolder(folder, data);
 
-            foreach (var (node, (color, folder, timeStamp)) in emptyFolders.Separators)
-                changes |= !ApplySeparator(node, color, timeStamp, folder);
+            foreach (var (separator, data) in organization.Separators)
+                changes |= ApplySeparator(separator, data.Color, data.CreationDate, data.Folder);
 
             if (changes)
-                SaveService.DelaySave(new EmptyFoldersFiles(this));
+                SaveService.DelaySave(new OrganizationData(this));
         }
     }
 
     private void HandleLockedNodes()
     {
-        var lockedNodes = LoadFile(LockedFile(SaveService.FileNames));
+        var lockedNodes = LoadNodeFile(LockedFile(SaveService.FileNames));
         var changes     = false;
         if (_storedLockedPaths is not null)
         {
@@ -444,17 +507,17 @@ public abstract class FileSystemSaver<TSaveService, TProvider> : FileSystemSaver
         }
 
         if (lockedNodes.Version is not CurrentVersion)
-            Log.Error($"Invalid version of locked nodes file {lockedNodes.Version}");
+            Log.Error($"Invalid version of locked nodes file {lockedNodes.Version}.");
         else
             changes = lockedNodes.Nodes.Aggregate(changes, (current, path) => current | !ApplyLockedNode(path, false));
 
         if (changes)
-            SaveService.DelaySave(new LockedFiles(this));
+            SaveService.DelaySave(new LockedData(this));
     }
 
     private void HandleSelectedNodes()
     {
-        var selectedNodes = LoadFile(SelectionFile(SaveService.FileNames));
+        var selectedNodes = LoadNodeFile(SelectionFile(SaveService.FileNames));
         var changes       = false;
         if (_storedSelectedPaths is not null)
         {
@@ -463,20 +526,20 @@ public abstract class FileSystemSaver<TSaveService, TProvider> : FileSystemSaver
         }
 
         if (selectedNodes.Version is not CurrentVersion)
-            Log.Error($"Invalid version of selected nodes file {selectedNodes.Version}");
+            Log.Error($"Invalid version of selected nodes file {selectedNodes.Version}.");
         else
             changes = selectedNodes.Nodes.Aggregate(changes, (current, path) => current | !ApplySelectedNode(path, false));
 
         if (changes)
-            SaveService.DelaySave(new SelectedFiles(this));
+            SaveService.DelaySave(new SelectedData(this));
     }
 
     private void HandleExpandedFolders()
     {
-        var expandedFolders = LoadFile(ExpandedFile(SaveService.FileNames));
+        var expandedFolders = LoadNodeFile(ExpandedFile(SaveService.FileNames));
         if (expandedFolders.Version is not CurrentVersion)
         {
-            Log.Error($"Invalid version of expanded folders file {expandedFolders.Version}");
+            Log.Error($"Invalid version of expanded folders file {expandedFolders.Version}.");
         }
         else
         {
@@ -485,11 +548,32 @@ public abstract class FileSystemSaver<TSaveService, TProvider> : FileSystemSaver
                 changes |= !ApplyExpandedFolders(path);
 
             if (changes)
-                SaveService.DelaySave(new ExpandedFiles(this));
+                SaveService.DelaySave(new ExpandedData(this));
         }
     }
 
-    private readonly struct LockedFiles(FileSystemSaver<TSaveService, TProvider> saver) : ISavable<TProvider>
+    private void MigrateEmptyFolders()
+    {
+        var file = EmptyFoldersMigrationFile(SaveService.FileNames);
+        if (!File.Exists(file))
+            return;
+
+        var emptyFolders = LoadNodeFile(file);
+        if (emptyFolders.Version is not CurrentVersion)
+            Log.Error($"Invalid version of empty folders file {emptyFolders.Version}.");
+        else
+            foreach (var path in emptyFolders.Nodes)
+                ApplyFolder(path, Organization.FolderData.Empty);
+
+        SaveService.ImmediateSaveSync(new OrganizationData(this));
+        SaveService.ImmediateDeleteSync(new EmptyFoldersMigrationFiles(this));
+    }
+
+    private List<string>? _storedLockedPaths;
+    private List<string>? _storedSelectedPaths;
+
+
+    private readonly struct LockedData(FileSystemSaver<TSaveService, TProvider> saver) : ISavable<TProvider>
     {
         public string ToFilePath(TProvider fileNames)
             => saver.LockedFile(fileNames);
@@ -508,7 +592,7 @@ public abstract class FileSystemSaver<TSaveService, TProvider> : FileSystemSaver
         }
     }
 
-    private readonly struct SelectedFiles(FileSystemSaver<TSaveService, TProvider> saver) : ISavable<TProvider>
+    private readonly struct SelectedData(FileSystemSaver<TSaveService, TProvider> saver) : ISavable<TProvider>
     {
         public string ToFilePath(TProvider fileNames)
             => saver.SelectionFile(fileNames);
@@ -527,7 +611,7 @@ public abstract class FileSystemSaver<TSaveService, TProvider> : FileSystemSaver
         }
     }
 
-    private readonly struct ExpandedFiles(FileSystemSaver<TSaveService, TProvider> saver) : ISavable<TProvider>
+    private readonly struct ExpandedData(FileSystemSaver<TSaveService, TProvider> saver) : ISavable<TProvider>
     {
         public string ToFilePath(TProvider fileNames)
             => saver.ExpandedFile(fileNames);
@@ -546,24 +630,32 @@ public abstract class FileSystemSaver<TSaveService, TProvider> : FileSystemSaver
         }
     }
 
-    private readonly struct EmptyFoldersFiles(FileSystemSaver<TSaveService, TProvider> saver) : ISavable<TProvider>
+    private readonly struct OrganizationData(FileSystemSaver<TSaveService, TProvider> saver) : ISavable<TProvider>
     {
         public string ToFilePath(TProvider fileNames)
-            => saver.EmptyFoldersFile(fileNames);
+            => saver.OrganizationFile(fileNames);
 
         public void Save(Stream stream)
         {
             using var j = new Utf8JsonWriter(stream, JsonFunctions.WriterOptions);
             j.WriteStartObject();
             j.WriteNumber("Version"u8, CurrentVersion);
-            j.WritePropertyName("Nodes"u8);
-            j.WriteStartArray();
-            foreach (var folder in saver.FileSystem.Root.GetDescendants().Where(n => n is IFileSystemFolder { Children.Count: 0 }))
-                j.WriteStringValue(folder.FullPath);
-            j.WriteEndArray();
+            j.WriteStartObject("Folders"u8);
+            foreach (var folder in saver.FileSystem.Root.GetDescendants().OfType<FileSystemFolder>())
+            {
+                j.WriteStartObject(folder.FullPath);
+                if (!folder.ExpandedColor.IsDefault)
+                    j.WriteNumber("ExpandedColor"u8, folder.ExpandedColor.Color!.Value.Color);
+                if (!folder.CollapsedColor.IsDefault)
+                    j.WriteNumber("CollapsedColor"u8, folder.CollapsedColor.Color!.Value.Color);
+                if (folder.SortMode is not null)
+                    j.WriteString("SortMode"u8, folder.SortMode.GetType().Name);
+                j.WriteEndObject();
+            }
 
-            j.WritePropertyName("Separators"u8);
-            j.WriteStartObject();
+            j.WriteEndObject();
+
+            j.WriteStartObject("Separators"u8);
             foreach (var separator in saver.FileSystem.Root.GetDescendants().OfType<FileSystemSeparator>())
             {
                 j.WriteStartObject(separator.FullPath);
@@ -581,13 +673,12 @@ public abstract class FileSystemSaver<TSaveService, TProvider> : FileSystemSaver
         }
     }
 
-    private List<string>? _storedLockedPaths;
-    private List<string>? _storedSelectedPaths;
-
-    private class MigrationData
+    private readonly struct EmptyFoldersMigrationFiles(FileSystemSaver<TSaveService, TProvider> saver) : ISavable<TProvider>
     {
-        public Dictionary<string, string> Data         = [];
-        public List<string>               EmptyFolders = [];
-        public List<string>               LockedPaths  = [];
+        public string ToFilePath(TProvider fileNames)
+            => saver.EmptyFoldersMigrationFile(fileNames);
+
+        public void Save(Stream stream)
+        { }
     }
 }

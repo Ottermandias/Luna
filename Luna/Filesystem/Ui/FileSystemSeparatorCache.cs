@@ -63,11 +63,10 @@ public sealed class FileSystemSeparatorCache : IFileSystemNodeCache
         using (Im.Disabled(separator.Color.IsDefault))
         {
             var color = separator.Color.IsDefault ? cache.LineColor : separator.Color.Color!.Value.ToVector();
-            if (Im.Color.Picker("Separator Color"u8, ref color, ColorPickerFlags.AlphaPreviewHalf))
-                ;
-            //        cache.FileSystem.ChangeSeparator(node, color);
+            if (Im.Color.Editor("Separator Color"u8, ref color, ColorEditorFlags.AlphaPreviewHalf | ColorEditorFlags.NoInputs))
+                cache.FileSystem.ChangeSeparator(node, color);
         }
-        
+
         if (ImEx.InputOnDeactivation.Text("Sort Order Path"u8, FullPath.Utf8, out string newPath))
         {
             try
@@ -79,5 +78,8 @@ public sealed class FileSystemSeparatorCache : IFileSystemNodeCache
                 // ignored
             }
         }
+
+        if (Im.Button("Delete"u8, Im.ContentRegion.Available with { Y = 0 }))
+            cache.FileSystem.Delete(node);
     }
 }

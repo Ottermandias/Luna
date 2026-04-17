@@ -42,7 +42,11 @@ public interface ISortMode : IEquatable<ISortMode>
 
     /// <inheritdoc/>
     bool IEquatable<ISortMode>.Equals(ISortMode? other)
-        => GetType() == other?.GetType();
+        => Equals(this, other);
+
+    /// <summary> Whether two sort modes are equal. </summary>
+    public static bool Equals(ISortMode? lhs, ISortMode? rhs)
+        => lhs is null ? rhs is null : rhs is not null && lhs.GetType() == rhs.GetType();
 
     private static class Types
     {

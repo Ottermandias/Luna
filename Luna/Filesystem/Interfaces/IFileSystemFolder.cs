@@ -15,6 +15,15 @@ public interface IFileSystemFolder : IFileSystemNode
     /// <summary> The total number of nodes containing data that descend from this folder. </summary>
     public int TotalDataNodes { get; }
 
+    /// <summary> A specific color for this folder overwriting the default expanded color. </summary>
+    public ColorParameter ExpandedColor { get; }
+
+    /// <summary> A specific color for this folder overwriting the default collapsed color. </summary>
+    public ColorParameter CollapsedColor { get; }
+
+    /// <summary> A specific sort mode for this folder, overwriting the default sort mode. This does not apply to descendant folders. </summary>
+    public ISortMode? SortMode { get; }
+
     /// <summary> Get the direct children of this folder. </summary>
     public IReadOnlyList<IFileSystemNode> Children { get; }
 

@@ -235,6 +235,42 @@ public class BaseFileSystem
         return (node, idx);
     }
 
+    /// <summary> Change the associated color of an expanded folder. </summary>
+    /// <param name="node"> The folder node. If this is not a folder, nothing is done. </param>
+    /// <param name="color"> The new color. If this is the same as before, nothing is done. </param>
+    public void ChangeFolderExpandedColor(IFileSystemNode node, ColorParameter color)
+    {
+        if (node is not FileSystemFolder folder || folder.ExpandedColor == color)
+            return;
+
+        folder.ExpandedColor = color;
+        Changed.Invoke(new FileSystemChanged.Arguments(FileSystemChangeType.FolderChanged, node, null, null));
+    }
+
+    /// <summary> Change the associated color of a collapsed folder. </summary>
+    /// <param name="node"> The folder node. If this is not a folder, nothing is done. </param>
+    /// <param name="color"> The new color. If this is the same as before, nothing is done. </param>
+    public void ChangeFolderCollapsedColor(IFileSystemNode node, ColorParameter color)
+    {
+        if (node is not FileSystemFolder folder || folder.CollapsedColor == color)
+            return;
+
+        folder.CollapsedColor = color;
+        Changed.Invoke(new FileSystemChanged.Arguments(FileSystemChangeType.FolderChanged, node, null, null));
+    }
+
+    /// <summary> Change the associated sort mode of a folder. </summary>
+    /// <param name="node"> The folder node. If this is not a folder, nothing is done. </param>
+    /// <param name="sortMode"> The new sort mode to use for the direct children of this folder, or null if it should adhere to the default sort mode. </param>
+    public void ChangeFolderSortMode(IFileSystemNode node, ISortMode? sortMode)
+    {
+        if (node is not FileSystemFolder folder || ISortMode.Equals(folder.SortMode, sortMode))
+            return;
+
+        folder.SortMode = sortMode;
+        Changed.Invoke(new FileSystemChanged.Arguments(FileSystemChangeType.FolderChanged, node, null, null));
+    }
+
     /// <summary> Change the associated color of a separator. </summary>
     /// <param name="node"> The separator node. If this is not a separator, nothing is done. </param>
     /// <param name="color"> The new color. If this is the same as before, nothing is done. </param>

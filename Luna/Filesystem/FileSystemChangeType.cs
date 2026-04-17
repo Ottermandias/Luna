@@ -47,4 +47,7 @@ public enum FileSystemChangeType
 
     /// <summary> A separator's data was changed. </summary>
     SeparatorChanged,
+
+    /// <summary> A folder's data was changed. </summary>
+    FolderChanged,
 }

@@ -11,6 +11,15 @@ internal sealed class FileSystemFolder(FileSystemIdentifier identifier)
     /// <inheritdoc/>
     public int TotalDataNodes { get; internal set; }
 
+    /// <inheritdoc/>
+    public ColorParameter ExpandedColor { get; internal set; }
+
+    /// <inheritdoc/>
+    public ColorParameter CollapsedColor { get; internal set; }
+
+    /// <inheritdoc/>
+    public ISortMode? SortMode { get; internal set; }
+
     /// <summary> All direct children of this folder. </summary>
     internal readonly List<FileSystemNode> Children = [];
 
