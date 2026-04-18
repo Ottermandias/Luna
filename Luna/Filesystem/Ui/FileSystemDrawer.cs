@@ -40,7 +40,7 @@ public abstract class FileSystemDrawer : IPanel
         FileSystem       = fileSystem;
         Footer           = SetupBaseFooter(fileSystem);
         MainContext      = SetupBaseMainContext(fileSystem, filter);
-        FolderContext    = SetupBaseFolderContext(fileSystem, filter);
+        FolderContext    = SetupBaseFolderContext(this, filter);
         SeparatorContext = SetupBaseSeparatorContext(this);
     }
 
@@ -103,14 +103,21 @@ public abstract class FileSystemDrawer : IPanel
     }
 
     /// <summary> Create the default menu items available in the folder context menu. </summary>
-    private static ButtonList<IFileSystemFolder> SetupBaseFolderContext(BaseFileSystem fileSystem, IFilter filter)
+    private static ButtonList<IFileSystemFolder> SetupBaseFolderContext(FileSystemDrawer drawer, IFilter filter)
     {
         var ret = new ButtonList<IFileSystemFolder>();
-        ret.AddButton(new ExpandDescendantsButton(fileSystem, filter),   100);
-        ret.AddButton(new CollapseDescendantsButton(fileSystem, filter), 90);
-        ret.AddButton(new LockFolderButton(fileSystem),                  80);
-        ret.AddButton(new DissolveFolderButton(fileSystem),              70);
-        ret.AddButton(new RenameFolderInput(fileSystem),                 -100);
+        ret.AddButton(new ExpandDescendantsButton(drawer.FileSystem, filter),   100);
+        ret.AddButton(new CollapseDescendantsButton(drawer.FileSystem, filter), 90);
+
+        var editFolderButtons = new SubMenuButton<IFileSystemFolder>(new StringU8("Edit Folder"u8));
+        editFolderButtons.Entries.AddButton(new LockFolderButton(drawer.FileSystem),     20);
+        editFolderButtons.Entries.AddButton(new DissolveFolderButton(drawer.FileSystem), 15);
+        editFolderButtons.Entries.AddButton(new MenuSeparator<IFileSystemFolder>(),      12);
+        editFolderButtons.Entries.AddButton(new FolderColorEdits(drawer),                10);
+        editFolderButtons.Entries.AddButton(new SortModeSelector(drawer),                0);
+        ret.AddButton(editFolderButtons, 0);
+
+        ret.AddButton(new RenameFolderInput(drawer.FileSystem), -100);
         return ret;
     }
 
