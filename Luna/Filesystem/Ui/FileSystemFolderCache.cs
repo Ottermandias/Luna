@@ -21,13 +21,23 @@ public sealed class FileSystemFolderCache : IFileSystemNodeCache
     /// <summary> The folder name as a UTF16 string. </summary>
     public string Name { get; set; } = string.Empty;
 
+    /// <summary> The color to use for this folder when it is expanded. </summary>
+    public Vector4 ExpandedColor { get; set; }
+
+    /// <summary> The color to use for this folder when it is collapsed. </summary>
+    public Vector4 CollapsedColor { get; set; }
+
     /// <inheritdoc/>
-    public void Update(FileSystemCache _, IFileSystemNode node)
+    public void Update(FileSystemCache cache, IFileSystemNode node)
     {
         FullPath = node.FullPath;
         string name;
+        ExpandedColor  = ((IFileSystemFolder)node).ExpandedColor.Color?.ToVector() ?? cache.ExpandedFolderColor;
+        CollapsedColor = ((IFileSystemFolder)node).CollapsedColor.Color?.ToVector() ?? cache.CollapsedFolderColor;
         if (FlattenedAncestors is 0)
+        {
             name = node.Name.ToString();
+        }
         else
         {
             var builder = new StringBuilder(256);
@@ -62,7 +72,7 @@ public sealed class FileSystemFolderCache : IFileSystemNodeCache
         Im.Tree.SetNextOpen(expanded);
         bool ret;
         var  flags = node.Selected ? TreeNodeFlags.NoTreePushOnOpen | TreeNodeFlags.Selected : TreeNodeFlags.NoTreePushOnOpen;
-        using (ImGuiColor.Text.Push(expanded ? cache.ExpandedFolderColor : cache.CollapsedFolderColor))
+        using (ImGuiColor.Text.Push(expanded ? ExpandedColor : CollapsedColor))
         {
             ImEx.IconTreeNode(Label, flags, node, out ret, new LockedIcon(cache.FileSystem)).Dispose();
         }

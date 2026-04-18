@@ -51,35 +51,14 @@ public sealed class FileSystemSeparatorCache : IFileSystemNodeCache
         }
 
         Im.InvisibleButton(Name.Utf8, Im.ContentRegion.Available with { Y = Im.Style.TextHeight });
+        if (cache.Parent.SeparatorContext.Count is 0)
+            return;
+
         using var context = Im.Popup.BeginContextItem();
         if (!context)
             return;
 
-        var separator = (IFileSystemSeparator)node;
-        if (Im.Checkbox("Sort as Folder"u8, separator.BehavesLikeFolder))
-            cache.FileSystem.ChangeSeparator(node, !separator.BehavesLikeFolder);
-        if (Im.Checkbox("Use Folder Line Color"u8, separator.Color.IsDefault))
-            cache.FileSystem.ChangeSeparator(node, separator.Color.IsDefault ? cache.LineColor : ColorParameter.Default);
-        using (Im.Disabled(separator.Color.IsDefault))
-        {
-            var color = separator.Color.IsDefault ? cache.LineColor : separator.Color.Color!.Value.ToVector();
-            if (Im.Color.Editor("Separator Color"u8, ref color, ColorEditorFlags.AlphaPreviewHalf | ColorEditorFlags.NoInputs))
-                cache.FileSystem.ChangeSeparator(node, color);
-        }
-
-        if (ImEx.InputOnDeactivation.Text("Sort Order Path"u8, FullPath.Utf8, out string newPath))
-        {
-            try
-            {
-                cache.FileSystem.RenameAndMove(node, newPath);
-            }
-            catch
-            {
-                // ignored
-            }
-        }
-
-        if (Im.Button("Delete"u8, Im.ContentRegion.Available with { Y = 0 }))
-            cache.FileSystem.Delete(node);
+        foreach (var button in cache.Parent.SeparatorContext)
+            button.DrawMenuItem((IFileSystemSeparator)node);
     }
 }
