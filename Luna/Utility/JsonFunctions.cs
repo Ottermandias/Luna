@@ -84,12 +84,11 @@ public static class JsonFunctions
     {
         using var memoryStream = new MemoryStream(originalBytes.Length);
 
-        var transcodingStream = autoTranscodeToUtf8 ? new AutoUtf8TranscodingStream(memoryStream, true) : null;
-        var recoveryStream = transcodingStream is not null
-            ? new JsonRecoveryStream(allowedRecoveries, transcodingStream)
-            : new JsonRecoveryStream(allowedRecoveries, memoryStream, true);
-        recoveryStream.Write(originalBytes, 0, originalBytes.Length);
-        recoveryStream.Close();
+        var recoveryStream    = new JsonRecoveryStream(allowedRecoveries, memoryStream, true);
+        var transcodingStream = autoTranscodeToUtf8 ? new AutoUtf8TranscodingStream(recoveryStream) : null;
+        var outputStream      = (Stream?)transcodingStream ?? recoveryStream;
+        outputStream.Write(originalBytes, 0, originalBytes.Length);
+        outputStream.Close();
 
         return (memoryStream.ToArray(), transcodingStream?.BomEncoding, recoveryStream.UsedRecoveries);
     }
