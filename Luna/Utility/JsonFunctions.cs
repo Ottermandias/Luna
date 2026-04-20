@@ -1,5 +1,4 @@
 ﻿using System.Text.Json;
-using ImSharp;
 using JsonSerializer = System.Text.Json.JsonSerializer;
 
 namespace Luna;
@@ -31,9 +30,9 @@ public static class JsonFunctions
     public static readonly JsonWriterOptions UnformattedOptions = new()
     {
         SkipValidation = true,
-        Indented        = false,
-        IndentSize      = 0,
-        NewLine         = "\n",
+        Indented       = false,
+        IndentSize     = 0,
+        NewLine        = "\n",
     };
 
     /// <summary> The default JSON Reader options we use. </summary>
@@ -84,8 +83,19 @@ public static class JsonFunctions
     }
 
     /// <param name="reader"> The reader. If the requested property is the first encountered property, its position will be incremented, otherwise it will stay the same. </param>
-    extension(ref Utf8JsonReader reader)
+    extension(scoped ref Utf8JsonReader reader)
     {
+        /// <summary> Create a sub-reader utility on the current value token. </summary>
+        /// <remarks>
+        ///   Use <see cref="Utf8JsonObjectReader.Read"/> for reading within the current value.<br/>
+        ///   If the current value is an object or an array, this will return true until the end of this object is reached.<br/>
+        ///   If it is a value type (null, a number, a string, or true or false), it will never return true.<br/>
+        ///   If it is any other token type, it will throw on construction. <br/>
+        ///   After returning false, if it started on an object or array, the cursor will be located on the <see cref="JsonTokenType.EndObject"/> or <see cref="JsonTokenType.EndArray"/> token.
+        /// </remarks>
+        public Utf8JsonObjectReader CreateObjectReader()
+            => new(reader);
+
         /// <summary> Read an enumeration property type from a single object regardless of property order in this object. </summary>
         /// <param name="property"> The name of the requested property. </param>
         /// <param name="value"> The parsed value for that property on success or default on failure. </param>
@@ -94,15 +104,14 @@ public static class JsonFunctions
         public PeekError TryPeekEnumProperty<TEnum>(ReadOnlySpan<byte> property, out TEnum value)
             where TEnum : unmanaged, Enum
         {
-            Debug.Assert(reader.TokenType is JsonTokenType.StartObject);
-
             // We create a copy of the reader to be independent of the order of properties.
             var copy = reader;
             value = default;
             var nonEnumPropertyEncountered = false;
             var success                    = false;
+            var objectReader               = copy.CreateObjectReader();
             // Read all tokens.
-            while (copy.Read())
+            while (objectReader.Read(ref copy))
             {
                 // If the token is a property, check if it is the type property.
                 if (copy.TokenType is JsonTokenType.PropertyName)
@@ -130,16 +139,11 @@ public static class JsonFunctions
                     copy.Skip();
                     nonEnumPropertyEncountered = true;
                 }
-                // This is the end of the current object, so it has no type property.
-                else if (copy.TokenType is JsonTokenType.EndObject)
-                {
-                    return PeekError.Missing;
-                }
             }
 
             // We iterated all tokens without encountering a type property or an end.
             if (!success)
-                return PeekError.Malformed;
+                return copy.TokenType is JsonTokenType.EndObject ? PeekError.Missing : PeekError.Malformed;
 
             // If we did not skip any properties, we can use the copied readers position.
             if (!nonEnumPropertyEncountered)
@@ -186,6 +190,46 @@ public static class JsonFunctions
             return true;
         }
 
+        /// <summary> Read the string at the current token and return it as a UTF16 string. </summary>
+        /// <param name="text"> Returns the parsed text, <paramref name="default"/> on failure to parse, or <c>null</c> if <paramref name="allowNull"/> and the token is null.</param>
+        /// <param name="default"> The default text to set on failure to parse. </param>
+        /// <param name="allowNull"> Whether a null token is allowed to be parsed into null, or is a failure to parse. </param>
+        /// <returns> True if the string was successfully parsed or was a null token with <paramref name="allowNull"/>. </returns>
+        public bool TryReadString(out string? text, string @default = "", bool allowNull = false)
+        {
+            switch (reader.TokenType)
+            {
+                case JsonTokenType.PropertyName:
+                case JsonTokenType.String:
+                    text = reader.GetString();
+                    if (text is null)
+                    {
+                        text = @default;
+                        return false;
+                    }
+
+                    return true;
+                case JsonTokenType.Null:
+                    if (!allowNull)
+                    {
+                        text = @default;
+                        return false;
+                    }
+
+                    text = null;
+                    return true;
+                case JsonTokenType.True:
+                    text = "True";
+                    return true;
+                case JsonTokenType.False:
+                    text = "False";
+                    return true;
+                default:
+                    text = @default;
+                    return false;
+            }
+        }
+
         /// <summary> Read the UTF8 string at the current token, unescaped, and parse it into an enumeration value. </summary>
         /// <typeparam name="TEnum"> The enumeration type. </typeparam>
         /// <param name="value"> On success, the parsed enumeration value. </param>
@@ -201,15 +245,96 @@ public static class JsonFunctions
             return EnumExtensions.Parse(text.Value, out value);
         }
 
+        /// <summary> Try to read the current token as a number of the given type. </summary>
+        /// <typeparam name="TNumber"> The type of number to read. </typeparam>
+        /// <param name="number"> The return value on success, <paramref name="default"/> on failure. </param>
+        /// <param name="default"> The default value to return if the number can not be read. </param>
+        /// <returns> True if the number was successfully read, false otherwise. </returns>
+        /// <exception cref="ArgumentException"> If <typeparamref name="TNumber"/> is not one of the built-in integers or floats. </exception>
+        public bool TryReadNumber<TNumber>(out TNumber number, TNumber @default = default) where TNumber : unmanaged, INumber<TNumber>
+        {
+            // Read the actual number according to type.
+            if (reader.TokenType is JsonTokenType.Number)
+            {
+                if (typeof(TNumber) == typeof(byte) && reader.TryGetByte(out var b))
+                {
+                    number = Unsafe.As<byte, TNumber>(ref b);
+                    return true;
+                }
+
+                if (typeof(TNumber) == typeof(sbyte) && reader.TryGetSByte(out var sb))
+                {
+                    number = Unsafe.As<sbyte, TNumber>(ref sb);
+                    return true;
+                }
+
+                if (typeof(TNumber) == typeof(ushort) && reader.TryGetUInt16(out var us))
+                {
+                    number = Unsafe.As<ushort, TNumber>(ref us);
+                    return true;
+                }
+
+                if (typeof(TNumber) == typeof(short) && reader.TryGetInt16(out var s))
+                {
+                    number = Unsafe.As<short, TNumber>(ref s);
+                    return true;
+                }
+
+                if (typeof(TNumber) == typeof(uint) && reader.TryGetUInt32(out var ui))
+                {
+                    number = Unsafe.As<uint, TNumber>(ref ui);
+                    return true;
+                }
+
+                if (typeof(TNumber) == typeof(int) && reader.TryGetInt32(out var i))
+                {
+                    number = Unsafe.As<int, TNumber>(ref i);
+                    return true;
+                }
+
+                if (typeof(TNumber) == typeof(ulong) && reader.TryGetUInt64(out var ul))
+                {
+                    number = Unsafe.As<ulong, TNumber>(ref ul);
+                    return true;
+                }
+
+                if (typeof(TNumber) == typeof(long) && reader.TryGetInt64(out var l))
+                {
+                    number = Unsafe.As<long, TNumber>(ref l);
+                    return true;
+                }
+
+                if (typeof(TNumber) == typeof(float) && reader.TryGetSingle(out var f))
+                {
+                    number = Unsafe.As<float, TNumber>(ref f);
+                    return true;
+                }
+
+                if (typeof(TNumber) == typeof(double) && reader.TryGetDouble(out var d))
+                {
+                    number = Unsafe.As<double, TNumber>(ref d);
+                    return true;
+                }
+
+                throw new ArgumentException($"{typeof(TNumber)} is not supported.");
+            }
+
+            // Read the number as string and try to parse it.
+            // TryReadUtf8String checks the token type itself.
+            if (reader.TryReadUtf8String(out var text) && TNumber.TryParse(text.Value, null, out number))
+                return true;
+
+            // All other cases are not valid numbers.
+            number = @default;
+            return false;
+        }
+
         /// <summary> Skip to the end of the current object. </summary>
         public void SkipCurrentObject()
         {
-            var currentDepth = reader.CurrentDepth;
-            while (reader.Read())
-            {
-                if (currentDepth > reader.CurrentDepth)
-                    return;
-            }
+            var objectReader = reader.CreateObjectReader();
+            while (objectReader.Read(ref reader))
+                ;
         }
 
         /// <summary> Read the current token and parse it to a bool if possible. </summary>
@@ -762,4 +887,32 @@ public static class JsonFunctions
             }
         }
     }
+}
+
+/// <summary> A helper struct to parse within a single property value or object. </summary>
+/// <param name="reader"> The reader to base this in. </param>
+public readonly ref struct Utf8JsonObjectReader(scoped in Utf8JsonReader reader)
+{
+    /// <summary> The depth of the current object. </summary>
+    public readonly int ObjectDepth = reader.CurrentDepth;
+
+    /// <summary> The type of the end token we use as stop. </summary>
+    public readonly JsonTokenType Type = reader.TokenType switch
+    {
+        JsonTokenType.StartArray  => JsonTokenType.EndArray,
+        JsonTokenType.StartObject => JsonTokenType.EndObject,
+        JsonTokenType.Null        => JsonTokenType.None,
+        JsonTokenType.Number      => JsonTokenType.None,
+        JsonTokenType.String      => JsonTokenType.None,
+        JsonTokenType.True        => JsonTokenType.None,
+        JsonTokenType.False       => JsonTokenType.None,
+        _ => throw new JsonException(
+            $"{nameof(Utf8JsonObjectReader)} needs to be initialized on a value token, {nameof(JsonTokenType.StartObject)} or a {nameof(JsonTokenType.StartArray)} token, but is at a {reader.TokenType}."),
+    };
+
+    /// <summary> Read until the end of the current value or object is reached. </summary>
+    /// <param name="reader"> The reader to use for reading (this should technically be stored, but can not be stored as a reference due to C# rules). </param>
+    /// <returns> True if the current read still is inside the current object or array. </returns>
+    public bool Read(scoped ref Utf8JsonReader reader)
+        => Type is not JsonTokenType.None && reader.Read() && (reader.TokenType != Type || reader.CurrentDepth > ObjectDepth);
 }
