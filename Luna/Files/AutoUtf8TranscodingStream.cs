@@ -85,7 +85,7 @@ public sealed class AutoUtf8TranscodingStream(Stream outputStream, bool leaveOpe
                 return (State.PassThrough, false);
 
             case (State.Utf16LeMiddle, 0xFE):
-                _bomEncoding         = Encoding.Unicode;
+                _bomEncoding = Encoding.Unicode;
                 OutputStream = Encoding.CreateTranscodingStream(OutputStream, Encoding.UTF8, Encoding.Unicode, LeaveOpen);
                 LeaveOpen    = false;
                 return (State.PassThrough, true);
@@ -94,7 +94,7 @@ public sealed class AutoUtf8TranscodingStream(Stream outputStream, bool leaveOpe
                 return (State.PassThrough, false);
 
             case (State.Utf16BeMiddle, 0xFF):
-                _bomEncoding         = Encoding.BigEndianUnicode;
+                _bomEncoding = Encoding.BigEndianUnicode;
                 OutputStream = Encoding.CreateTranscodingStream(OutputStream, Encoding.UTF8, Encoding.BigEndianUnicode, LeaveOpen);
                 LeaveOpen    = false;
                 return (State.PassThrough, true);
