@@ -53,62 +53,30 @@ public class AutoUtf8TranscodeTests
 
     [Fact]
     public void Utf8NoBomTest()
-    {
-        var expectedResult = Utf8Data[3..];
-        Assert.Equal(expectedResult, TranscodeSingleCall(Utf8Data.AsSpan(3..), out var bomEncoding));
-        Assert.Null(bomEncoding);
-
-        Assert.Equal(expectedResult, TranscodeByteByByte(Utf8Data.AsSpan(3..), out bomEncoding));
-        Assert.Null(bomEncoding);
-    }
+        => TestTranscoding(Utf8Data.AsSpan(3..), Utf8Data[3..], null);
 
     [Fact]
     public void Utf8BomTest()
-    {
-        var expectedResult = Utf8Data[3..];
-        Assert.Equal(expectedResult, TranscodeSingleCall(Utf8Data, out var bomEncoding));
-        Assert.Equal(Encoding.UTF8,  bomEncoding);
-
-        Assert.Equal(expectedResult, TranscodeByteByByte(Utf8Data, out bomEncoding));
-        Assert.Equal(Encoding.UTF8,  bomEncoding);
-    }
+        => TestTranscoding(Utf8Data, Utf8Data[3..], Encoding.UTF8);
 
     [Fact]
     public void Utf16LeBomTest()
-    {
-        var expectedResult = Utf8Data[3..];
-        Assert.Equal(expectedResult,   TranscodeSingleCall(Utf16LeData, out var bomEncoding));
-        Assert.Equal(Encoding.Unicode, bomEncoding);
-
-        Assert.Equal(expectedResult,   TranscodeByteByByte(Utf16LeData, out bomEncoding));
-        Assert.Equal(Encoding.Unicode, bomEncoding);
-    }
+        => TestTranscoding(Utf16LeData, Utf8Data[3..], Encoding.Unicode);
 
     [Fact]
     public void Utf16BeBomTest()
     {
-        var expectedResult = Utf8Data[3..];
-        var inputData      = (byte[])Utf16LeData.Clone();
-        for (var i = 0; i < inputData.Length; i += 2)
-            (inputData[i], inputData[i + 1]) = (inputData[i + 1], inputData[i]);
+        var utf16BeData = (byte[])Utf16LeData.Clone();
+        for (var i = 0; i < utf16BeData.Length; i += 2)
+            (utf16BeData[i], utf16BeData[i + 1]) = (utf16BeData[i + 1], utf16BeData[i]);
 
-        Assert.Equal(expectedResult,            TranscodeSingleCall(inputData, out var bomEncoding));
-        Assert.Equal(Encoding.BigEndianUnicode, bomEncoding);
-
-        Assert.Equal(expectedResult,            TranscodeByteByByte(inputData, out bomEncoding));
-        Assert.Equal(Encoding.BigEndianUnicode, bomEncoding);
+        TestTranscoding(utf16BeData, Utf8Data[3..], Encoding.BigEndianUnicode);
     }
 
     [Theory]
     [MemberData(nameof(QuasiBomTestData))]
     public void QuasiBomTest(byte[] data)
-    {
-        Assert.Equal(data, TranscodeSingleCall(data, out var bomEncoding));
-        Assert.Null(bomEncoding);
-
-        Assert.Equal(data, TranscodeByteByByte(data, out bomEncoding));
-        Assert.Null(bomEncoding);
-    }
+        => TestTranscoding(data, data, null);
 
     public static readonly TheoryData<byte[]> QuasiBomTestData =
     [
@@ -122,6 +90,21 @@ public class AutoUtf8TranscodeTests
         [0xFE, 0xFE],
         [0xFF, 0xFF],
     ];
+
+    private static void TestTranscoding(ReadOnlySpan<byte> input, byte[] expectedOutput, Encoding? expectedBomEncoding)
+    {
+        Assert.Equal(expectedOutput, TranscodeSingleCall(input, out var bomEncoding));
+        if (expectedBomEncoding is null)
+            Assert.Null(bomEncoding);
+        else
+            Assert.Equal(expectedBomEncoding, bomEncoding);
+
+        Assert.Equal(expectedOutput, TranscodeByteByByte(input, out bomEncoding));
+        if (expectedBomEncoding is null)
+            Assert.Null(bomEncoding);
+        else
+            Assert.Equal(expectedBomEncoding, bomEncoding);
+    }
 
     private static byte[] TranscodeSingleCall(ReadOnlySpan<byte> input, out Encoding? bomEncoding)
     {
