@@ -14,8 +14,8 @@ public sealed partial class WindowSystem : Dalamud.Interface.Windowing.WindowSys
 
     private DateTime _limitColor = DateTime.UnixEpoch;
     private DateTime _limitStyle = DateTime.UnixEpoch;
-    private int      ColorStackMax;
-    private int      StyleStackMax;
+    private int      _colorStackMax;
+    private int      _styleStackMax;
 
     /// <summary> The size of the color stack at the start of drawing this window system. </summary>
     public int ColorStackStart { get; private set; }
@@ -67,11 +67,11 @@ public sealed partial class WindowSystem : Dalamud.Interface.Windowing.WindowSys
         if (DateTime.UtcNow <= _limitStart)
             return;
 
-        if (ColorStackStart <= ColorStackMax && StyleStackStart <= StyleStackMax)
+        if (ColorStackStart <= _colorStackMax && StyleStackStart <= _styleStackMax)
             return;
 
-        ColorStackMax = Math.Max(ColorStackMax, ColorStackStart);
-        StyleStackMax = Math.Max(StyleStackMax, StyleStackStart);
+        _colorStackMax = Math.Max(_colorStackMax, ColorStackStart);
+        _styleStackMax = Math.Max(_styleStackMax, StyleStackStart);
         _limitStart   = DateTime.UtcNow.AddMinutes(1);
         LogStartStacks(ImSharpConfiguration.Logger, GetType().Name, ColorStackStart, StyleStackStart);
     }
@@ -87,7 +87,7 @@ public sealed partial class WindowSystem : Dalamud.Interface.Windowing.WindowSys
                 LogPushedColors(ImSharpConfiguration.Logger, GetType().Name, Im.Context.ColorStackSize - ColorStackStart);
         }
 
-        if (DateTime.UtcNow > _limitColor && StyleStackStart != Im.Context.StyleStackSize)
+        if (DateTime.UtcNow > _limitStyle && StyleStackStart != Im.Context.StyleStackSize)
         {
             _limitStyle = DateTime.UtcNow.AddSeconds(5);
             if (StyleStackStart > Im.Context.StyleStackSize)

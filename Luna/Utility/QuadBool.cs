@@ -1,3 +1,5 @@
+using Newtonsoft.Json.Linq;
+
 namespace Luna;
 
 /// <summary> A combination of two bools, one of which denotes the set-state and the other the actual value, resulting in four distinct states, while only occupying a single byte of memory. </summary>

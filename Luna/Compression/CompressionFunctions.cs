@@ -1,3 +1,5 @@
+using Newtonsoft.Json;
+
 namespace Luna;
 
 public static class CompressionFunctions

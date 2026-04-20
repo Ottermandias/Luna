@@ -1,3 +1,5 @@
+using Newtonsoft.Json.Linq;
+
 namespace Luna;
 
 /// <summary> Extensions for Newtonsoft JSON objects. </summary>

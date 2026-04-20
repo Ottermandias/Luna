@@ -1,3 +1,5 @@
+using Newtonsoft.Json;
+
 namespace Luna;
 
 /// <summary> Static class concerning simplified backup handling. </summary>
