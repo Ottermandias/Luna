@@ -1,0 +1,58 @@
+name: .NET Build + Test
+
+on:
+  push:
+    branches: '*'
+    tags-ignore: '*'
+  pull_request:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          submodules: recursive
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '10.x.x'
+
+      - name: Restore dependencies
+        run: dotnet restore
+
+      - name: Download Dalamud
+        run: |
+          Invoke-WebRequest -Uri https://goatcorp.github.io/dalamud-distrib/stg/latest.zip -OutFile latest.zip
+          Expand-Archive -Force latest.zip "$env:AppData\XIVLauncher\addon\Hooks\dev\"
+
+      - name: Build library
+        run: |
+          dotnet build --configuration Release -p:Platform=x64 -p:EmitCompilerGeneratedFiles=true --nologo Luna.Tests
+
+      - name: Upload a Build Artifact
+        uses: actions/upload-artifact@v6
+        with:
+          path: |
+            ./Luna.Tests/bin/x64/Release/*
+
+      - name: Run unit tests
+        run: |
+          dotnet test --configuration Release -p:Platform=x64 --nologo --no-build --collect:"XPlat Code Coverage;Format=cobertura"
+          Move-Item Luna.Tests/TestResults/*/coverage.cobertura.xml Luna.Tests/TestResults
+          Remove-Item Luna.Tests/TestResults/*-*-*-*-*
+
+      - name: Generate coverage report
+        uses: danielpalme/ReportGenerator-GitHub-Action@5.5.6
+        with:
+          reports: Luna.Tests/TestResults/coverage.cobertura.xml
+          targetdir: Luna.Tests/CoverageReport
+          reporttypes: Html
+
+      - name: Upload a Coverage Report Artifact
+        uses: actions/upload-artifact@v6
+        with:
+          name: coverage-report
+          path: |
+            ./Luna.Tests/CoverageReport/*
