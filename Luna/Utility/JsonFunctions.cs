@@ -52,10 +52,11 @@ public static class JsonFunctions
 
     /// <summary> Read the bytes from a given file but strip a potential UTF8-BOM. </summary>
     /// <param name="filePath"> The full path to the file. </param>
+    /// <param name="bytes"> The full bytes of the file, without stripped BOM. </param>
     /// <returns> The full byte data of the file, unless it starts with a UTF8-BOM, which is stripped. </returns>
-    public static ReadOnlyMemory<byte> ReadUtf8Bytes(string filePath)
+    public static ReadOnlyMemory<byte> ReadUtf8Bytes(string filePath, out byte[] bytes)
     {
-        var bytes = File.ReadAllBytes(filePath);
+        bytes = File.ReadAllBytes(filePath);
         if (bytes.Length < 3)
             return bytes;
 
@@ -98,37 +99,38 @@ public static class JsonFunctions
     /// <param name="allowedRecoveries"> The cases that this operation is allowed to recover from. </param>
     /// <returns>
     ///   <list>
+    ///     <item> The read (and potentially recovered) byte data. </item>
     ///     <item> Whether this operation replaced the given file by a corrected one. </item>
     ///     <item> The original encoding, if a BOM was recognized and stripped, otherwise <c>null</c>. </item>
     ///     <item> The cases that this operation has recovered from. </item>
     ///   </list>
     /// </returns>
     /// <exception cref="InvalidDataException"> Some case of invalid JSON data was encountered that cannot be recovered from. </exception>
-    public static (bool FileModified, Encoding? BomEncoding, JsonRecoveryFlags UsedRecoveries) RecoverFile(string filePath,
+    public static (byte[] FileData, bool FileModified, Encoding? BomEncoding, JsonRecoveryFlags UsedRecoveries) RecoverFile(string filePath,
         bool autoTranscodeToUtf8, JsonRecoveryFlags allowedRecoveries)
     {
         var originalBytes = File.ReadAllBytes(filePath);
         var (recoveredBytes, bomEncoding, usedRecoveries) = RecoverBytes(originalBytes, autoTranscodeToUtf8, allowedRecoveries);
         if (originalBytes.SequenceEqual(recoveredBytes))
-            return (false, bomEncoding, usedRecoveries);
+            return (recoveredBytes, false, bomEncoding, usedRecoveries);
 
         File.Move(filePath, filePath + ".bak");
         File.WriteAllBytes(filePath, recoveredBytes);
-        return (true, bomEncoding, usedRecoveries);
+        return (recoveredBytes, true, bomEncoding, usedRecoveries);
     }
 
     /// <inheritdoc cref="RecoverFile"/>
-    public static async Task<(bool FileModified, Encoding? BomEncoding, JsonRecoveryFlags UsedRecoveries)> RecoverFileAsync(string filePath,
+    public static async Task<(byte[] FileData, bool FileModified, Encoding? BomEncoding, JsonRecoveryFlags UsedRecoveries)> RecoverFileAsync(string filePath,
         bool autoTranscodeToUtf8, JsonRecoveryFlags allowedRecoveries)
     {
         var originalBytes = await File.ReadAllBytesAsync(filePath);
         var (recoveredBytes, bomEncoding, usedRecoveries) = RecoverBytes(originalBytes, autoTranscodeToUtf8, allowedRecoveries);
         if (originalBytes.SequenceEqual(recoveredBytes))
-            return (false, bomEncoding, usedRecoveries);
+            return (recoveredBytes, false, bomEncoding, usedRecoveries);
 
         File.Move(filePath, filePath + ".bak");
         await File.WriteAllBytesAsync(filePath, recoveredBytes);
-        return (true, bomEncoding, usedRecoveries);
+        return (recoveredBytes, true, bomEncoding, usedRecoveries);
     }
 
     /// <summary> Return values for peeking a property. </summary>
