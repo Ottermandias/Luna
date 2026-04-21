@@ -62,3 +62,102 @@ public enum JsonRecoveryFlags
     /// <summary> Everything. Might not respect the intended meaning of the document. The output should be reviewed by a human. </summary>
     All = Safe | StringIncompleteEscapes | StringInvalidEscapes | MissingValues | MissingPunctuation | IncorrectBlockClosing,
 }
+
+/// <summary> Extensions for JsonRecoveryFlags. </summary>
+public static class JsonRecoveryExtensions
+{
+    extension(JsonRecoveryFlags flags)
+    {
+        /// <summary> Add textual versions as well as a hex representation of the active recovery flags to a string builder. </summary>
+        /// <param name="sb"> The string builder to append to. </param>
+        /// <returns> The string builder for method chaining. </returns>
+        public StringBuilder AddToString(StringBuilder sb)
+        {
+            if (flags is 0)
+                return sb;
+
+            var appended = false;
+            if (flags.HasFlag(JsonRecoveryFlags.StringRawCharacters))
+            {
+                sb.Append("correction of raw string characters");
+                appended = true;
+            }
+
+            if (flags.CheckAny(JsonRecoveryFlags.StringEscapeCase
+                  | JsonRecoveryFlags.StringExtendedEscapes
+                  | JsonRecoveryFlags.StringIncompleteEscapes
+                  | JsonRecoveryFlags.StringInvalidEscapes))
+            {
+                if (appended)
+                    sb.Append(", ");
+                appended = true;
+                sb.Append("correction of wrongly escaped clauses");
+            }
+
+            if (flags.HasFlag(JsonRecoveryFlags.NumberExplicitPositive))
+            {
+                if (appended)
+                    sb.Append(", ");
+                appended = true;
+                sb.Append("stripped leading pluses");
+            }
+
+            if (flags.HasFlag(JsonRecoveryFlags.NumberLeadingZeroes))
+            {
+                if (appended)
+                    sb.Append(", ");
+                appended = true;
+                sb.Append("stripped leading zeroes");
+            }
+
+            if (flags.HasFlag(JsonRecoveryFlags.NumberMissingDigits))
+            {
+                if (appended)
+                    sb.Append(", ");
+                appended = true;
+                sb.Append("added missing numbers");
+            }
+
+            if (flags.HasFlag(JsonRecoveryFlags.KeywordCase))
+            {
+                if (appended)
+                    sb.Append(", ");
+                appended = true;
+                sb.Append("fixed casing of keywords");
+            }
+
+            if (flags.HasFlag(JsonRecoveryFlags.PrematureEndOfStream))
+            {
+                if (appended)
+                    sb.Append(", ");
+                appended = true;
+                sb.Append("extended end of data");
+            }
+
+            if (flags.HasFlag(JsonRecoveryFlags.MissingValues))
+            {
+                if (appended)
+                    sb.Append(", ");
+                appended = true;
+                sb.Append("added null values where missing");
+            }
+
+            if (flags.HasFlag(JsonRecoveryFlags.MissingPunctuation))
+            {
+                if (appended)
+                    sb.Append(", ");
+                appended = true;
+                sb.Append("inserted missing syntax");
+            }
+
+            if (flags.HasFlag(JsonRecoveryFlags.IncorrectBlockClosing))
+            {
+                if (appended)
+                    sb.Append(", ");
+                sb.Append("closed open blocks");
+            }
+
+            return sb.Append($" ({flags:X})");
+        }
+    }
+}
