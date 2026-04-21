@@ -414,6 +414,35 @@ public class JsonRecoveryTests
             { "[{\"hello\":]", JsonRecoveryFlags.MissingValues | JsonRecoveryFlags.IncorrectBlockClosing, "[{\"hello\":null}]" },
         };
 
+    [Fact]
+    public void WithTranscodingTest()
+    {
+        const JsonRecoveryFlags recoveries = JsonRecoveryFlags.StringRawCharacters | JsonRecoveryFlags.PrematureEndOfStream;
+
+        var (recoveredBytes, bomEncoding, usedRecoveries) =
+            JsonFunctions.RecoverBytes(TranscodingInput, true, recoveries);
+
+        Assert.Equal(ExpectedTranscodingOutput, recoveredBytes);
+        Assert.Equal(Encoding.Unicode,          bomEncoding);
+        Assert.Equal(recoveries,                usedRecoveries);
+    }
+
+    private static readonly byte[] TranscodingInput =
+    [
+        // BOM
+        0xFF, 0xFE,
+        // Start of object
+        0x7B, 0x00,
+        // Key: waving emoji
+        0x22, 0x00, 0x3D, 0xD8, 0x4B, 0xDC, 0x22, 0x00, 0x3A, 0x00,
+        // Value: world + raw line feed
+        0x22, 0x00, 0x77, 0x00, 0x6F, 0x00, 0x72, 0x00, 0x6C, 0x00, 0x64, 0x00, 0x0A, 0x00,
+        // Missing end of string, missing end of object
+    ];
+
+    private static readonly byte[] ExpectedTranscodingOutput =
+        "{\"\uD83D\uDC4B\":\"world\\n\"}"u8.ToArray();
+
     private static void WithWhitespaceCombinations(string input, Action<string> test)
     {
         test(input);
