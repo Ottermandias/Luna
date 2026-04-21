@@ -24,9 +24,10 @@ public sealed class JsonRecoveryStream : OutputFilterStream
     private static ReadOnlySpan<byte> HexadecimalUppercase
         => "0123456789ABCDEF"u8;
 
-    private readonly JsonRecoveryFlags _allowedRecoveries;
-    private readonly Stack<byte>       _blocks;
-    private readonly List<byte>        _buffer;
+    private readonly JsonRecoveryFlags     _allowedRecoveries;
+    private readonly Stack<byte>           _blocks;
+    private readonly List<byte>            _buffer;
+    private readonly InlineStringU8<ulong> _crlfReplacement;
 
     private JsonRecoveryFlags     _usedRecoveries;
     private State                 _state;
@@ -44,13 +45,15 @@ public sealed class JsonRecoveryStream : OutputFilterStream
     /// <summary> Constructs a JSON recovery stream, wrapped around the given stream. </summary>
     /// <param name="allowedRecoveries"> The cases that this stream is allowed to recover from. </param>
     /// <param name="outputStream"> The stream where the corrected JSON data will be written to. </param>
+    /// <param name="crlfReplacement"> With what to replace raw CR LF tokens within strings. </param>
     /// <param name="leaveOpen"> Whether to leave the output stream open when closing this filter. </param>
-    public JsonRecoveryStream(JsonRecoveryFlags allowedRecoveries, Stream outputStream, bool leaveOpen = false)
+    public JsonRecoveryStream(JsonRecoveryFlags allowedRecoveries, Stream outputStream, string crlfReplacement = "\\n", bool leaveOpen = false)
         : base(outputStream, leaveOpen)
     {
         _allowedRecoveries = allowedRecoveries;
         _blocks            = [];
         _buffer            = [];
+        _crlfReplacement   = new InlineStringU8<ulong>(crlfReplacement);
     }
 
     private bool AllowsRecovery(JsonRecoveryFlags recovery)
@@ -105,12 +108,9 @@ public sealed class JsonRecoveryStream : OutputFilterStream
             case State.ValueEnd:
             case State.KeyStart:
                 break;
-            case State.KeyEnd: OutputStream.Write(":null"u8); break;
-            case State.AfterLeftSquareBracket:
-                break;
-            case State.AfterComma:
-                FlushBuffer();
-                break;
+            case State.KeyEnd:                 OutputStream.Write(":null"u8); break;
+            case State.AfterLeftSquareBracket: break;
+            case State.AfterComma:             FlushBuffer(); break;
 
             case State.String:
             case State.StringEscape:
@@ -227,7 +227,8 @@ public sealed class JsonRecoveryStream : OutputFilterStream
             State.AfterLeftSquareBracket => ProcessAfterLeftSquareBracket(buffer),
             State.AfterComma             => ProcessAfterComma(buffer),
 
-            State.String             => ProcessInString(buffer),
+            State.String             => ProcessInString(buffer, false),
+            State.StringCr           => ProcessInString(buffer, true),
             State.StringEscape       => ProcessInStringEscape(buffer[0]),
             State.StringOctal1       => ProcessInStringOctalEscape(buffer[0], 1, State.StringOctal2),
             State.StringOctal2       => ProcessInStringOctalEscape(buffer[0], 2, State.String),
@@ -484,24 +485,31 @@ public sealed class JsonRecoveryStream : OutputFilterStream
         }
     }
 
-    private (State NextState, int Consumed) ProcessInString(ReadOnlySpan<byte> buffer)
+    private (State NextState, int Consumed) ProcessInString(ReadOnlySpan<byte> buffer, bool carriageReturn)
     {
         var value = buffer[0];
+        if (value is ReverseSolidus)
+            return (State.StringEscape, 1);
+
         if (value is QuotationMark)
         {
+            if (carriageReturn)
+                OutputStream.Write("\\r"u8);
+
             OutputStream.WriteByte(QuotationMark);
             return (_isKey ? State.KeyEnd : State.ValueEnd, 1);
         }
 
-        if (value is ReverseSolidus)
-            return (State.StringEscape, 1);
-
         if (!BadStringCharacters.Contains(value))
+        {
+            if (carriageReturn)
+                OutputStream.Write("\\r"u8);
             return PassThroughUntil(buffer, BadStringCharacters);
+        }
 
         UseRecovery(JsonRecoveryFlags.StringRawCharacters);
-        WriteStringCharacter(value);
-        return (State.String, 1);
+        var state = WriteStringCharacter(value, carriageReturn);
+        return (state, 1);
     }
 
     private (State NextState, int Consumed) ProcessInStringEscape(byte value)
@@ -618,7 +626,7 @@ public sealed class JsonRecoveryStream : OutputFilterStream
         foreach (var b in _escapeBuffer)
             ch = (ch << 3) + unchecked((uint)b - '0');
 
-        WriteStringCharacter(ch);
+        WriteStringCharacter(ch, false);
     }
 
     private (State NextState, int Consumed) ProcessInStringHexadecimalEscape(byte value, int position, State nextState)
@@ -647,7 +655,7 @@ public sealed class JsonRecoveryStream : OutputFilterStream
             return;
         }
 
-        WriteStringCharacter(uint.Parse(_escapeBuffer.GetBytes(), NumberStyles.HexNumber));
+        WriteStringCharacter(uint.Parse(_escapeBuffer.GetBytes(), NumberStyles.HexNumber), false);
     }
 
     private (State NextState, int Consumed) ProcessInNumberIntegralStart(ReadOnlySpan<byte> buffer)
@@ -818,19 +826,31 @@ public sealed class JsonRecoveryStream : OutputFilterStream
         _buffer.Clear();
     }
 
-    private void WriteStringCharacter(uint value)
+    private State WriteStringCharacter(uint value, bool carriageReturn)
     {
         if (value >= 0x110000)
             throw new InvalidDataException();
 
+        if (carriageReturn)
+        {
+            if (value is (byte)'\n')
+            {
+                OutputStream.Write(_crlfReplacement);
+                return State.String;
+            }
+            OutputStream.Write("\\r"u8);
+        }
+
         if (value < 0x20)
         {
+            if (value is '\r')
+                return State.StringCr;
+
             var shortEscape = value switch
             {
                 '\b' => (byte)'b',
                 '\f' => (byte)'f',
                 '\n' => (byte)'n',
-                '\r' => (byte)'r',
                 '\t' => (byte)'t',
                 _    => (byte)0,
             };
@@ -847,20 +867,20 @@ public sealed class JsonRecoveryStream : OutputFilterStream
                 OutputStream.WriteByte(HexadecimalUppercase[unchecked((int)(value & 0xF))]);
             }
 
-            return;
+            return State.String;
         }
 
         if (value < 0x80)
         {
             OutputStream.WriteByte((byte)value);
-            return;
+            return State.String;
         }
 
         if (value < 0x800)
         {
             OutputStream.WriteByte((byte)(0xC0u | (value >> 6)));
             OutputStream.WriteByte((byte)(0x80u | (value & 0x3F)));
-            return;
+            return State.String;
         }
 
         if (value is >= 0xD800 and < 0xE000)
@@ -870,7 +890,7 @@ public sealed class JsonRecoveryStream : OutputFilterStream
             OutputStream.WriteByte(HexadecimalUppercase[unchecked((int)((value >> 8) & 0xF))]);
             OutputStream.WriteByte(HexadecimalUppercase[unchecked((int)((value >> 4) & 0xF))]);
             OutputStream.WriteByte(HexadecimalUppercase[unchecked((int)(value & 0xF))]);
-            return;
+            return State.String;
         }
 
         if (value < 0x10000)
@@ -878,13 +898,14 @@ public sealed class JsonRecoveryStream : OutputFilterStream
             OutputStream.WriteByte((byte)(0xE0u | (value >> 12)));
             OutputStream.WriteByte((byte)(0x80u | ((value >> 6) & 0x3F)));
             OutputStream.WriteByte((byte)(0x80u | (value & 0x3F)));
-            return;
+            return State.String;
         }
 
         OutputStream.WriteByte((byte)(0xF0u | (value >> 18)));
         OutputStream.WriteByte((byte)(0x80u | ((value >> 12) & 0x3F)));
         OutputStream.WriteByte((byte)(0x80u | ((value >> 6) & 0x3F)));
         OutputStream.WriteByte((byte)(0x80u | (value & 0x3F)));
+        return State.String;
     }
 
     private void CloseBlock(byte block)
@@ -918,6 +939,7 @@ public sealed class JsonRecoveryStream : OutputFilterStream
         AfterComma,
 
         String,
+        StringCr,
         StringEscape,
         StringOctal1,
         StringOctal2,

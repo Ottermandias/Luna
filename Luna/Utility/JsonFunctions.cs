@@ -71,6 +71,7 @@ public static class JsonFunctions
     /// <param name="originalBytes"> The potentially invalid JSON data. </param>
     /// <param name="autoTranscodeToUtf8"> Whether to also strip the UTF-8 BOM and/or transcode from UTF-16 to UTF-8. </param>
     /// <param name="allowedRecoveries"> The cases that this operation is allowed to recover from. </param>
+    /// <param name="crlfReplacement"> The token to replace any raw CR LF tokens with. </param>
     /// <returns>
     ///   <list>
     ///     <item> The corrected JSON data. </item>
@@ -80,11 +81,11 @@ public static class JsonFunctions
     /// </returns>
     /// <exception cref="InvalidDataException"> Some case of invalid JSON data was encountered that cannot be recovered from. </exception>
     public static (byte[] RecoveredBytes, Encoding? BomEncoding, JsonRecoveryFlags UsedRecoveries) RecoverBytes(byte[] originalBytes,
-        bool autoTranscodeToUtf8, JsonRecoveryFlags allowedRecoveries)
+        bool autoTranscodeToUtf8, JsonRecoveryFlags allowedRecoveries, string crlfReplacement = "\\n")
     {
         using var memoryStream = new MemoryStream(originalBytes.Length);
 
-        var recoveryStream    = new JsonRecoveryStream(allowedRecoveries, memoryStream, true);
+        var recoveryStream    = new JsonRecoveryStream(allowedRecoveries, memoryStream, crlfReplacement, true);
         var transcodingStream = autoTranscodeToUtf8 ? new AutoUtf8TranscodingStream(recoveryStream) : null;
         var outputStream      = (Stream?)transcodingStream ?? recoveryStream;
         outputStream.Write(originalBytes, 0, originalBytes.Length);
@@ -97,6 +98,7 @@ public static class JsonFunctions
     /// <param name="filePath"> The potentially invalid JSON file. It will be replaced by the corrected one, if any correction happens. </param>
     /// <param name="autoTranscodeToUtf8"> Whether to also strip the UTF-8 BOM and/or transcode from UTF-16 to UTF-8. </param>
     /// <param name="allowedRecoveries"> The cases that this operation is allowed to recover from. </param>
+    /// <param name="crlfReplacement"> The token to replace any raw CR LF tokens with. </param>
     /// <returns>
     ///   <list>
     ///     <item> The read (and potentially recovered) byte data. </item>
@@ -107,10 +109,10 @@ public static class JsonFunctions
     /// </returns>
     /// <exception cref="InvalidDataException"> Some case of invalid JSON data was encountered that cannot be recovered from. </exception>
     public static (byte[] FileData, bool FileModified, Encoding? BomEncoding, JsonRecoveryFlags UsedRecoveries) RecoverFile(string filePath,
-        bool autoTranscodeToUtf8, JsonRecoveryFlags allowedRecoveries)
+        bool autoTranscodeToUtf8, JsonRecoveryFlags allowedRecoveries, string crlfReplacement = "\\n")
     {
         var originalBytes = File.ReadAllBytes(filePath);
-        var (recoveredBytes, bomEncoding, usedRecoveries) = RecoverBytes(originalBytes, autoTranscodeToUtf8, allowedRecoveries);
+        var (recoveredBytes, bomEncoding, usedRecoveries) = RecoverBytes(originalBytes, autoTranscodeToUtf8, allowedRecoveries, crlfReplacement);
         if (originalBytes.SequenceEqual(recoveredBytes))
             return (recoveredBytes, false, bomEncoding, usedRecoveries);
 
@@ -121,10 +123,10 @@ public static class JsonFunctions
 
     /// <inheritdoc cref="RecoverFile"/>
     public static async Task<(byte[] FileData, bool FileModified, Encoding? BomEncoding, JsonRecoveryFlags UsedRecoveries)> RecoverFileAsync(string filePath,
-        bool autoTranscodeToUtf8, JsonRecoveryFlags allowedRecoveries)
+        bool autoTranscodeToUtf8, JsonRecoveryFlags allowedRecoveries, string crlfReplacement = "\\n")
     {
         var originalBytes = await File.ReadAllBytesAsync(filePath);
-        var (recoveredBytes, bomEncoding, usedRecoveries) = RecoverBytes(originalBytes, autoTranscodeToUtf8, allowedRecoveries);
+        var (recoveredBytes, bomEncoding, usedRecoveries) = RecoverBytes(originalBytes, autoTranscodeToUtf8, allowedRecoveries, crlfReplacement);
         if (originalBytes.SequenceEqual(recoveredBytes))
             return (recoveredBytes, false, bomEncoding, usedRecoveries);
 
