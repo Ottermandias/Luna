@@ -66,6 +66,71 @@ public static class JsonFunctions
         return bytes;
     }
 
+    /// <summary> Recovers potentially invalid JSON data using <see cref="JsonRecoveryStream"/>. </summary>
+    /// <param name="originalBytes"> The potentially invalid JSON data. </param>
+    /// <param name="autoTranscodeToUtf8"> Whether to also strip the UTF-8 BOM and/or transcode from UTF-16 to UTF-8. </param>
+    /// <param name="allowedRecoveries"> The cases that this operation is allowed to recover from. </param>
+    /// <returns>
+    ///   <list>
+    ///     <item> The corrected JSON data. </item>
+    ///     <item> The original encoding, if a BOM was recognized and stripped, otherwise <c>null</c>. </item>
+    ///     <item> The cases that this operation has recovered from. </item>
+    ///   </list>
+    /// </returns>
+    /// <exception cref="InvalidDataException"> Some case of invalid JSON data was encountered that cannot be recovered from. </exception>
+    public static (byte[] RecoveredBytes, Encoding? BomEncoding, JsonRecoveryFlags UsedRecoveries) RecoverBytes(byte[] originalBytes,
+        bool autoTranscodeToUtf8, JsonRecoveryFlags allowedRecoveries)
+    {
+        using var memoryStream = new MemoryStream(originalBytes.Length);
+
+        var recoveryStream    = new JsonRecoveryStream(allowedRecoveries, memoryStream, true);
+        var transcodingStream = autoTranscodeToUtf8 ? new AutoUtf8TranscodingStream(recoveryStream) : null;
+        var outputStream      = (Stream?)transcodingStream ?? recoveryStream;
+        outputStream.Write(originalBytes, 0, originalBytes.Length);
+        outputStream.Close();
+
+        return (memoryStream.ToArray(), transcodingStream?.BomEncoding, recoveryStream.UsedRecoveries);
+    }
+
+    /// <summary> Recovers potentially invalid JSON data using <see cref="JsonRecoveryStream"/>. </summary>
+    /// <param name="filePath"> The potentially invalid JSON file. It will be replaced by the corrected one, if any correction happens. </param>
+    /// <param name="autoTranscodeToUtf8"> Whether to also strip the UTF-8 BOM and/or transcode from UTF-16 to UTF-8. </param>
+    /// <param name="allowedRecoveries"> The cases that this operation is allowed to recover from. </param>
+    /// <returns>
+    ///   <list>
+    ///     <item> Whether this operation replaced the given file by a corrected one. </item>
+    ///     <item> The original encoding, if a BOM was recognized and stripped, otherwise <c>null</c>. </item>
+    ///     <item> The cases that this operation has recovered from. </item>
+    ///   </list>
+    /// </returns>
+    /// <exception cref="InvalidDataException"> Some case of invalid JSON data was encountered that cannot be recovered from. </exception>
+    public static (bool FileModified, Encoding? BomEncoding, JsonRecoveryFlags UsedRecoveries) RecoverFile(string filePath,
+        bool autoTranscodeToUtf8, JsonRecoveryFlags allowedRecoveries)
+    {
+        var originalBytes = File.ReadAllBytes(filePath);
+        var (recoveredBytes, bomEncoding, usedRecoveries) = RecoverBytes(originalBytes, autoTranscodeToUtf8, allowedRecoveries);
+        if (originalBytes.SequenceEqual(recoveredBytes))
+            return (false, bomEncoding, usedRecoveries);
+
+        File.Move(filePath, filePath + ".bak");
+        File.WriteAllBytes(filePath, recoveredBytes);
+        return (true, bomEncoding, usedRecoveries);
+    }
+
+    /// <inheritdoc cref="RecoverFile"/>
+    public static async Task<(bool FileModified, Encoding? BomEncoding, JsonRecoveryFlags UsedRecoveries)> RecoverFileAsync(string filePath,
+        bool autoTranscodeToUtf8, JsonRecoveryFlags allowedRecoveries)
+    {
+        var originalBytes = await File.ReadAllBytesAsync(filePath);
+        var (recoveredBytes, bomEncoding, usedRecoveries) = RecoverBytes(originalBytes, autoTranscodeToUtf8, allowedRecoveries);
+        if (originalBytes.SequenceEqual(recoveredBytes))
+            return (false, bomEncoding, usedRecoveries);
+
+        File.Move(filePath, filePath + ".bak");
+        await File.WriteAllBytesAsync(filePath, recoveredBytes);
+        return (true, bomEncoding, usedRecoveries);
+    }
+
     /// <summary> Return values for peeking a property. </summary>
     public enum PeekError
     {
