@@ -80,65 +80,75 @@ public sealed class JsonRecoveryStream : OutputFilterStream
 
     protected override void Dispose(bool disposing)
     {
-        if (_state is not State.ValueEnd || _blocks.Count > 0)
+        ProcessEndOfStream();
+        base.Dispose(disposing);
+    }
+
+    private void ProcessEndOfStream()
+    {
+        if (_blocks.Count is 0)
         {
-            UseRecovery(JsonRecoveryFlags.PrematureEndOfStream);
-            switch (_state)
+            if (_state is State.ValueEnd or State.NumberIntegral or State.NumberFractional or State.NumberExponent)
+                return;
+
+            if (_state is State.NumberIntegralZero)
             {
-                case State.ValueStart: OutputStream.Write("null"u8); break;
-                case State.ValueEnd:
-                case State.KeyStart:
-                    break;
-                case State.KeyEnd: OutputStream.Write(":null"u8); break;
-                case State.AfterLeftSquareBracket:
-                case State.AfterComma:
-                    break;
-
-                case State.String:
-                case State.StringEscape:
-                    OutputStream.WriteByte(QuotationMark);
-                    if (_isKey)
-                        OutputStream.Write(":null"u8);
-                    break;
-                case State.StringOctal1 or State.StringOctal2:
-                    WriteBufferedOctalCharacter();
-                    goto case State.String;
-                case State.StringHexadecimal0 or State.StringHexadecimal1 or State.StringUnicode0 or State.StringUnicode1
-                    or State.StringUnicode2 or State.StringUnicode3 or State.StringRune0 or State.StringRune1 or State.StringRune2
-                    or State.StringRune3 or State.StringRune4 or State.StringRune5 or State.StringRune6 or State.StringRune7:
-                    WriteBufferedHexadecimalCharacter();
-                    goto case State.String;
-
-                case State.NumberIntegralStart or State.NumberIntegralZero or State.NumberFractionalStart or State.NumberExponentSign
-                    or State.NumberExponentStart:
-                    OutputStream.WriteByte((byte)'0');
-                    break;
-                case State.NumberIntegral:
-                case State.NumberFractional:
-                case State.NumberExponent:
-                    break;
-
-                case State.True1: OutputStream.Write("rue"u8); break;
-                case State.True2: OutputStream.Write("ue"u8); break;
-                case State.True3: OutputStream.WriteByte((byte)'e'); break;
-
-                case State.False1: OutputStream.Write("alse"u8); break;
-                case State.False2: OutputStream.Write("lse"u8); break;
-                case State.False3: OutputStream.Write("se"u8); break;
-                case State.False4: OutputStream.WriteByte((byte)'e'); break;
-
-                case State.Null1: OutputStream.Write("ull"u8); break;
-                case State.Null2: OutputStream.Write("ll"u8); break;
-                case State.Null3: OutputStream.WriteByte((byte)'l'); break;
-
-                default: throw new UnreachableException();
+                OutputStream.WriteByte((byte)'0');
+                return;
             }
-
-            while (_blocks.TryPop(out var b))
-                OutputStream.WriteByte(b);
         }
 
-        base.Dispose(disposing);
+        UseRecovery(JsonRecoveryFlags.PrematureEndOfStream);
+        switch (_state)
+        {
+            case State.ValueStart: OutputStream.Write("null"u8); break;
+            case State.ValueEnd:
+            case State.KeyStart:
+                break;
+            case State.KeyEnd: OutputStream.Write(":null"u8); break;
+            case State.AfterLeftSquareBracket:
+            case State.AfterComma:
+                break;
+
+            case State.String:
+            case State.StringEscape:
+                OutputStream.WriteByte(QuotationMark);
+                if (_isKey)
+                    OutputStream.Write(":null"u8);
+                break;
+            case State.StringOctal1 or State.StringOctal2:
+                WriteBufferedOctalCharacter();
+                goto case State.String;
+            case State.StringHexadecimal0 or State.StringHexadecimal1 or State.StringUnicode0 or State.StringUnicode1
+                or State.StringUnicode2 or State.StringUnicode3 or State.StringRune0 or State.StringRune1 or State.StringRune2
+                or State.StringRune3 or State.StringRune4 or State.StringRune5 or State.StringRune6 or State.StringRune7:
+                WriteBufferedHexadecimalCharacter();
+                goto case State.String;
+
+            case State.NumberIntegralStart or State.NumberIntegralZero or State.NumberFractionalStart or State.NumberExponentSign
+                or State.NumberExponentStart:
+                OutputStream.WriteByte((byte)'0');
+                break;
+            case State.NumberIntegral or State.NumberFractional or State.NumberExponent: break;
+
+            case State.True1: OutputStream.Write("rue"u8); break;
+            case State.True2: OutputStream.Write("ue"u8); break;
+            case State.True3: OutputStream.WriteByte((byte)'e'); break;
+
+            case State.False1: OutputStream.Write("alse"u8); break;
+            case State.False2: OutputStream.Write("lse"u8); break;
+            case State.False3: OutputStream.Write("se"u8); break;
+            case State.False4: OutputStream.WriteByte((byte)'e'); break;
+
+            case State.Null1: OutputStream.Write("ull"u8); break;
+            case State.Null2: OutputStream.Write("ll"u8); break;
+            case State.Null3: OutputStream.WriteByte((byte)'l'); break;
+
+            default: throw new UnreachableException();
+        }
+
+        while (_blocks.TryPop(out var b))
+            OutputStream.WriteByte(b);
     }
 
     /// <inheritdoc/>
@@ -281,6 +291,7 @@ public sealed class JsonRecoveryStream : OutputFilterStream
 
             case (byte)'T':
                 UseRecovery(JsonRecoveryFlags.KeywordCase);
+                OutputStream.WriteByte((byte)'t');
                 return (State.True1, 1);
             case (byte)'t':
                 // Opportunistically consume the whole token when possible.
@@ -290,10 +301,12 @@ public sealed class JsonRecoveryStream : OutputFilterStream
                     return (State.ValueEnd, 4);
                 }
 
+                OutputStream.WriteByte((byte)'t');
                 return (State.True1, 1);
 
             case (byte)'F':
                 UseRecovery(JsonRecoveryFlags.KeywordCase);
+                OutputStream.WriteByte((byte)'f');
                 return (State.False1, 1);
             case (byte)'f':
                 // Opportunistically consume the whole token when possible.
@@ -303,10 +316,12 @@ public sealed class JsonRecoveryStream : OutputFilterStream
                     return (State.ValueEnd, 5);
                 }
 
+                OutputStream.WriteByte((byte)'f');
                 return (State.False1, 1);
 
             case (byte)'N':
                 UseRecovery(JsonRecoveryFlags.KeywordCase);
+                OutputStream.WriteByte((byte)'n');
                 return (State.Null1, 1);
             case (byte)'n':
                 // Opportunistically consume the whole token when possible.
@@ -316,6 +331,7 @@ public sealed class JsonRecoveryStream : OutputFilterStream
                     return (State.ValueEnd, 4);
                 }
 
+                OutputStream.WriteByte((byte)'n');
                 return (State.Null1, 1);
 
             default:
@@ -606,7 +622,10 @@ public sealed class JsonRecoveryStream : OutputFilterStream
                 UseRecovery(JsonRecoveryFlags.NumberMissingDigits);
                 OutputStream.Write("0."u8);
                 return (State.NumberFractionalStart, 1);
-            default: return (State.ValueEnd, 0);
+            default:
+                UseRecovery(JsonRecoveryFlags.NumberMissingDigits);
+                OutputStream.WriteByte((byte)'0');
+                return (State.ValueEnd, 0);
         }
     }
 
@@ -658,7 +677,10 @@ public sealed class JsonRecoveryStream : OutputFilterStream
                 OutputStream.WriteByte((byte)'0');
                 OutputStream.WriteByte(buffer[0]);
                 return (State.NumberExponentSign, 1);
-            default: return (State.ValueEnd, 0);
+            default:
+                UseRecovery(JsonRecoveryFlags.NumberMissingDigits);
+                OutputStream.WriteByte((byte)'0');
+                return (State.ValueEnd, 0);
         }
     }
 
