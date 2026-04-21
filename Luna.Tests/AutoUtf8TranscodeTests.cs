@@ -74,11 +74,11 @@ public class AutoUtf8TranscodeTests
     }
 
     [Theory]
-    [MemberData(nameof(QuasiBomTestData))]
+    [MemberData(nameof(QuasiBomData))]
     public void QuasiBomTest(byte[] data)
         => TestTranscoding(data, data, null);
 
-    public static readonly TheoryData<byte[]> QuasiBomTestData =
+    public static readonly TheoryData<byte[]> QuasiBomData =
     [
         // Actually Arabic letters.
         [0xEF, 0xBB, 0xAF],

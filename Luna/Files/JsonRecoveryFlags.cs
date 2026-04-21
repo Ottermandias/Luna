@@ -57,9 +57,8 @@ public enum JsonRecoveryFlags
       | NumberMissingDigits
       | KeywordCase
       | PrematureEndOfStream
-      | MissingValues
       | TrailingCommas,
 
     /// <summary> Everything. Might not respect the intended meaning of the document. The output should be reviewed by a human. </summary>
-    All = Safe | StringIncompleteEscapes | StringInvalidEscapes | MissingPunctuation | IncorrectBlockClosing,
+    All = Safe | StringIncompleteEscapes | StringInvalidEscapes | MissingValues | MissingPunctuation | IncorrectBlockClosing,
 }

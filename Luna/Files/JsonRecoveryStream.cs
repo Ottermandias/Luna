@@ -107,7 +107,9 @@ public sealed class JsonRecoveryStream : OutputFilterStream
                 break;
             case State.KeyEnd: OutputStream.Write(":null"u8); break;
             case State.AfterLeftSquareBracket:
+                break;
             case State.AfterComma:
+                FlushBuffer();
                 break;
 
             case State.String:
@@ -116,12 +118,44 @@ public sealed class JsonRecoveryStream : OutputFilterStream
                 if (_isKey)
                     OutputStream.Write(":null"u8);
                 break;
-            case State.StringOctal1 or State.StringOctal2:
+            case State.StringOctal1:
+                _escapeBuffer += "00"u8;
                 WriteBufferedOctalCharacter();
                 goto case State.String;
-            case State.StringHexadecimal0 or State.StringHexadecimal1 or State.StringUnicode0 or State.StringUnicode1
-                or State.StringUnicode2 or State.StringUnicode3 or State.StringRune0 or State.StringRune1 or State.StringRune2
-                or State.StringRune3 or State.StringRune4 or State.StringRune5 or State.StringRune6 or State.StringRune7:
+            case State.StringOctal2:
+                _escapeBuffer += "0"u8;
+                WriteBufferedOctalCharacter();
+                goto case State.String;
+            case State.StringRune0:
+                _escapeBuffer += "00000000"u8;
+                WriteBufferedHexadecimalCharacter();
+                goto case State.String;
+            case State.StringRune1:
+                _escapeBuffer += "0000000"u8;
+                WriteBufferedHexadecimalCharacter();
+                goto case State.String;
+            case State.StringRune2:
+                _escapeBuffer += "000000"u8;
+                WriteBufferedHexadecimalCharacter();
+                goto case State.String;
+            case State.StringRune3:
+                _escapeBuffer += "00000"u8;
+                WriteBufferedHexadecimalCharacter();
+                goto case State.String;
+            case State.StringUnicode0 or State.StringRune4:
+                _escapeBuffer += "0000"u8;
+                WriteBufferedHexadecimalCharacter();
+                goto case State.String;
+            case State.StringUnicode1 or State.StringRune5:
+                _escapeBuffer += "000"u8;
+                WriteBufferedHexadecimalCharacter();
+                goto case State.String;
+            case State.StringHexadecimal0 or State.StringUnicode2 or State.StringRune6:
+                _escapeBuffer += "00"u8;
+                WriteBufferedHexadecimalCharacter();
+                goto case State.String;
+            case State.StringHexadecimal1 or State.StringUnicode3 or State.StringRune7:
+                _escapeBuffer += "0"u8;
                 WriteBufferedHexadecimalCharacter();
                 goto case State.String;
 
@@ -236,7 +270,7 @@ public sealed class JsonRecoveryStream : OutputFilterStream
 
             _ => throw new UnreachableException(),
         };
-        if (consumed is 0 && nextState == _state)
+        if (consumed is 0 && nextState == _state || consumed < 0)
             throw new UnreachableException();
 
         _state = nextState;
@@ -273,7 +307,7 @@ public sealed class JsonRecoveryStream : OutputFilterStream
 
             case (byte)'+':
                 UseRecovery(JsonRecoveryFlags.NumberExplicitPositive);
-                return (State.NumberIntegralStart, 0);
+                return (State.NumberIntegralStart, 1);
             case (byte)'-':
                 OutputStream.WriteByte((byte)'-');
                 return (State.NumberIntegralStart, 1);
@@ -373,6 +407,10 @@ public sealed class JsonRecoveryStream : OutputFilterStream
             case RightCurlyBracket:
                 CloseBlock(RightCurlyBracket);
                 return (State.ValueEnd, 1);
+            case Comma:
+                UseRecovery(JsonRecoveryFlags.MissingValues);
+                OutputStream.Write("\"\":null"u8);
+                return (State.AfterComma, 1);
             default:
                 if (Whitespace.Contains(buffer[0]))
                     return PassThroughWhile(buffer, Whitespace);
@@ -604,7 +642,7 @@ public sealed class JsonRecoveryStream : OutputFilterStream
         var hexBytes = _escapeBuffer.GetBytes();
         if (hexBytes.Length <= 4)
         {
-            OutputStream.Write("\\u0000"u8.Slice(0, 6 - hexBytes.Length));
+            OutputStream.Write("\\u0000"u8[..(6 - hexBytes.Length)]);
             OutputStream.Write(hexBytes);
             return;
         }
@@ -635,7 +673,8 @@ public sealed class JsonRecoveryStream : OutputFilterStream
         {
             case (byte)'0':
                 UseRecovery(JsonRecoveryFlags.NumberLeadingZeroes);
-                return (State.NumberIntegralZero, buffer.IndexOfAnyExcept((byte)'0'));
+                var zeroes = buffer.IndexOfAnyExcept((byte)'0');
+                return (State.NumberIntegralZero, zeroes < 0 ? buffer.Length : zeroes);
             case >= (byte)'1' and <= (byte)'9':
                 UseRecovery(JsonRecoveryFlags.NumberLeadingZeroes);
                 return (State.NumberIntegral, PassThroughWhile(buffer, Decimal).Consumed);
@@ -739,7 +778,7 @@ public sealed class JsonRecoveryStream : OutputFilterStream
                 throw new InvalidDataException();
         }
 
-        OutputStream.WriteByte(value);
+        OutputStream.WriteByte(nextExpected);
         return (nextState, 1);
     }
 
@@ -850,7 +889,10 @@ public sealed class JsonRecoveryStream : OutputFilterStream
 
     private void CloseBlock(byte block)
     {
-        if (!_blocks.TryPop(out var b) || b != block)
+        if (!_blocks.TryPop(out var b))
+            throw new InvalidDataException();
+
+        if (b != block)
         {
             UseRecovery(JsonRecoveryFlags.IncorrectBlockClosing);
             do
