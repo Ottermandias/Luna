@@ -1,4 +1,6 @@
-﻿namespace Luna;
+﻿using System.Reflection;
+
+namespace Luna;
 
 /// <summary> Utility functions to access or query Windows-specific state or functionality. </summary>
 public static partial class WindowsFunctions

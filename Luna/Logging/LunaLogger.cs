@@ -1,3 +1,4 @@
+using System.Reflection;
 using Microsoft.Extensions.Logging;
 using Serilog.Events;
 using EventId = Microsoft.Extensions.Logging.EventId;
