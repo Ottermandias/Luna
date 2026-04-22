@@ -118,6 +118,12 @@ public sealed class JsonRecoveryStream : OutputFilterStream
                 if (_isKey)
                     OutputStream.Write(":null"u8);
                 break;
+            case State.StringCr:
+                OutputStream.Write("\\r"u8);
+                OutputStream.WriteByte(QuotationMark);
+                if (_isKey)
+                    OutputStream.Write(":null"u8);
+                break;
             case State.StringOctal1:
                 _escapeBuffer += "00"u8;
                 WriteBufferedOctalCharacter();
@@ -508,7 +514,7 @@ public sealed class JsonRecoveryStream : OutputFilterStream
         }
 
         UseRecovery(JsonRecoveryFlags.StringRawCharacters);
-        var state = WriteStringCharacter(value, carriageReturn);
+        var state = WriteStringCharacter(value, carriageReturn, true);
         return (state, 1);
     }
 
@@ -626,7 +632,7 @@ public sealed class JsonRecoveryStream : OutputFilterStream
         foreach (var b in _escapeBuffer)
             ch = (ch << 3) + unchecked((uint)b - '0');
 
-        WriteStringCharacter(ch, false);
+        WriteStringCharacter(ch, false, false);
     }
 
     private (State NextState, int Consumed) ProcessInStringHexadecimalEscape(byte value, int position, State nextState)
@@ -655,7 +661,7 @@ public sealed class JsonRecoveryStream : OutputFilterStream
             return;
         }
 
-        WriteStringCharacter(uint.Parse(_escapeBuffer.GetBytes(), NumberStyles.HexNumber), false);
+        WriteStringCharacter(uint.Parse(_escapeBuffer.GetBytes(), NumberStyles.HexNumber), false, false);
     }
 
     private (State NextState, int Consumed) ProcessInNumberIntegralStart(ReadOnlySpan<byte> buffer)
@@ -807,7 +813,7 @@ public sealed class JsonRecoveryStream : OutputFilterStream
             count = buffer.Length;
         if (count > 0)
             OutputStream.Write(buffer[..count]);
-        return (_state, count);
+        return (_state is State.StringCr ? State.String : _state, count);
     }
 
     private (State NextState, int Consumed) BufferWhile(ReadOnlySpan<byte> buffer, SearchValues<byte> values)
@@ -826,7 +832,7 @@ public sealed class JsonRecoveryStream : OutputFilterStream
         _buffer.Clear();
     }
 
-    private State WriteStringCharacter(uint value, bool carriageReturn)
+    private State WriteStringCharacter(uint value, bool carriageReturn, bool allowCarriageReturn)
     {
         if (value >= 0x110000)
             throw new InvalidDataException();
@@ -835,15 +841,16 @@ public sealed class JsonRecoveryStream : OutputFilterStream
         {
             if (value is (byte)'\n')
             {
-                OutputStream.Write(_crlfReplacement);
+                OutputStream.Write(_crlfReplacement.GetBytes());
                 return State.String;
             }
+
             OutputStream.Write("\\r"u8);
         }
 
         if (value < 0x20)
         {
-            if (value is '\r')
+            if (allowCarriageReturn && value is '\r')
                 return State.StringCr;
 
             var shortEscape = value switch
@@ -852,6 +859,7 @@ public sealed class JsonRecoveryStream : OutputFilterStream
                 '\f' => (byte)'f',
                 '\n' => (byte)'n',
                 '\t' => (byte)'t',
+                '\r' => (byte)'r',
                 _    => (byte)0,
             };
 

@@ -171,11 +171,11 @@ public class JsonRecoveryTests
         {
             {
                 "\"This is an\tawesome description.\r\n\r\nUnfortunately,\bit is not\fJSON-compliant.\"",
-                "\"This is an\\tawesome description.\\r\\n\\r\\nUnfortunately,\\bit is not\\fJSON-compliant.\""
+                "\"This is an\\tawesome description.[NL][NL]Unfortunately,\\bit is not\\fJSON-compliant.\""
             },
             {
-                "{\n  \"Description\": \"This is an\tawesome description.\r\n\r\nUnfortunately,\bit is not\fJSON-compliant.\"\n}",
-                "{\n  \"Description\": \"This is an\\tawesome description.\\r\\n\\r\\nUnfortunately,\\bit is not\\fJSON-compliant.\"\n}"
+                "{\n  \"Description\": \"This is an\tawesome description.\r\n\r\nUnfor\rtuna\r\btely,\bit is not\fJSON-compliant.\"\n}",
+                "{\n  \"Description\": \"This is an\\tawesome description.[NL][NL]Unfor\\rtuna\\r\\btely,\\bit is not\\fJSON-compliant.\"\n}"
             },
         };
 
@@ -466,7 +466,7 @@ public class JsonRecoveryTests
     {
         using var memoryStream = new MemoryStream();
 
-        var recoveryStream = new JsonRecoveryStream(allowedRecoveries, memoryStream, true);
+        var recoveryStream = new JsonRecoveryStream(allowedRecoveries, memoryStream, "[NL]", true);
         using (recoveryStream)
         {
             recoveryStream.Write(input);
@@ -481,7 +481,7 @@ public class JsonRecoveryTests
     {
         using var memoryStream = new MemoryStream();
 
-        var recoveryStream = new JsonRecoveryStream(allowedRecoveries, memoryStream, true);
+        var recoveryStream = new JsonRecoveryStream(allowedRecoveries, memoryStream, "[NL]", true);
         using (recoveryStream)
         {
             foreach (var b in input)
