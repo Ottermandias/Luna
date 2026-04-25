@@ -1,6 +1,6 @@
 #include "../../ImSharp/ImSharp/Resources/include/FsQuad.hlsli"
 
-cbuffer uniforms
+cbuffer uniforms : register(cb1)
 {
     float rounding;
 };
