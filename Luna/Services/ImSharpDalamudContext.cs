@@ -45,6 +45,8 @@ public sealed unsafe class ImSharpDalamudContext : IRequiredService, IDisposable
 
         ImSharpConfiguration.SetLogger(logger);
 
+        CustomRenderingManager.Instance.SetDevice(uiBuilder.DeviceHandle);
+
         // Set up the default cache manager.
         _uiBuilder.DefaultFontChanged        += OnDefaultFontChanged;
         _uiBuilder.DefaultGlobalScaleChanged += OnDefaultGlobalScaleChanged;

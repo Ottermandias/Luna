@@ -20,9 +20,16 @@
 
     <PropertyGroup>
         <DefineConstants>PROFILING</DefineConstants>
-        <DefineConstants>HAS_NEWTONSOFT</DefineConstants>
+        <DefineConstants>HAS_NEWTONSOFT;HAS_TERRAFX;LUNA</DefineConstants>
         <Use_DalamudPackager>false</Use_DalamudPackager>
     </PropertyGroup>
+
+    <ItemGroup>
+        <Reference Include="TerraFX.Interop.Windows">
+            <HintPath>$(DalamudLibPath)TerraFX.Interop.Windows.dll</HintPath>
+            <Private>False</Private>
+        </Reference>
+    </ItemGroup>
 
     <ItemGroup>
         <Compile Include="..\ImSharp\ImSharp\**\*.cs" Link="ImSharp/%(RecursiveDir)%(FileName)%(Extension)" />
@@ -30,6 +37,18 @@
         <Compile Remove="..\ImSharp\ImSharp\temp\**\*.cs" />
         <Compile Remove="Filesystem\Selector\**" />
         <EmbeddedResource Remove="Filesystem\Selector\**" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <None Include="..\ImSharp\ImSharp\Resources\include\*.hlsli" Link="ImSharp/Resources/include/%(FileName)%(Extension)" />
+        <None Include="..\ImSharp\ImSharp\Resources\*.hlsl" Link="ImSharp/Resources/%(FileName)%(Extension)" />
+        <None Include="..\ImSharp\ImSharp\Build-Shaders.ps1" Link="ImSharp/Build-Shaders.ps1" />
+        <EmbeddedResource Include="..\ImSharp\ImSharp\Resources\*.dxbc" Link="ImSharp/Resources/%(FileName)%(Extension)" />
+
+        <None Include="Resources\include\*.hlsli" />
+        <None Include="Resources\*.hlsl" />
+        <None Include="Build-Shaders.ps1" />
+        <EmbeddedResource Include="Resources\*.dxbc" />
     </ItemGroup>
 
     <ItemGroup>

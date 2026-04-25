@@ -3,6 +3,9 @@ namespace Luna;
 /// <summary> A combo to display named colors. </summary>
 public abstract class FilterComboColors : FilterComboBase<FilterComboColors.Item>
 {
+    private static readonly FullScreenQuadWithUniforms<DyeGlossOverlayUniforms> DyeGlossOverlay =
+        new(ResourceProvider.GetManifestResourceBytes("DyeGlossOverlay_ps.dxbc"), default);
+
     /// <summary> A tracker variable for styles and colors pushed across function boundaries. </summary>
     protected readonly Im.ColorStyleDisposable Style = new();
 
@@ -94,7 +97,7 @@ public abstract class FilterComboColors : FilterComboBase<FilterComboColors.Item
 
         // Draw gloss.
         if (item.Gloss)
-            drawList.RectangleMulticolor(upperLeft, lowerRight, 0x50FFFFFF, 0x50000000, 0x50FFFFFF, 0x50000000);
+            DrawDyeGlossOverlay(upperLeft, lowerRight);
         return ret;
     }
 
@@ -105,9 +108,19 @@ public abstract class FilterComboColors : FilterComboBase<FilterComboColors.Item
             return;
 
         var min = Im.Item.UpperLeftCorner;
+        DrawDyeGlossOverlay(min, Im.Item.LowerRightCorner with { X = min.X + width });
+    }
+
+    private void DrawDyeGlossOverlay(Vector2 upperLeft, Vector2 lowerRight)
+    {
         // This removes frame rounding but there is currently no easy way to obtain a multicolored rectangle with rounding.
-        Im.Window.DrawList.Shape.RectangleMulticolor(min, Im.Item.LowerRightCorner with { X = min.X + width }, 0x50FFFFFF,
-            0x50000000, 0x50FFFFFF, 0x50000000);
+        // Im.Window.DrawList.Shape.RectangleMulticolor(upperLeft, lowerRight, 0x50FFFFFF, 0x50000000, 0x50FFFFFF, 0x50000000);
+        if (LunaHelpers.SetDifferent(ref DyeGlossOverlay.Uniforms.Rounding, Im.Style.FrameRounding))
+            DyeGlossOverlay.Update();
+
+        Im.Window.DrawList.Image(
+            CustomRenderingManager.Instance.RenderObject(DyeGlossOverlay, (uint)Math.Ceiling(lowerRight.X - upperLeft.X),
+                (uint)Math.Ceiling(lowerRight.Y - upperLeft.Y)), upperLeft, lowerRight);
     }
 
 
@@ -168,4 +181,10 @@ public abstract class FilterComboColors : FilterComboBase<FilterComboColors.Item
     /// <inheritdoc/>
     protected override FilterComboBaseCache<Item> CreateCache()
         => new ColorsCache(this);
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct DyeGlossOverlayUniforms
+    {
+        public float Rounding;
+    }
 }
