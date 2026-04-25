@@ -43,6 +43,7 @@
         <None Include="..\ImSharp\ImSharp\Resources\include\*.hlsli" Link="Resources/include/%(FileName)%(Extension)" />
         <None Include="..\ImSharp\ImSharp\Resources\*.hlsl" Link="Resources/%(FileName)%(Extension)" />
         <EmbeddedResource Include="..\ImSharp\ImSharp\Resources\*.dxbc" Link="Resources/%(FileName)%(Extension)" />
+        <Compile Remove="..\ImSharp\ImSharp\Resources\ResourceProvider.cs" />
 
         <None Include="Resources\include\*.hlsli" />
         <None Include="Resources\*.hlsl" />
