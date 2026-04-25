@@ -119,7 +119,7 @@ public abstract class FilterComboColors : FilterComboBase<FilterComboColors.Item
             DyeGlossOverlay.Update();
 
         Im.Window.DrawList.Image(
-            CustomRenderingManager.Instance.RenderObject(DyeGlossOverlay, (uint)Math.Ceiling(lowerRight.X - upperLeft.X),
+            CustomRenderManager.Instance.RenderObject(DyeGlossOverlay, (uint)Math.Ceiling(lowerRight.X - upperLeft.X),
                 (uint)Math.Ceiling(lowerRight.Y - upperLeft.Y)), upperLeft, lowerRight);
     }
 
