@@ -3,14 +3,14 @@ namespace Luna;
 /// <summary> A combo to display named colors. </summary>
 public abstract class FilterComboColors : FilterComboBase<FilterComboColors.Item>
 {
+    private static readonly PixelShader DyeGlossOverlayPixelShader = PixelShader.FromManifestResource("DyeGlossOverlay");
+
     // We are keeping two of these to avoid constant re-renderings due to the rounding being canceled within the popup.
     private static readonly FullScreenQuadWithUniforms<DyeGlossOverlayUniforms> PreviewDyeGlossOverlay =
-        new(ResourceProvider.GetManifestResourceBytes("DyeGlossOverlay_ps.dxbc"), default,
-            $"{nameof(FilterComboColors)}.{nameof(PreviewDyeGlossOverlay)}");
+        new(DyeGlossOverlayPixelShader, default, $"{nameof(FilterComboColors)}.{nameof(PreviewDyeGlossOverlay)}");
 
     private static readonly FullScreenQuadWithUniforms<DyeGlossOverlayUniforms> PopupDyeGlossOverlay =
-        new(ResourceProvider.GetManifestResourceBytes("DyeGlossOverlay_ps.dxbc"), default,
-            $"{nameof(FilterComboColors)}.{nameof(PopupDyeGlossOverlay)}");
+        new(DyeGlossOverlayPixelShader, default, $"{nameof(FilterComboColors)}.{nameof(PopupDyeGlossOverlay)}");
 
     /// <summary> A tracker variable for styles and colors pushed across function boundaries. </summary>
     protected readonly Im.ColorStyleDisposable Style = new();
