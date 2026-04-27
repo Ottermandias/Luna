@@ -163,6 +163,7 @@ public abstract class PredefinedTagManager<TProvider, TObj>(BaseSaveService<TPro
 
         var ret = false;
         Im.Text("Predefined Tags"u8);
+        using var id = Im.Id.Push("pdt"u8);
         Im.Separator();
         _addButtonColor    = AddButtonColor;
         _removeButtonColor = RemoveButtonColor;
@@ -200,6 +201,7 @@ public abstract class PredefinedTagManager<TProvider, TObj>(BaseSaveService<TPro
             return false;
 
         Im.Text("Predefined Tags"u8);
+        using var id = Im.Id.Push("pdt"u8);
         Im.Separator();
 
         _addButtonColor    = AddButtonColor;
@@ -269,6 +271,7 @@ public abstract class PredefinedTagManager<TProvider, TObj>(BaseSaveService<TPro
             return;
 
         Im.Text("Predefined Tags"u8);
+        using var _ = Im.Id.Push("pdt"u8);
 
         using var color = new Im.ColorDisposable();
         var       cache = CacheManager.Instance.GetOrCreateCache(Im.Id.Current, () => new Cache());
