@@ -50,11 +50,13 @@ public static class SetButtons
         if (nonEmpty && !readOnly)
         {
             TrySameLine(Im.Style.FrameHeight, ref first);
-            if (ImEx.Icon.Button(LunaStyle.DeleteIcon, $"Hold control and click to delete all {itemsDescription}.", !control))
+            if (ImEx.Icon.Button(LunaStyle.DeleteIcon, StringU8.Empty, !control))
             {
                 value   = T.Zero;
                 changed = true;
             }
+
+            Im.Tooltip.OnHover($"Hold control and click to delete all {itemsDescription}.");
         }
 
         if (universe == T.Zero || readOnly)
@@ -62,8 +64,9 @@ public static class SetButtons
 
         if (nonEmpty)
             TrySameLine(Im.Style.FrameHeight, ref first);
-        if (ImEx.Icon.Button(LunaStyle.AddObjectIcon, $"Add {itemsDescription}"))
+        if (ImEx.Icon.Button(LunaStyle.AddObjectIcon, StringU8.Empty))
             Im.Popup.Open("Add"u8);
+        Im.Tooltip.OnHover($"Add {itemsDescription}");
 
         using var popup = Im.Popup.Begin("Add"u8);
         if (!popup)
@@ -100,13 +103,26 @@ public static class SetButtons
 
     /// <inheritdoc cref="DrawCombo{T}(Utf8LabelHandler,ref T,T,Func{T,StringU8},StringU8,bool)"/>
     /// <typeparam name="TEnum"> The enum of the bit field. </typeparam>
-    /// <typeparam name="TBacking"> The backing primitive of the bit field. </typeparam>
     /// <returns> Whether the bit field was changed in any way in the current frame. </returns>
-    public static bool DrawCombo<TEnum, TBacking>(Utf8LabelHandler id, ref TEnum value, TEnum universe, Func<TEnum, StringU8> toLabel,
+    public static unsafe bool DrawComboEnum<TEnum>(Utf8LabelHandler id, ref TEnum value, TEnum universe, Func<TEnum, StringU8> toLabel,
         StringU8 itemsDescription, bool readOnly = false)
-        where TEnum : unmanaged, Enum where TBacking : unmanaged, IBinaryInteger<TBacking>
-        => DrawCombo(id, ref Unsafe.As<TEnum, TBacking>(ref value), Unsafe.BitCast<TEnum, TBacking>(universe),
-            value => toLabel(Unsafe.BitCast<TBacking, TEnum>(value)), itemsDescription, readOnly);
+        where TEnum : unmanaged, Enum
+    {
+        if (sizeof(TEnum) is 1)
+            return DrawCombo(id, ref Unsafe.As<TEnum, byte>(ref value), Unsafe.BitCast<TEnum, byte>(universe),
+            value => toLabel(Unsafe.BitCast<byte, TEnum>(value)), itemsDescription, readOnly);
+        if (sizeof(TEnum) is 2)
+            return DrawCombo(id, ref Unsafe.As<TEnum, ushort>(ref value), Unsafe.BitCast<TEnum, ushort>(universe),
+                value => toLabel(Unsafe.BitCast<ushort, TEnum>(value)), itemsDescription, readOnly);
+        if (sizeof(TEnum) is 4)
+            return DrawCombo(id, ref Unsafe.As<TEnum, uint>(ref value), Unsafe.BitCast<TEnum, uint>(universe),
+                value => toLabel(Unsafe.BitCast<uint, TEnum>(value)), itemsDescription, readOnly);
+        if (sizeof(TEnum) is 8)
+            return DrawCombo(id, ref Unsafe.As<TEnum, ulong>(ref value), Unsafe.BitCast<TEnum, ulong>(universe),
+                value => toLabel(Unsafe.BitCast<ulong, TEnum>(value)), itemsDescription, readOnly);
+
+        throw new ArgumentException($"Invalid Enum type {typeof(TEnum)} has size {sizeof(TEnum)} which is not supported.");
+    }
 
     /// <summary> Draws an editor for a set, presented as a group of tag-like buttons, the non-member values being folded into a combo-like button. </summary>
     /// <param name="id"> The ID of this editor. </param>
@@ -156,11 +172,12 @@ public static class SetButtons
         if (nonEmpty && !readOnly)
         {
             TrySameLine(Im.Style.FrameHeight, ref first);
-            if (ImEx.Icon.Button(LunaStyle.DeleteIcon, $"Hold control and click to delete all {itemsDescription}.", !control))
+            if (ImEx.Icon.Button(LunaStyle.DeleteIcon, StringU8.Empty, !control))
             {
                 value.Clear();
                 changed = true;
             }
+            Im.Tooltip.OnHover($"Hold control and click to delete all {itemsDescription}.");
         }
 
         if (readOnly)
@@ -174,8 +191,9 @@ public static class SetButtons
 
         if (nonEmpty)
             TrySameLine(Im.Style.FrameHeight, ref first);
-        if (ImEx.Icon.Button(LunaStyle.AddObjectIcon, $"Add {itemsDescription}"))
+        if (ImEx.Icon.Button(LunaStyle.AddObjectIcon, StringU8.Empty))
             Im.Popup.Open("Add"u8);
+        Im.Tooltip.OnHover($"Add {itemsDescription}");
 
         using var popup = Im.Popup.Begin("Add"u8);
         if (!popup)
@@ -250,9 +268,7 @@ public static class SetButtons
         {
             TrySameLine(Im.Style.FrameHeight, ref first);
             using var color = ImGuiColor.Button.Push((value & universe) == universe ? memberBackground : nonMemberBackground);
-            if (ImEx.Icon.Button(LunaStyle.ToggleBulkIcon,
-                    $"Hold control and click to {((value & universe) == universe ? "delete" : "add")} all {itemsDescription}.",
-                    !Im.Io.KeyControl))
+            if (ImEx.Icon.Button(LunaStyle.ToggleBulkIcon, StringU8.Empty, !Im.Io.KeyControl))
             {
                 if ((value & universe) == universe)
                     value = T.Zero;
@@ -260,6 +276,7 @@ public static class SetButtons
                     value |= universe;
                 changed = true;
             }
+            Im.Tooltip.OnHover($"Hold control and click to {((value & universe) == universe ? "delete" : "add")} all {itemsDescription}.");
         }
 
         return changed;
@@ -267,14 +284,23 @@ public static class SetButtons
 
     /// <inheritdoc cref="DrawCheckables{T}(Utf8LabelHandler,ref T,T,Func{T,StringU8},StringU8,bool,in ColorParameter,in ColorParameter)"/>
     /// <typeparam name="TEnum"> The enum of the bit field. </typeparam>
-    /// <typeparam name="TBacking"> The backing primitive of the bit field. </typeparam>
     /// <returns> Whether the bit field was changed in any way in the current frame. </returns>
-    public static bool DrawCheckables<TEnum, TBacking>(Utf8LabelHandler id, ref TEnum value, TEnum universe, Func<TEnum, StringU8> toLabel,
+    public static unsafe bool DrawCheckablesEnum<TEnum>(Utf8LabelHandler id, ref TEnum value, TEnum universe, Func<TEnum, StringU8> toLabel,
         StringU8 itemsDescription, bool readOnly = false, in ColorParameter memberBackground = default,
         in ColorParameter nonMemberBackground = default)
-        where TEnum : unmanaged, Enum where TBacking : unmanaged, IBinaryInteger<TBacking>
-        => DrawCheckables(id, ref Unsafe.As<TEnum, TBacking>(ref value), Unsafe.BitCast<TEnum, TBacking>(universe),
-            value => toLabel(Unsafe.BitCast<TBacking, TEnum>(value)), itemsDescription, readOnly, in memberBackground, in nonMemberBackground);
+        where TEnum : unmanaged, Enum
+    {
+        if (sizeof(TEnum) is 1)
+            return DrawCheckables(id, ref Unsafe.As<TEnum, byte>(ref value), Unsafe.BitCast<TEnum, byte>(universe), value => toLabel(Unsafe.BitCast<byte, TEnum>(value)), itemsDescription, readOnly, in memberBackground, in nonMemberBackground);
+        if (sizeof(TEnum) is 2)
+            return DrawCheckables(id, ref Unsafe.As<TEnum, ushort>(ref value), Unsafe.BitCast<TEnum, ushort>(universe), value => toLabel(Unsafe.BitCast<ushort, TEnum>(value)), itemsDescription, readOnly, in memberBackground, in nonMemberBackground);
+        if (sizeof(TEnum) is 4)
+            return DrawCheckables(id, ref Unsafe.As<TEnum, uint>(ref value), Unsafe.BitCast<TEnum, uint>(universe), value => toLabel(Unsafe.BitCast<uint, TEnum>(value)), itemsDescription, readOnly, in memberBackground, in nonMemberBackground);
+        if (sizeof(TEnum) is 8)
+            return DrawCheckables(id, ref Unsafe.As<TEnum, ulong>(ref value), Unsafe.BitCast<TEnum, ulong>(universe), value => toLabel(Unsafe.BitCast<ulong, TEnum>(value)), itemsDescription, readOnly, in memberBackground, in nonMemberBackground);
+
+        throw new ArgumentException($"Invalid Enum type {typeof(TEnum)} has size {sizeof(TEnum)} which is not supported.");
+    }
 
     /// <summary> Draws an editor for a set that is conceptually a set, presented as a group of checkable tag-like buttons, all values being always visible. </summary>
     /// <param name="id"> The ID of this editor. </param>
