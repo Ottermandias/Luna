@@ -138,6 +138,9 @@ public static partial class LunaStyle
     /// <summary> The icon that should be used to add horizontal separators. </summary>
     public static readonly AwesomeIcon AddSeparatorIcon = FontAwesomeIcon.XmarksLines;
 
+    /// <summary> The icon that should be used for buttons that enable or disable items in bulk. </summary>
+    public static readonly AwesomeIcon ToggleBulkIcon = FontAwesomeIcon.CheckSquare;
+
     /// <summary> The color for info texts, icons or borders. </summary>
     public static Vector4 InfoForeground
         => ImGuiColors.InfoForeground;

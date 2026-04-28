@@ -357,7 +357,7 @@ public abstract class PredefinedTagManager<TProvider, TObj>(BaseSaveService<TPro
     private bool DrawColoredButton(string buttonLabel, int index, int tagIdx, bool inOther)
     {
         using var id          = Im.Id.Push(index);
-        var       buttonWidth = Im.Font.CalculateButtonSize(buttonLabel).X;
+        var       buttonWidth = ImEx.Icon.CalculateLabeledButtonSize(LunaStyle.TrueIcon, buttonLabel).X;
         // Prevent adding a new tag past the right edge of the popup
         if (buttonWidth + Im.Style.ItemSpacing.X >= Im.ContentRegion.Available.X)
             Im.Line.New();
@@ -366,7 +366,8 @@ public abstract class PredefinedTagManager<TProvider, TObj>(BaseSaveService<TPro
         using (Im.Disabled(inOther))
         {
             using var color = ImGuiColor.Button.Push(tagIdx >= 0 || inOther ? _removeButtonColor : _addButtonColor);
-            ret = Im.Button(buttonLabel);
+            ret = ImEx.Icon.LabeledButton(LunaStyle.TrueIcon, buttonLabel,
+                iconFlags: tagIdx >= 0 || inOther ? 0 : ImEx.Icon.IconFlags.HideIcon);
         }
 
         if (inOther)
