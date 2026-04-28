@@ -33,19 +33,19 @@ public static class IconButtonTest
             Im.Text("Row 200"u8);
 
             if (ImEx.Icon.LabeledButton(FontAwesomeIcon.FastBackward.Icon(), "To Beginning"u8, new Vector2(120.0f, 0.0f),
-                    iconPosition: ImEx.Icon.IconPosition.Start))
+                    iconFlags: ImEx.Icon.IconFlags.Start))
                 _buttonTestLastClicked = 201;
             Im.Line.SameInner();
             if (ImEx.Icon.LabeledButton(FontAwesomeIcon.StepBackward.Icon(), "Previous"u8, new Vector2(120.0f, 0.0f),
-                    iconPosition: ImEx.Icon.IconPosition.BeforeLabel))
+                    iconFlags: ImEx.Icon.IconFlags.BeforeLabel))
                 _buttonTestLastClicked = 202;
             Im.Line.SameInner();
             if (ImEx.Icon.LabeledButton(FontAwesomeIcon.StepForward.Icon(), "Next"u8, new Vector2(120.0f, 0.0f),
-                    iconPosition: ImEx.Icon.IconPosition.AfterLabel))
+                    iconFlags: ImEx.Icon.IconFlags.AfterLabel))
                 _buttonTestLastClicked = 203;
             Im.Line.SameInner();
             if (ImEx.Icon.LabeledButton(FontAwesomeIcon.FastForward.Icon(), "To End"u8, new Vector2(120.0f, 0.0f),
-                    iconPosition: ImEx.Icon.IconPosition.End))
+                    iconFlags: ImEx.Icon.IconFlags.End))
                 _buttonTestLastClicked = 204;
         }
 
