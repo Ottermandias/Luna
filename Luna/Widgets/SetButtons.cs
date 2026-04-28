@@ -9,9 +9,11 @@ public static class SetButtons
     /// <param name="universe"> A mask containing all the bits that may be added to the bit field. </param>
     /// <param name="toLabel"> A function that turns an individual bit into the corresponding label. </param>
     /// <param name="itemsDescription"> A description of several items of the set. Used in phrases such as "add all the {<paramref name="itemsDescription"/>}". </param>
+    /// <param name="readOnly"> Whether this editor shall be read-only. </param>
     /// <typeparam name="T"> The backing primitive of the bit field. </typeparam>
     /// <returns> Whether the bit field was changed in any way in the current frame. </returns>
-    public static bool DrawCombo<T>(Utf8LabelHandler id, ref T value, T universe, Func<T, StringU8> toLabel, StringU8 itemsDescription)
+    public static bool DrawCombo<T>(Utf8LabelHandler id, ref T value, T universe, Func<T, StringU8> toLabel, StringU8 itemsDescription,
+        bool readOnly = false)
         where T : unmanaged, IBinaryInteger<T>
     {
         var first    = true;
@@ -23,6 +25,7 @@ public static class SetButtons
 
         using var _     = Im.Id.Push(ref id);
         using var group = Im.Group();
+        using var dis   = Im.Disabled(readOnly);
 
         var remainingBits = value;
         while (remainingBits != T.Zero)
@@ -32,8 +35,9 @@ public static class SetButtons
             var label = toLabel(bit);
             TrySameLine(Im.Font.CalculateButtonSize(label).X, ref first);
             Im.Button(label);
-            var delete = control && Im.Item.RightClicked();
-            Im.Tooltip.OnHover("Hold control and right-click to delete."u8);
+            var delete = !readOnly && control && Im.Item.RightClicked();
+            if (!readOnly)
+                Im.Tooltip.OnHover("Hold control and right-click to delete."u8);
             if (delete)
             {
                 value   &= ~bit;
@@ -43,7 +47,7 @@ public static class SetButtons
             remainingBits &= ~bit;
         }
 
-        if (nonEmpty)
+        if (nonEmpty && !readOnly)
         {
             TrySameLine(Im.Style.FrameHeight, ref first);
             if (ImEx.Icon.Button(LunaStyle.DeleteIcon, $"Hold control and click to delete all {itemsDescription}.", !control))
@@ -53,7 +57,7 @@ public static class SetButtons
             }
         }
 
-        if (universe == T.Zero)
+        if (universe == T.Zero || readOnly)
             return changed;
 
         if (nonEmpty)
@@ -94,15 +98,15 @@ public static class SetButtons
         return changed;
     }
 
-    /// <inheritdoc cref="DrawCombo{T}(Utf8LabelHandler,ref T,T,Func{T,StringU8},StringU8)"/>
+    /// <inheritdoc cref="DrawCombo{T}(Utf8LabelHandler,ref T,T,Func{T,StringU8},StringU8,bool)"/>
     /// <typeparam name="TEnum"> The enum of the bit field. </typeparam>
     /// <typeparam name="TBacking"> The backing primitive of the bit field. </typeparam>
     /// <returns> Whether the bit field was changed in any way in the current frame. </returns>
     public static bool DrawCombo<TEnum, TBacking>(Utf8LabelHandler id, ref TEnum value, TEnum universe, Func<TEnum, StringU8> toLabel,
-        StringU8 itemsDescription)
+        StringU8 itemsDescription, bool readOnly = false)
         where TEnum : unmanaged, Enum where TBacking : unmanaged, IBinaryInteger<TBacking>
         => DrawCombo(id, ref Unsafe.As<TEnum, TBacking>(ref value), Unsafe.BitCast<TEnum, TBacking>(universe),
-            value => toLabel(Unsafe.BitCast<TBacking, TEnum>(value)), itemsDescription);
+            value => toLabel(Unsafe.BitCast<TBacking, TEnum>(value)), itemsDescription, readOnly);
 
     /// <summary> Draws an editor for a set, presented as a group of tag-like buttons, the non-member values being folded into a combo-like button. </summary>
     /// <param name="id"> The ID of this editor. </param>
@@ -110,10 +114,11 @@ public static class SetButtons
     /// <param name="universe"> A collection of the values that may be added to the set. It should not contain the values already in the set. </param>
     /// <param name="toLabel"> A function that turns a value into the corresponding label. </param>
     /// <param name="itemsDescription"> A description of several items of the set. Used in phrases such as "add all the {<paramref name="itemsDescription"/>}". </param>
+    /// <param name="readOnly"> Whether this editor shall be read-only. </param>
     /// <typeparam name="T"> The element type of the set. </typeparam>
     /// <returns> Whether the set was changed in any way in the current frame. </returns>
     public static bool DrawCombo<T>(Utf8LabelHandler id, ISet<T> value, IEnumerable<T> universe, Func<T, StringU8> toLabel,
-        StringU8 itemsDescription)
+        StringU8 itemsDescription, bool readOnly = false)
     {
         var first    = true;
         var changed  = false;
@@ -122,6 +127,7 @@ public static class SetButtons
 
         using var _     = Im.Id.Push(ref id);
         using var group = Im.Group();
+        using var dis   = Im.Disabled(readOnly);
 
         var willRemove   = false;
         T   itemToRemove = default!;
@@ -131,8 +137,9 @@ public static class SetButtons
             var label = toLabel(item);
             TrySameLine(Im.Font.CalculateButtonSize(label).X, ref first);
             Im.Button(label);
-            var delete = control && Im.Item.RightClicked();
-            Im.Tooltip.OnHover("Hold control and right-click to delete."u8);
+            var delete = !readOnly && control && Im.Item.RightClicked();
+            if (!readOnly)
+                Im.Tooltip.OnHover("Hold control and right-click to delete."u8);
             if (delete)
             {
                 willRemove   = true;
@@ -146,7 +153,7 @@ public static class SetButtons
             changed = true;
         }
 
-        if (nonEmpty)
+        if (nonEmpty && !readOnly)
         {
             TrySameLine(Im.Style.FrameHeight, ref first);
             if (ImEx.Icon.Button(LunaStyle.DeleteIcon, $"Hold control and click to delete all {itemsDescription}.", !control))
@@ -155,6 +162,9 @@ public static class SetButtons
                 changed = true;
             }
         }
+
+        if (readOnly)
+            return changed;
 
         if (!universe.TryGetNonEnumeratedCount(out var count))
             count = -1;
@@ -202,12 +212,13 @@ public static class SetButtons
     /// <param name="universe"> A mask containing all the bits that may be added to the bit field. </param>
     /// <param name="toLabel"> A function that turns an individual bit into the corresponding label. </param>
     /// <param name="itemsDescription"> A description of several items of the set. Used in phrases such as "add all the {<paramref name="itemsDescription"/>}". </param>
+    /// <param name="readOnly"> Whether this editor shall be read-only. </param>
     /// <param name="memberBackground"> A background color for member bits. </param>
     /// <param name="nonMemberBackground"> A background color for non-member bits. </param>
     /// <typeparam name="T"> The backing primitive of the bit field. </typeparam>
     /// <returns> Whether the bit field was changed in any way in the current frame. </returns>
     public static bool DrawCheckables<T>(Utf8LabelHandler id, ref T value, T universe, Func<T, StringU8> toLabel, StringU8 itemsDescription,
-        in ColorParameter memberBackground = default, in ColorParameter nonMemberBackground = default)
+        bool readOnly = false, in ColorParameter memberBackground = default, in ColorParameter nonMemberBackground = default)
         where T : unmanaged, IBinaryInteger<T>
     {
         var first   = true;
@@ -215,6 +226,7 @@ public static class SetButtons
 
         using var _     = Im.Id.Push(ref id);
         using var group = Im.Group();
+        using var dis   = Im.Disabled(readOnly);
 
         var remainingBits = universe | value;
         while (remainingBits != T.Zero)
@@ -224,7 +236,8 @@ public static class SetButtons
             var label = toLabel(bit);
             TrySameLine(ImEx.Icon.CalculateLabeledButtonSize(LunaStyle.TrueIcon, label).X, ref first);
             using var color = ImGuiColor.Button.Push((value & bit) == bit ? memberBackground : nonMemberBackground);
-            if (ImEx.Icon.LabeledButton(LunaStyle.TrueIcon, label, iconFlags: (value & bit) == bit ? 0 : ImEx.Icon.IconFlags.HideIcon))
+            if (ImEx.Icon.LabeledButton(LunaStyle.TrueIcon, label, iconFlags: (value & bit) == bit ? 0 : ImEx.Icon.IconFlags.HideIcon)
+             && !readOnly)
             {
                 value   ^= bit;
                 changed =  true;
@@ -233,7 +246,7 @@ public static class SetButtons
             remainingBits &= ~bit;
         }
 
-        if ((value & universe) != universe || value != T.Zero)
+        if (((value & universe) != universe || value != T.Zero) && !readOnly)
         {
             TrySameLine(Im.Style.FrameHeight, ref first);
             using var color = ImGuiColor.Button.Push((value & universe) == universe ? memberBackground : nonMemberBackground);
@@ -252,15 +265,16 @@ public static class SetButtons
         return changed;
     }
 
-    /// <inheritdoc cref="DrawCheckables{T}(Utf8LabelHandler,ref T,T,Func{T,StringU8},StringU8,in ColorParameter,in ColorParameter)"/>
+    /// <inheritdoc cref="DrawCheckables{T}(Utf8LabelHandler,ref T,T,Func{T,StringU8},StringU8,bool,in ColorParameter,in ColorParameter)"/>
     /// <typeparam name="TEnum"> The enum of the bit field. </typeparam>
     /// <typeparam name="TBacking"> The backing primitive of the bit field. </typeparam>
     /// <returns> Whether the bit field was changed in any way in the current frame. </returns>
     public static bool DrawCheckables<TEnum, TBacking>(Utf8LabelHandler id, ref TEnum value, TEnum universe, Func<TEnum, StringU8> toLabel,
-        StringU8 itemsDescription, in ColorParameter memberBackground = default, in ColorParameter nonMemberBackground = default)
+        StringU8 itemsDescription, bool readOnly = false, in ColorParameter memberBackground = default,
+        in ColorParameter nonMemberBackground = default)
         where TEnum : unmanaged, Enum where TBacking : unmanaged, IBinaryInteger<TBacking>
         => DrawCheckables(id, ref Unsafe.As<TEnum, TBacking>(ref value), Unsafe.BitCast<TEnum, TBacking>(universe),
-            value => toLabel(Unsafe.BitCast<TBacking, TEnum>(value)), itemsDescription, in memberBackground, in nonMemberBackground);
+            value => toLabel(Unsafe.BitCast<TBacking, TEnum>(value)), itemsDescription, readOnly, in memberBackground, in nonMemberBackground);
 
     /// <summary> Draws an editor for a set that is conceptually a set, presented as a group of checkable tag-like buttons, all values being always visible. </summary>
     /// <param name="id"> The ID of this editor. </param>
@@ -268,18 +282,21 @@ public static class SetButtons
     /// <param name="universe"> A collection of the values that may be added to the set. It should contain the values already in the set. May be enumerated multiple times per call. </param>
     /// <param name="toLabel"> A function that turns a value into the corresponding label. </param>
     /// <param name="itemsDescription"> A description of several items of the set. Used in phrases such as "add all the {<paramref name="itemsDescription"/>}". </param>
+    /// <param name="readOnly"> Whether this editor shall be read-only. </param>
     /// <param name="memberBackground"> A background color for member values. </param>
     /// <param name="nonMemberBackground"> A background color for non-member values. </param>
     /// <typeparam name="T"> The element type of the set. </typeparam>
     /// <returns> Whether the set was changed in any way in the current frame. </returns>
     public static bool DrawCheckables<T>(Utf8LabelHandler id, ISet<T> value, IEnumerable<T> universe, Func<T, StringU8> toLabel,
-        StringU8 itemsDescription, in ColorParameter memberBackground = default, in ColorParameter nonMemberBackground = default)
+        StringU8 itemsDescription, bool readOnly = false, in ColorParameter memberBackground = default,
+        in ColorParameter nonMemberBackground = default)
     {
         var first   = true;
         var changed = false;
 
         using var _     = Im.Id.Push(ref id);
         using var group = Im.Group();
+        using var dis   = Im.Disabled(readOnly);
 
         var remaining      = new HashSet<T>(value);
         var nonMemberCount = 0;
@@ -290,7 +307,7 @@ public static class SetButtons
             var label  = toLabel(item);
             TrySameLine(ImEx.Icon.CalculateLabeledButtonSize(LunaStyle.TrueIcon, label).X, ref first);
             using var color = ImGuiColor.Button.Push(member ? memberBackground : nonMemberBackground);
-            if (ImEx.Icon.LabeledButton(LunaStyle.TrueIcon, label, iconFlags: member ? 0 : ImEx.Icon.IconFlags.HideIcon))
+            if (ImEx.Icon.LabeledButton(LunaStyle.TrueIcon, label, iconFlags: member ? 0 : ImEx.Icon.IconFlags.HideIcon) && !readOnly)
             {
                 if (member)
                     value.Remove(item);
@@ -308,14 +325,14 @@ public static class SetButtons
             var label = toLabel(item);
             TrySameLine(ImEx.Icon.CalculateLabeledButtonSize(LunaStyle.TrueIcon, label).X, ref first);
             using var color = ImGuiColor.Button.Push(memberBackground);
-            if (ImEx.Icon.LabeledButton(LunaStyle.TrueIcon, label))
+            if (ImEx.Icon.LabeledButton(LunaStyle.TrueIcon, label) && !readOnly)
             {
                 value.Remove(item);
                 changed = true;
             }
         }
 
-        if (nonMemberCount > 0 || value.Count > 0)
+        if ((nonMemberCount > 0 || value.Count > 0) && !readOnly)
         {
             TrySameLine(Im.Style.FrameHeight, ref first);
             using var color = ImGuiColor.Button.Push(nonMemberCount is 0 ? memberBackground : nonMemberBackground);
