@@ -26,6 +26,9 @@ public sealed partial class WindowSystem : Dalamud.Interface.Windowing.WindowSys
     /// <summary> The UI Builder this window system is registered with. </summary>
     public readonly IUiBuilder UiBuilder;
 
+    /// <summary> Whether the window system should only draw if ImSharp is initialized. </summary>
+    public bool RequiresImSharp { get; init; } = true;
+
     /// <inheritdoc/>
     private WindowSystem(IUiBuilder uiBuilder, string name)
         : base(name)
@@ -41,8 +44,8 @@ public sealed partial class WindowSystem : Dalamud.Interface.Windowing.WindowSys
         => p => new WindowSystem(p.GetRequiredService<IUiBuilder>(), name);
 
     /// <returns> A factory function. </returns>
-    public static WindowSystem Create(IUiBuilder builder, string name)
-        => new(builder, name);
+    public static WindowSystem Create(IUiBuilder builder, string name, bool requiresImSharp = true)
+        => new(builder, name) { RequiresImSharp = requiresImSharp };
 
     /// <inheritdoc/>
     public void Dispose()
@@ -51,7 +54,7 @@ public sealed partial class WindowSystem : Dalamud.Interface.Windowing.WindowSys
     /// <summary> Draw only if our context has been initialized. </summary>
     private new void Draw()
     {
-        if (!ImSharpConfiguration.IsInitialized)
+        if (RequiresImSharp && !ImSharpConfiguration.IsInitialized)
             return;
 
         ReadStacks();
