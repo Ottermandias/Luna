@@ -95,6 +95,13 @@ public struct DoubleModifier : IEquatable<DoubleModifier>
             ? $"{Modifier1} and {Modifier2}"
             : Modifier1.ToString();
 
+    /// <summary> Returns a description of a user action to perform, involving this modifier, of the form "Hold {this} and {<paramref name="action"/>}". </summary>
+    /// <param name="action"> The user action. Should begin with a lowercase letter. </param>
+    /// <param name="noKeyAction"> A variant of the user action when this modifier is <see cref="NoKey"/>. Should be <paramref name="action"/> but starting with an uppercase letter. </param>
+    /// <returns> The description of the user action. </returns>
+    public string Describe(string action, string noKeyAction)
+        => this == NoKey ? noKeyAction : $"Hold {this} and {action}";
+
     /// <summary> Check whether both required modifiers are currently held according to ImGui. </summary>
     public bool IsActive()
         => Modifier1.IsActive() && Modifier2.IsActive();

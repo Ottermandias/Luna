@@ -3,6 +3,9 @@ namespace Luna;
 /// <summary> Class to draw and edit a list of tags. </summary>
 public static class TagButtons
 {
+    /// <summary> The modifier that must be held while right-clicking to delete a tag. </summary>
+    public static DoubleModifier DeletionModifier = new(ModifierHotkey.Control);
+
     /// <summary> Draw the list of tags. </summary>
     /// <param name="label"> A text entry displayed before the list and used as ID. The line-broken list is wrapped at the end of this text. Does not have to be null-terminated. </param>
     /// <param name="description"> Optional description displayed when hovering over a help marker before the label (if the description is not empty.) Does not have to be null-terminated. </param>
@@ -57,8 +60,8 @@ public static class TagButtons
 
                 if (editable)
                 {
-                    var delete = Im.Io.KeyControl && Im.Item.RightClicked();
-                    Im.Tooltip.OnHover("Hold control and right-click to delete."u8);
+                    var delete = DeletionModifier.IsActive() && Im.Item.RightClicked();
+                    Im.Tooltip.OnHover($"{DeletionModifier.Describe("right-click", "Right-click")} to delete.");
                     if (delete)
                     {
                         editedTag = string.Empty;
