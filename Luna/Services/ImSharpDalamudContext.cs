@@ -43,7 +43,11 @@ public sealed unsafe class ImSharpDalamudContext : IRequiredService, IDisposable
 
         ImSharpConfiguration.SetLogger(logger);
 
-        CustomRenderManager.Instance.SetDevice(uiBuilder.DeviceHandle);
+        var dxDevice = uiBuilder.DeviceHandle;
+        if (dxDevice is not 0)
+            CustomRenderManager.Instance.SetDevice(dxDevice);
+        else
+            _uiBuilder.Draw += SetupDevice;
 
         // Set up the default cache manager.
         _uiBuilder.DefaultFontChanged        += OnDefaultFontChanged;
@@ -78,6 +82,17 @@ public sealed unsafe class ImSharpDalamudContext : IRequiredService, IDisposable
         ImSharpConfiguration.SetLogger(null);
         _pluginInterface.RelinquishData(_contextTag);
         _uiBuilder.Draw -= ImSharpPerFrame.OnUpdate;
+        _uiBuilder.Draw -= SetupDevice;
+    }
+
+    private void SetupDevice()
+    {
+        var dxDevice = _uiBuilder.DeviceHandle;
+        if (dxDevice is 0)
+            return;
+
+        CustomRenderManager.Instance.SetDevice(dxDevice);
+        _uiBuilder.Draw -= SetupDevice;
     }
 
     /// <summary> Draw debug information about the currently configured <see cref="ImSharpContext"/>. </summary>
