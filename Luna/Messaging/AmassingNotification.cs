@@ -26,20 +26,23 @@ public abstract class AmassingNotification<T>(MessageService messageService) : I
     /// <param name="object"> The object to add a notification for. </param>
     protected virtual void AddObject(in T @object)
     {
-        if (GatheredObjects.Contains(@object))
-            return;
+        lock (GatheredObjects)
+        {
+            if (GatheredObjects.Contains(@object))
+                return;
 
-        GatheredObjects.Add(@object);
-        MessageService.AddMessage(CreateStored(@object), true, false);
-        if (CurrentNotification is null)
-        {
-            MessageService.AddMessage(this);
-        }
-        else
-        {
-            CurrentNotification.Title         = NotificationTitle;
-            CurrentNotification.MinimizedText = CurrentNotification.Title;
-            CurrentNotification.ExtendBy(TimeSpan.FromSeconds(30));
+            GatheredObjects.Add(@object);
+            MessageService.AddMessage(CreateStored(@object), true, false);
+            if (CurrentNotification is null)
+            {
+                MessageService.AddMessage(this);
+            }
+            else
+            {
+                CurrentNotification.Title         = NotificationTitle;
+                CurrentNotification.MinimizedText = CurrentNotification.Title;
+                CurrentNotification.ExtendBy(TimeSpan.FromSeconds(30));
+            }
         }
     }
 
@@ -101,12 +104,15 @@ public abstract class AmassingNotification<T>(MessageService messageService) : I
     /// <summary> Clear all gathered objects on dismissal and remove the displayed notification. </summary>
     private void OnNotificationDismissedInternal(INotificationDismissArgs args)
     {
-        if (args.Notification != CurrentNotification)
-            return;
+        lock (GatheredObjects)
+        {
+            if (args.Notification != CurrentNotification)
+                return;
 
-        OnNotificationDismissed(args);
-        GatheredObjects.Clear();
-        CurrentNotification = null;
+            OnNotificationDismissed(args);
+            GatheredObjects.Clear();
+            CurrentNotification = null;
+        }
     }
 
     /// <summary> Additional actions when the amassed notification is dismissed. </summary>
@@ -156,13 +162,16 @@ public abstract class AmassingNotification<T>(MessageService messageService) : I
         /// <summary> Remove the associated object from the gathered objects when this message is dismissed, and update the notification if it is currently displayed. </summary>
         public virtual void OnRemoval()
         {
-            parent.GatheredObjects.Remove(@object);
-            if (parent.CurrentNotification is { } notification)
+            lock (parent.GatheredObjects)
             {
-                if (parent.GatheredObjects.Count is 0)
-                    notification.DismissNow();
-                notification.Title         = parent.NotificationTitle;
-                notification.MinimizedText = notification.Title;
+                parent.GatheredObjects.Remove(@object);
+                if (parent.CurrentNotification is { } notification)
+                {
+                    if (parent.GatheredObjects.Count is 0)
+                        notification.DismissNow();
+                    notification.Title         = parent.NotificationTitle;
+                    notification.MinimizedText = notification.Title;
+                }
             }
         }
     }
