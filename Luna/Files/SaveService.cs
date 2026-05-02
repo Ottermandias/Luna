@@ -444,8 +444,10 @@ public abstract class BaseSaveService<T>(LunaLogger log, FrameworkManager framew
                     return;
 
                 Log.Information($"{threadPrefix}Deleting {typeName} {logName}...");
-                if (BackupMode is BackupMode.NoBackups && CreateBackup(Log, BackupMode, threadPrefix, typeName, logName, name, out _))
+                if (BackupMode is BackupMode.NoBackups)
                     File.Delete(name);
+                else
+                    CreateBackup(Log, BackupMode, threadPrefix, typeName, logName, name, out _);
             }
             catch (Exception ex)
             {
