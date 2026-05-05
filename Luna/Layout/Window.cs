@@ -8,20 +8,12 @@ public abstract class Window : Dalamud.Interface.Windowing.Window, IUiService
     /// <inheritdoc/>
     protected Window(string name, WindowFlags flags = WindowFlags.None, bool forceMainWindow = false)
         : base(name, (ImGuiWindowFlags)flags, forceMainWindow)
-    {
-        DisableWindowSounds = true;
-        AllowClickthrough   = false;
-        AllowPinning        = false;
-    }
+    { }
 
     /// <inheritdoc/>
     protected Window(string name)
         : base(name)
-    {
-        DisableWindowSounds = true;
-        AllowClickthrough   = false;
-        AllowPinning        = false;
-    }
+    { }
 
     /// <inheritdoc cref="Dalamud.Interface.Windowing.Window.PositionCondition"/>
     public new Condition PositionCondition
@@ -49,5 +41,27 @@ public abstract class Window : Dalamud.Interface.Windowing.Window, IUiService
     {
         get => (WindowFlags)base.Flags;
         set => base.Flags = (ImGuiWindowFlags)value;
+    }
+}
+
+/// <summary> A base class for any type of window which should not support Dalamud's click-through, pinning or cause sounds. </summary>
+public abstract class OverlayWindow : Window
+{
+    /// <inheritdoc/>
+    protected OverlayWindow(string name, WindowFlags flags = WindowFlags.None, bool forceMainWindow = false)
+        : base(name, flags, forceMainWindow)
+    {
+        DisableWindowSounds = true;
+        AllowClickthrough   = false;
+        AllowPinning        = false;
+    }
+
+    /// <inheritdoc/>
+    protected OverlayWindow(string name)
+        : base(name)
+    {
+        DisableWindowSounds = true;
+        AllowClickthrough   = false;
+        AllowPinning        = false;
     }
 }
