@@ -6,6 +6,9 @@ namespace Luna;
 
 public static partial class LunaStyle
 {
+    /// <summary> Modifiers used across Luna widgets. </summary>
+    public static readonly ModifierHelper Modifier = new();
+
     /// <summary> The icon that should be used for generic save buttons. </summary>
     public static readonly AwesomeIcon SaveIcon = FontAwesomeIcon.Save;
 

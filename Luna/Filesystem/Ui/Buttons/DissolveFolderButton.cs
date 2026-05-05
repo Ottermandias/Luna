@@ -10,11 +10,18 @@ public sealed class DissolveFolderButton(BaseFileSystem fileSystem) : BaseButton
 
     /// <inheritdoc/>
     public override void DrawTooltip(in IFileSystemFolder _)
-        => Im.Text("Remove this folder and move all its children to its parent-folder, if possible."u8);
+    {
+        Im.Text("Remove this folder and move all its children to its parent-folder, if possible."u8);
+        if (!LunaStyle.Modifier.Destructive)
+            Im.Text($"\nHold {LunaStyle.Modifier.Destructive} while clicking to dissolve.");
+    }
 
     /// <inheritdoc/>
     public override bool HasTooltip
         => true;
+
+    public override bool Enabled(in IFileSystemFolder data)
+        => LunaStyle.Modifier.Destructive;
 
     /// <inheritdoc/>
     public override void OnClick(in IFileSystemFolder folder)
