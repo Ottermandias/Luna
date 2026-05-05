@@ -3568,7 +3568,7 @@ resharper_xml_doc_comment_syntax_problem_highlighting=warning
 resharper_xunit_xunit_test_with_console_output_highlighting=warning
 
 # Standard properties
-end_of_line= crlf
+end_of_line= lf
 csharp_indent_labels = one_less_than_current
 csharp_prefer_simple_using_statement = true:suggestion
 csharp_prefer_braces = true:silent
