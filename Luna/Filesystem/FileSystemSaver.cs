@@ -105,10 +105,10 @@ public abstract partial class FileSystemSaver : IDisposable
         public Dictionary<string, SeparatorData> Separators = [];
 
         /// <summary> Folder data. </summary>
-        public readonly record struct FolderData(uint? ExpandedColor, uint? CollapsedColor, string? SortMode)
+        public readonly record struct FolderData(uint? ExpandedColor, uint? CollapsedColor, string? SortMode, bool? IsSeparator)
         {
             /// <summary> Empty folder data. </summary>
-            public static readonly FolderData Empty = new(null, null, null);
+            public static readonly FolderData Empty = new(null, null, null, false);
         }
 
         /// <summary> Separator data. </summary>
@@ -274,8 +274,9 @@ public abstract class FileSystemSaver<TSaveService, TProvider> : FileSystemSaver
         try
         {
             var folder = (FileSystemFolder)FileSystem.FindOrCreateAllFolders(path);
-            folder.ExpandedColor  = folderData.ExpandedColor.HasValue ? new Rgba32(folderData.ExpandedColor.Value) : ColorParameter.Default;
-            folder.CollapsedColor = folderData.CollapsedColor.HasValue ? new Rgba32(folderData.CollapsedColor.Value) : ColorParameter.Default;
+            folder.ExpandedColor   = folderData.ExpandedColor.HasValue ? new Rgba32(folderData.ExpandedColor.Value) : ColorParameter.Default;
+            folder.CollapsedColor  = folderData.CollapsedColor.HasValue ? new Rgba32(folderData.CollapsedColor.Value) : ColorParameter.Default;
+            folder.DrawAsSeparator = folderData.IsSeparator ?? false;
             if (folderData.SortMode is not null)
             {
                 if (ParseSortMode(folderData.SortMode) is { } sortMode)
@@ -650,6 +651,8 @@ public abstract class FileSystemSaver<TSaveService, TProvider> : FileSystemSaver
                     j.WriteNumber("CollapsedColor"u8, folder.CollapsedColor.Color!.Value.Color);
                 if (folder.SortMode is not null)
                     j.WriteString("SortMode"u8, folder.SortMode.GetType().Name);
+                if (folder.DrawAsSeparator)
+                    j.WriteBoolean("IsSeparator"u8, folder.DrawAsSeparator);
                 j.WriteEndObject();
             }
 

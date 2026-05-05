@@ -20,6 +20,9 @@ internal sealed class FileSystemFolder(FileSystemIdentifier identifier)
     /// <inheritdoc/>
     public ISortMode? SortMode { get; internal set; }
 
+    /// <inheritdoc/>
+    public bool DrawAsSeparator { get; internal set; }
+
     /// <summary> All direct children of this folder. </summary>
     internal readonly List<FileSystemNode> Children = [];
 

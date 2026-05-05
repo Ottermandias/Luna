@@ -67,25 +67,34 @@ public sealed class FileSystemFolderCache : IFileSystemNodeCache
     /// <inheritdoc/>
     public void Draw(FileSystemCache cache, IFileSystemNode node, bool temporaryExpansion)
     {
-        var folder   = (IFileSystemFolder)node;
-        var expanded = temporaryExpansion ? folder.FilterExpanded : folder.Expanded;
-        Im.Tree.SetNextOpen(expanded);
-        bool ret;
-        var  flags = node.Selected ? TreeNodeFlags.NoTreePushOnOpen | TreeNodeFlags.Selected : TreeNodeFlags.NoTreePushOnOpen;
-        using (ImGuiColor.Text.Push(expanded ? ExpandedColor : CollapsedColor))
+        var folder = (IFileSystemFolder)node;
+        if (folder.DrawAsSeparator)
         {
-            ImEx.IconTreeNode(Label, flags, node, out ret, new LockedIcon(cache.FileSystem)).Dispose();
+            FileSystemSeparatorCache.DrawLine(cache, node.Depth, ExpandedColor);
+            Im.InvisibleButton(Label, Im.ContentRegion.Available with { Y = Im.Style.TextHeight });
+        }
+        else
+        {
+            var expanded = temporaryExpansion ? folder.FilterExpanded : folder.Expanded;
+            Im.Tree.SetNextOpen(expanded);
+            bool ret;
+            var  flags = node.Selected ? TreeNodeFlags.NoTreePushOnOpen | TreeNodeFlags.Selected : TreeNodeFlags.NoTreePushOnOpen;
+            using (ImGuiColor.Text.Push(expanded ? ExpandedColor : CollapsedColor))
+            {
+                ImEx.IconTreeNode(Label, flags, node, out ret, new LockedIcon(cache.FileSystem)).Dispose();
+            }
+
+            if (ret)
+            {
+                if (temporaryExpansion)
+                    cache.FileSystem.ChangeTemporaryExpandedState(folder, !folder.FilterExpanded);
+                else
+                    cache.FileSystem.ChangeExpandedState(folder, !folder.Expanded);
+            }
+
+            cache.HandleSelection(node, true);
         }
 
-        if (ret)
-        {
-            if (temporaryExpansion)
-                cache.FileSystem.ChangeTemporaryExpandedState(folder, !folder.FilterExpanded);
-            else
-                cache.FileSystem.ChangeExpandedState(folder, !folder.Expanded);
-        }
-
-        cache.HandleSelection(node, true);
         ApplyMiddleClick(cache, folder);
         DrawContext(cache, folder);
         IFileSystemNodeCache.DragDrop(cache, node);

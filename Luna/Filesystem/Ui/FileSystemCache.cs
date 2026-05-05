@@ -493,6 +493,7 @@ public abstract class FileSystemCache<TData> : FileSystemCache
                         ParentIndex      = parentIndex,
                         StartsLineTo     = -1,
                     };
+                    var childrenDepth  = folder.DrawAsSeparator ? currentDepth : currentDepth + 1;
 
                     // We only respect the expanded state of folders if the filter is currently empty.
                     // As soon as a filter is set, expand all folders that are visible or have visible children.
@@ -501,19 +502,22 @@ public abstract class FileSystemCache<TData> : FileSystemCache
                         data.TemporaryFilter = false;
                         var index = InternalNodes.Count;
                         InternalNodes.Add(data);
-                        if (folder.Expanded && !skipDescendants)
+                        if ((folder.DrawAsSeparator || folder.Expanded) && !skipDescendants)
                         {
                             // Add all visible children.
                             foreach (var child in folder.GetChildren(folder.SortMode ?? Parent.SortMode))
-                                AddNode(child, index, currentDepth + 1, 0);
+                                AddNode(child, index, childrenDepth, 0);
                             // We have visible children, so the folder is also visible either way.
                             // The line should only go to the last child nested one deeper, if that is a folder, it may not be the newest child.
-                            for (var i = InternalNodes.Count - 1; i > index; i--)
+                            if (!folder.DrawAsSeparator)
                             {
-                                if (InternalNodes[i].IndentationDepth == currentDepth + 1)
+                                for (var i = InternalNodes.Count - 1; i > index; i--)
                                 {
-                                    data.StartsLineTo = i;
-                                    break;
+                                    if (InternalNodes[i].IndentationDepth == currentDepth + 1)
+                                    {
+                                        data.StartsLineTo = i;
+                                        break;
+                                    }
                                 }
                             }
                         }
@@ -521,7 +525,7 @@ public abstract class FileSystemCache<TData> : FileSystemCache
                     else
                     {
                         data.TemporaryFilter = true;
-                        if (!folder.FilterExpanded)
+                        if (folder is { FilterExpanded: false, DrawAsSeparator: false })
                         {
                             if (visible
                              || !skipDescendants
@@ -536,18 +540,23 @@ public abstract class FileSystemCache<TData> : FileSystemCache
                             // Add all visible children.
                             if (!skipDescendants)
                                 foreach (var child in folder.GetChildren(folder.SortMode ?? Parent.SortMode))
-                                    AddNode(child, index, currentDepth + 1, 0);
+                                    AddNode(child, index, childrenDepth, 0);
 
                             if (InternalNodes.Count > index + 1)
-                                // The line should only go to the last child nested one deeper, if that is a folder, it may not be the newest child.
-                                for (var i = InternalNodes.Count - 1; i > index; i--)
+                            {
+                                if (folder.DrawAsSeparator)
                                 {
-                                    if (InternalNodes[i].IndentationDepth == currentDepth + 1)
+                                    // The line should only go to the last child nested one deeper, if that is a folder, it may not be the newest child.
+                                    for (var i = InternalNodes.Count - 1; i > index; i--)
                                     {
-                                        data.StartsLineTo = i;
-                                        break;
+                                        if (InternalNodes[i].IndentationDepth == currentDepth + 1)
+                                        {
+                                            data.StartsLineTo = i;
+                                            break;
+                                        }
                                     }
                                 }
+                            }
                             // The folder has neither visible children, nor is visible by itself. Remove it again.
                             else if (!visible)
                                 InternalNodes.RemoveAt(index);

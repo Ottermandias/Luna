@@ -24,6 +24,9 @@ public interface IFileSystemFolder : IFileSystemNode
     /// <summary> A specific sort mode for this folder, overwriting the default sort mode. This does not apply to descendant folders. </summary>
     public ISortMode? SortMode { get; }
 
+    /// <summary> Whether to draw the folder as a separator, i.e. flat and always open. </summary>
+    public bool DrawAsSeparator { get; }
+
     /// <summary> Get the direct children of this folder. </summary>
     public IReadOnlyList<IFileSystemNode> Children { get; }
 

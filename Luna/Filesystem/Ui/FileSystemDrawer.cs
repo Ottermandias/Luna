@@ -113,6 +113,7 @@ public abstract class FileSystemDrawer : IPanel
         editFolderButtons.Entries.AddButton(new LockFolderButton(drawer.FileSystem),     20);
         editFolderButtons.Entries.AddButton(new DissolveFolderButton(drawer.FileSystem), 15);
         editFolderButtons.Entries.AddButton(new MenuSeparator<IFileSystemFolder>(),      12);
+        editFolderButtons.Entries.AddButton(new FolderAsSeparatorCheckbox(drawer),       11);
         editFolderButtons.Entries.AddButton(new FolderColorEdits(drawer),                10);
         editFolderButtons.Entries.AddButton(new SortModeSelector(drawer),                0);
         ret.AddButton(editFolderButtons, 0);

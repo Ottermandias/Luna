@@ -259,6 +259,18 @@ public class BaseFileSystem
         Changed.Invoke(new FileSystemChanged.Arguments(FileSystemChangeType.FolderChanged, node, null, null));
     }
 
+    /// <summary> Change the separator behavior of a folder. </summary>
+    /// <param name="node"> The folder node. If this is not a folder, nothing is done. </param>
+    /// <param name="isSeparator"> The new separator state. If this is the same as before, nothing is done. </param>
+    public void ChangeFolderSeparatorState(IFileSystemNode node, bool isSeparator)
+    {
+        if (node is not FileSystemFolder folder || folder.DrawAsSeparator == isSeparator)
+            return;
+
+        folder.DrawAsSeparator = isSeparator;
+        Changed.Invoke(new FileSystemChanged.Arguments(FileSystemChangeType.FolderChanged, node, null, null));
+    }
+
     /// <summary> Change the associated sort mode of a folder. </summary>
     /// <param name="node"> The folder node. If this is not a folder, nothing is done. </param>
     /// <param name="sortMode"> The new sort mode to use for the direct children of this folder, or null if it should adhere to the default sort mode. </param>
