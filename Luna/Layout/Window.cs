@@ -54,6 +54,7 @@ public abstract class OverlayWindow : Window
         DisableWindowSounds = true;
         AllowClickthrough   = false;
         AllowPinning        = false;
+        AllowBackgroundBlur = false;
     }
 
     /// <inheritdoc/>
@@ -63,5 +64,6 @@ public abstract class OverlayWindow : Window
         DisableWindowSounds = true;
         AllowClickthrough   = false;
         AllowPinning        = false;
+        AllowBackgroundBlur = false;
     }
 }

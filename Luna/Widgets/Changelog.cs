@@ -14,7 +14,7 @@ public enum ChangeLogDisplayType
 }
 
 /// <summary> A changelog window and manager. </summary>
-public sealed class Changelog : Window
+public sealed class Changelog : OverlayWindow
 {
     /// <summary> Fresh installs should not show changelogs. </summary>
     public const int FreshInstallVersion = int.MaxValue;
