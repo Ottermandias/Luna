@@ -544,7 +544,7 @@ public abstract class FileSystemCache<TData> : FileSystemCache
 
                             if (InternalNodes.Count > index + 1)
                             {
-                                if (folder.DrawAsSeparator)
+                                if (!folder.DrawAsSeparator)
                                 {
                                     // The line should only go to the last child nested one deeper, if that is a folder, it may not be the newest child.
                                     for (var i = InternalNodes.Count - 1; i > index; i--)

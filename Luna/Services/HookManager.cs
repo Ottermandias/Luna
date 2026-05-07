@@ -1,14 +1,15 @@
-﻿using Dalamud.Hooking;
+using Dalamud.Hooking;
 using Dalamud.Plugin.Services;
 
 namespace Luna;
 
 /// <summary> A utility to asynchronously create hooks, and dispose of them. </summary>
-public sealed class HookManager(IGameInteropProvider provider) : IDisposable, IService
+public sealed class HookManager(IGameInteropProvider provider, ISigScanner sigScanner) : IDisposable, IService
 {
-    public readonly  IGameInteropProvider                                                    Provider = provider;
-    private readonly CancellationTokenSource                                                 _cancel  = new();
-    private readonly ConcurrentDictionary<string, (IDalamudHook?, long, Exception?, string)> _hooks   = [];
+    public readonly  IGameInteropProvider                                                    Provider   = provider;
+    public readonly  ISigScanner                                                             SigScanner = sigScanner;
+    private readonly CancellationTokenSource                                                 _cancel    = new();
+    private readonly ConcurrentDictionary<string, (IDalamudHook?, long, Exception?, string)> _hooks     = [];
     private          Task?                                                                   _currentTask;
     private          bool                                                                    _disposed;
     public           bool                                                                    HasExceptions { get; private set; }
