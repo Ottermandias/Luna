@@ -629,7 +629,8 @@ public class BaseFileSystem
             return Result.InvalidOperation;
 
         newName = newName.FixName();
-        if (_nameComparer.BaseComparer.Compare(newName, node.Name) is 0)
+        // Do not use comparer here since we want to be able to rename case.
+        if (newName == node.Name)
             return Result.SuccessNothingDone;
 
         var newIdx = Search(node.Parent, newName);
@@ -1015,7 +1016,7 @@ public class BaseFileSystem
         var oldPath = node.FullPath;
         if (node.Parent!.IsRoot)
         {
-            node.FullPath   = fixName ? newName.FixName().ToString() : newName.ToString();
+            node.FullPath   = fixName ? newName.FixName() : newName.ToString();
             node.NameOffset = 0;
         }
         else
