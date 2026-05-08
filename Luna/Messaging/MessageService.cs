@@ -162,6 +162,18 @@ public class MessageService(LunaLogger log, IChatGui chat, INotificationManager 
         }
     }
 
+    /// <summary> Remove all untagged messages from the list that fulfill the given predicate. </summary>
+    /// <param name="predicate"> The predicate. </param>
+    public void RemoveMessages(Func<DateTime, IMessage, bool> predicate)
+    {
+        foreach (var (dateTime, message) in _messages.ToArray())
+        {
+            if (predicate(dateTime, message) && _messages.Remove(dateTime, out var message1))
+                message1.OnRemoval();
+        }
+    }
+
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void PrintMessage(in Im.TableDisposable table, int index, DateTime date, IMessage message, ref DateTime deleteTime)
     {

@@ -18,6 +18,13 @@ public abstract class AmassingNotification<T>(MessageService messageService) : I
     /// <summary> The list of gathered objects. Not a set by design. Each one of those is associated with a StoredNotification. </summary>
     protected readonly List<T> GatheredObjects = [];
 
+    /// <summary> The list of stored notifications, each is associated with a gathered object. </summary>
+    protected readonly List<StoredNotification> Messages = [];
+
+    /// <inheritdoc cref="Messages"/>
+    public IReadOnlyList<IStoredNotification> Notifications
+        => Messages;
+
     /// <summary> The amount of gathered objects. </summary>
     public int Count
         => GatheredObjects.Count;
@@ -32,7 +39,9 @@ public abstract class AmassingNotification<T>(MessageService messageService) : I
                 return;
 
             GatheredObjects.Add(@object);
-            MessageService.AddMessage(CreateStored(@object), true, false);
+            var message = CreateStored(@object);
+            Messages.Add(message);
+            MessageService.AddMessage(message, true, false);
             if (CurrentNotification is null)
             {
                 MessageService.AddMessage(this);
@@ -121,11 +130,24 @@ public abstract class AmassingNotification<T>(MessageService messageService) : I
     protected virtual void OnNotificationDismissed(INotificationDismissArgs args)
     { }
 
+    /// <summary> A stored notification type that also provides its parent object. </summary>
+    public interface IStoredNotification : IMessage
+    {
+        /// <summary> The object causing this notification. </summary>
+        public T Object { get; }
+
+        /// <summary> Remove this message from the messages tab. This will also remove it from its parent. </summary>
+        public void Remove();
+    }
+
     /// <summary> The base class for stored notifications. Those cause no actual notifications, only log and message entries, and should be created per object. </summary>
     /// <param name="parent"> The parent amassed notification. </param>
     /// <param name="object"> The object causing this notification. </param>
-    protected abstract class StoredNotification(AmassingNotification<T> parent, T @object) : IMessage
+    protected abstract class StoredNotification(AmassingNotification<T> parent, T @object) : IStoredNotification
     {
+        /// <inheritdoc/>
+        public T Object { get; } = @object;
+
         /// <inheritdoc/>
         public NotificationType NotificationType
             => parent.NotificationType;
@@ -159,12 +181,17 @@ public abstract class AmassingNotification<T>(MessageService messageService) : I
         public void OnNotificationActions(INotificationDrawArgs args)
         { }
 
+        /// <inheritdoc/>
+        public void Remove()
+            => parent.MessageService.RemoveMessages((_, message) => message == this);
+
         /// <summary> Remove the associated object from the gathered objects when this message is dismissed, and update the notification if it is currently displayed. </summary>
         public virtual void OnRemoval()
         {
             lock (parent.GatheredObjects)
             {
-                parent.GatheredObjects.Remove(@object);
+                if (parent.Messages.Remove(this))
+                    parent.GatheredObjects.Remove(Object);
                 if (parent.CurrentNotification is { } notification)
                 {
                     if (parent.GatheredObjects.Count is 0)

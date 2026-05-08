@@ -1,4 +1,4 @@
-﻿using System.Text.Json;
+using System.Text.Json;
 using JsonSerializer = System.Text.Json.JsonSerializer;
 
 namespace Luna;
@@ -112,7 +112,8 @@ public static class JsonFunctions
         bool autoTranscodeToUtf8, JsonRecoveryFlags allowedRecoveries, string crlfReplacement = "\\n")
     {
         var originalBytes = File.ReadAllBytes(filePath);
-        var (recoveredBytes, bomEncoding, usedRecoveries) = RecoverBytes(originalBytes, autoTranscodeToUtf8, allowedRecoveries, crlfReplacement);
+        var (recoveredBytes, bomEncoding, usedRecoveries) =
+            RecoverBytes(originalBytes, autoTranscodeToUtf8, allowedRecoveries, crlfReplacement);
         if (originalBytes.SequenceEqual(recoveredBytes))
             return (recoveredBytes, false, bomEncoding, usedRecoveries);
 
@@ -122,11 +123,13 @@ public static class JsonFunctions
     }
 
     /// <inheritdoc cref="RecoverFile"/>
-    public static async Task<(byte[] FileData, bool FileModified, Encoding? BomEncoding, JsonRecoveryFlags UsedRecoveries)> RecoverFileAsync(string filePath,
+    public static async Task<(byte[] FileData, bool FileModified, Encoding? BomEncoding, JsonRecoveryFlags UsedRecoveries)> RecoverFileAsync(
+        string filePath,
         bool autoTranscodeToUtf8, JsonRecoveryFlags allowedRecoveries, string crlfReplacement = "\\n")
     {
         var originalBytes = await File.ReadAllBytesAsync(filePath);
-        var (recoveredBytes, bomEncoding, usedRecoveries) = RecoverBytes(originalBytes, autoTranscodeToUtf8, allowedRecoveries, crlfReplacement);
+        var (recoveredBytes, bomEncoding, usedRecoveries) =
+            RecoverBytes(originalBytes, autoTranscodeToUtf8, allowedRecoveries, crlfReplacement);
         if (originalBytes.SequenceEqual(recoveredBytes))
             return (recoveredBytes, false, bomEncoding, usedRecoveries);
 
@@ -164,6 +167,65 @@ public static class JsonFunctions
         /// </remarks>
         public Utf8JsonObjectReader CreateObjectReader()
             => new(reader);
+
+        /// <summary> Check whether the current property name token corresponds to the given property and has a following value. </summary>
+        /// <param name="propertyName"> The property name to check for. </param>
+        /// <returns> True if the property names correspond, false otherwise. </returns>
+        /// <exception cref="JsonException"> If the property matches but has no following value token to read. </exception>
+        [MethodImpl(ImSharpConfiguration.OptInl)]
+        public bool CheckPropertyValue(ReadOnlySpan<byte> propertyName)
+        {
+            Debug.Assert(reader.TokenType is JsonTokenType.PropertyName);
+            if (!reader.ValueTextEquals(propertyName))
+                return false;
+
+            if (!reader.Read())
+                throw new JsonException($"Unexpected end after property {Encoding.UTF8.GetString(propertyName)}.");
+
+            return true;
+        }
+
+        /// <summary> Check whether the current property name token corresponds to the given property and has a following value. </summary>
+        /// <param name="propertyName"> The property name to check for. </param>
+        /// <param name="expectedType"> The expected token type for the following value token. </param>
+        /// <returns> True if the property names correspond, false otherwise. </returns>
+        /// <exception cref="JsonException"> If the property matches but has no following value token to read, or if the value token has the wrong type. </exception>
+        [MethodImpl(ImSharpConfiguration.OptInl)]
+        public bool CheckPropertyValue(ReadOnlySpan<byte> propertyName, JsonTokenType expectedType)
+        {
+            Debug.Assert(reader.TokenType is JsonTokenType.PropertyName);
+            if (!reader.ValueTextEquals(propertyName))
+                return false;
+
+            if (!reader.Read())
+                throw new JsonException($"Unexpected end after property {Encoding.UTF8.GetString(propertyName)}.");
+
+            if (expectedType != reader.TokenType)
+                throw new JsonException($"Unexpected value type {reader.TokenType} for property {Encoding.UTF8.GetString(propertyName)}.");
+
+            return true;
+        }
+
+        /// <summary> Check whether the current property name token corresponds to the given property and has a following value. </summary>
+        /// <param name="propertyName"> The property name to check for. </param>
+        /// <param name="validTypes"> The supported token types for the following value token. </param>
+        /// <returns> True if the property names correspond, false otherwise. </returns>
+        /// <exception cref="JsonException"> If the property matches but has no following value token to read, or if the value token is not supported. </exception>
+        [MethodImpl(ImSharpConfiguration.OptInl)]
+        public bool CheckPropertyValue(ReadOnlySpan<byte> propertyName, params HashSet<JsonTokenType> validTypes)
+        {
+            Debug.Assert(reader.TokenType is JsonTokenType.PropertyName);
+            if (!reader.ValueTextEquals(propertyName))
+                return false;
+
+            if (!reader.Read())
+                throw new JsonException($"Unexpected end after property {Encoding.UTF8.GetString(propertyName)}.");
+
+            if (!validTypes.Contains(reader.TokenType))
+                throw new JsonException($"Unexpected value type {reader.TokenType} for property {Encoding.UTF8.GetString(propertyName)}.");
+
+            return true;
+        }
 
         /// <summary> Read an enumeration property type from a single object regardless of property order in this object. </summary>
         /// <param name="property"> The name of the requested property. </param>
@@ -299,6 +361,137 @@ public static class JsonFunctions
             }
         }
 
+        /// <summary> Read an array of strings. </summary>
+        /// <param name="allowsNullArray"> Whether the array itself may be null or not. </param>
+        /// <param name="allowsNullEntries"> Whether the string entries inside the array may be null or not. </param>
+        /// <returns> Null if the array is null and this is allowed, a list of string values (maybe null if allowed) otherwise. </returns>
+        /// <exception cref="JsonException"> Throws if the array is null and this is not allowed, if a string value is null and this is not allowed, or if the JSON is malformed or not an array of strings. </exception>
+        public List<string?>? ReadStringArray(bool allowsNullArray = true, bool allowsNullEntries = false)
+        {
+            if (allowsNullArray && reader.TokenType is JsonTokenType.Null)
+                return null;
+
+            if (reader.TokenType is not JsonTokenType.StartArray)
+                throw new JsonException($"Expected string array but got {reader.TokenType}.");
+
+            var ret   = new List<string?>();
+            var array = reader.CreateObjectReader();
+            while (array.Read(ref reader))
+            {
+                if (allowsNullEntries && reader.TokenType is JsonTokenType.Null)
+                {
+                    ret.Add(null);
+                    continue;
+                }
+
+                if (reader.TokenType is not JsonTokenType.String)
+                    throw new JsonException($"Found non-string token of type {reader.TokenType} in string array.");
+
+                ret.Add(reader.GetString());
+            }
+
+            if (reader.TokenType is not JsonTokenType.EndArray)
+                throw new JsonException("Unexpected end without terminating string array.");
+
+            return ret;
+        }
+
+        /// <summary> Read an array of UTF8 strings. </summary>
+        /// <param name="allowsNullArray"> Whether the array itself may be null or not. </param>
+        /// <param name="allowsNullEntries"> Whether the string entries inside the array may be null or not. </param>
+        /// <returns> Null if the array is null and this is allowed, a list of string values (maybe null if allowed) otherwise. </returns>
+        /// <exception cref="JsonException"> Throws if the array is null and this is not allowed, if a string value is null and this is not allowed, or if the JSON is malformed or not an array of strings. </exception>
+        public List<StringU8>? ReadStringUtf8Array(bool allowsNullArray = true, bool allowsNullEntries = false)
+        {
+            if (allowsNullArray && reader.TokenType is JsonTokenType.Null)
+                return null;
+
+            if (reader.TokenType is not JsonTokenType.StartArray)
+                throw new JsonException($"Expected string array but got {reader.TokenType}.");
+
+            var ret   = new List<StringU8>();
+            var array = reader.CreateObjectReader();
+            while (array.Read(ref reader))
+            {
+                if (reader.TokenType is JsonTokenType.EndArray)
+                    return ret;
+
+                if (allowsNullEntries && reader.TokenType is JsonTokenType.Null)
+                {
+                    ret.Add(StringU8.Null);
+                    continue;
+                }
+
+                if (!reader.TryReadUtf8String(out var text))
+                    throw new JsonException($"Found non-string token of type {reader.TokenType} in string array.");
+
+                ret.Add(text.Value);
+            }
+
+            if (reader.TokenType is not JsonTokenType.EndArray)
+                throw new JsonException("Unexpected end without terminating string array.");
+
+            return ret;
+        }
+
+        /// <summary> Read an array of numeric values. </summary>
+        /// <param name="allowsNullArray"> Whether the array itself may be null or not. </param>
+        /// <returns> Null if the array is null and this is allowed, a list of parsed numbers otherwise. </returns>
+        /// <exception cref="JsonException"> Throws if the array is null and this is not allowed, or if the JSON is malformed or not an array of numbers. </exception>
+        public List<TNumber>? ReadNumberArray<TNumber>(bool allowsNullArray = true) where TNumber : unmanaged, INumber<TNumber>
+        {
+            if (allowsNullArray && reader.TokenType is JsonTokenType.Null)
+                return null;
+
+            if (reader.TokenType is not JsonTokenType.StartArray)
+                throw new JsonException($"Expected number array but got {reader.TokenType}.");
+
+            var ret   = new List<TNumber>();
+            var array = reader.CreateObjectReader();
+            while (array.Read(ref reader))
+            {
+                if (reader.TokenType is JsonTokenType.EndArray)
+                    return ret;
+
+                ret.Add(reader.ReadNumber<TNumber>());
+            }
+
+            if (reader.TokenType is not JsonTokenType.EndArray)
+                throw new JsonException("Unexpected end without terminating number array.");
+
+            return ret;
+        }
+
+        /// <summary> Read an array of string values that represent flags of an enum. </summary>
+        /// <returns> Null if the array is null, the bitwise OR'd flags otherwise. </returns>
+        /// <exception cref="JsonException"> Throws if the JSON is not an array of strings that each represent a value of the flag enumeration. </exception>
+        public TEnum? ReadFlagEnumArray<TEnum>() where TEnum : unmanaged, Enum
+        {
+            if (reader.TokenType is JsonTokenType.Null)
+                return null;
+
+            if (reader.TokenType is not JsonTokenType.StartArray)
+                throw new JsonException($"Expected string array of {typeof(TEnum).Name} values but got {reader.TokenType}.");
+
+            TEnum ret   = default;
+            var   array = reader.CreateObjectReader();
+            while (array.Read(ref reader))
+            {
+                if (reader.TokenType is JsonTokenType.EndArray)
+                    return ret;
+
+                if (!reader.TryReadTextEnum(out TEnum value))
+                    throw new Exception($"Expected string representing a flag of {typeof(TEnum).Name}.");
+
+                ret = ret.Or(value);
+            }
+
+            if (reader.TokenType is not JsonTokenType.EndArray)
+                throw new JsonException($"Unexpected end without terminating string array of {typeof(TEnum).Name} values.");
+
+            return ret;
+        }
+
         /// <summary> Read the UTF8 string at the current token, unescaped, and parse it into an enumeration value. </summary>
         /// <typeparam name="TEnum"> The enumeration type. </typeparam>
         /// <param name="value"> On success, the parsed enumeration value. </param>
@@ -396,6 +589,87 @@ public static class JsonFunctions
             // All other cases are not valid numbers.
             number = @default;
             return false;
+        }
+
+        /// <summary> Read the current token as a number of the given type. </summary>
+        /// <typeparam name="TNumber"> The type of number to read. </typeparam>
+        /// <returns> The parsed number. </returns>
+        /// <exception cref="ArgumentException"> If <typeparamref name="TNumber"/> is not one of the built-in integers or floats. </exception>
+        /// <exception cref="JsonException"> If the number could not be read. </exception>
+        public TNumber ReadNumber<TNumber>() where TNumber : unmanaged, INumber<TNumber>
+        {
+            // Read the actual number according to type.
+            if (reader.TokenType is JsonTokenType.Number)
+            {
+                if (typeof(TNumber) == typeof(byte))
+                {
+                    var number = reader.GetByte();
+                    return Unsafe.As<byte, TNumber>(ref number);
+                }
+
+                if (typeof(TNumber) == typeof(sbyte))
+                {
+                    var number = reader.GetSByte();
+                    return Unsafe.As<sbyte, TNumber>(ref number);
+                }
+
+                if (typeof(TNumber) == typeof(ushort))
+                {
+                    var number = reader.GetUInt16();
+                    return Unsafe.As<ushort, TNumber>(ref number);
+                }
+
+                if (typeof(TNumber) == typeof(short))
+                {
+                    var number = reader.GetInt16();
+                    return Unsafe.As<short, TNumber>(ref number);
+                }
+
+                if (typeof(TNumber) == typeof(uint))
+                {
+                    var number = reader.GetUInt32();
+                    return Unsafe.As<uint, TNumber>(ref number);
+                }
+
+                if (typeof(TNumber) == typeof(int))
+                {
+                    var number = reader.GetInt32();
+                    return Unsafe.As<int, TNumber>(ref number);
+                }
+
+                if (typeof(TNumber) == typeof(ulong))
+                {
+                    var number = reader.GetUInt64();
+                    return Unsafe.As<ulong, TNumber>(ref number);
+                }
+
+                if (typeof(TNumber) == typeof(long))
+                {
+                    var number = reader.GetInt64();
+                    return Unsafe.As<long, TNumber>(ref number);
+                }
+
+                if (typeof(TNumber) == typeof(float))
+                {
+                    var number = reader.GetSingle();
+                    return Unsafe.As<float, TNumber>(ref number);
+                }
+
+                if (typeof(TNumber) == typeof(double))
+                {
+                    var number = reader.GetDouble();
+                    return Unsafe.As<double, TNumber>(ref number);
+                }
+
+                throw new ArgumentException($"{typeof(TNumber)} is not supported.");
+            }
+
+            // Read the number as string and try to parse it.
+            // TryReadUtf8String checks the token type itself.
+            if (reader.TryReadUtf8String(out var text))
+                return TNumber.Parse(text.Value, null);
+
+            throw new JsonException($"Invalid JSON token of type {reader.TokenType} could not be read as a number.");
         }
 
         /// <summary> Skip to the end of the current object. </summary>

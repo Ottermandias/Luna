@@ -68,14 +68,14 @@ public sealed class ModifierHelper
         public void TooltipLineBreak(ReadOnlySpan<byte> action)
         {
             if (!Active)
-                Im.Tooltip.OnHover(HoveredFlags.AllowWhenDisabled, $"\n\n{_defaultTooltip} {action}.");
+                Im.Tooltip.OnHover(HoveredFlags.AllowWhenDisabled, $"\n{_defaultTooltip} {action}.");
         }
 
         /// <inheritdoc cref="TooltipLineBreak(ReadOnlySpan{byte})"/>
         public void TooltipLineBreak(ReadOnlySpan<char> action)
         {
             if (!Active)
-                Im.Tooltip.OnHover(HoveredFlags.AllowWhenDisabled, $"\n\n{_defaultTooltip} {action}.");
+                Im.Tooltip.OnHover(HoveredFlags.AllowWhenDisabled, $"\n{_defaultTooltip} {action}.");
         }
 
         /// <summary> Implicit conversion to bool. </summary>

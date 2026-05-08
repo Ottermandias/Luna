@@ -1,4 +1,4 @@
-﻿using System.Reflection;
+using System.Reflection;
 
 namespace Luna;
 
@@ -58,11 +58,17 @@ public static partial class WindowsFunctions
         }
     }
 
-    /// <summary> Efficiently obtain the total size, in bytes, of all files contained within the specified directory and its subdirectories. </summary>
+    /// <inheritdoc cref="GetDirectorySize(string,out int, out int)"/>
+    public static unsafe long GetDirectorySize(string path)
+        => GetDirectorySize(path, out _, out _);
+
+    /// <summary> Efficiently obtain the total size, in bytes, of all files contained within the specified directory and its nested subdirectories. </summary>
     /// <param name="path"> The path to the directory whose total file size is to be calculated. </param>
+    /// <param name="fileCount"> The number of files contained within the directory or its nested subdirectories. </param>
+    /// <param name="directoryCount"> The number of nested subdirectories inside the directory. </param>
     /// <returns> The total byte size of all files within the specified directory and its subdirectories. </returns>
     /// <remarks> This can deal with long file paths (more than 260 characters) and circular links. </remarks>
-    public static unsafe long GetDirectorySize(string path)
+    public static unsafe long GetDirectorySize(string path, out int fileCount, out int directoryCount)
     {
         var ret                = 0L;
         var root               = NormalizeLongPath(Path.GetFullPath(path));
@@ -70,9 +76,11 @@ public static partial class WindowsFunctions
         var visited            = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         directoriesToVisit.Push(root);
         visited.Add(root);
-
+        fileCount      = 0;
+        directoryCount = -1;
         while (directoriesToVisit.TryPop(out var folder))
         {
+            ++directoryCount;
             fixed (char* target = folder)
             {
                 Win32FindData data;
@@ -98,6 +106,7 @@ public static partial class WindowsFunctions
                     {
                         var size = ((long)data.FileSizeHigh << 32) | data.FileSizeLow;
                         ret += size;
+                        ++fileCount;
                     }
                 } while (FindNextFileW(handle, &data));
             }
