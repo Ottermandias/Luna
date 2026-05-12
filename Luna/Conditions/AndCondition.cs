@@ -6,7 +6,7 @@ namespace Luna;
 /// <typeparam name="TContext"><inheritdoc cref="ICondition{TContext}"/></typeparam>
 public sealed class AndCondition<TContext>() : List<ICondition<TContext>>(), ICondition<TContext>
 {
-
+    /// <summary> Create an And-Condition from existing conditions. </summary>
     public AndCondition(params IReadOnlyList<ICondition<TContext>> conditions)
         : this()
     {
