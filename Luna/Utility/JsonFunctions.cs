@@ -235,9 +235,27 @@ public static class JsonFunctions
         public PeekError TryPeekEnumProperty<TEnum>(ReadOnlySpan<byte> property, out TEnum value)
             where TEnum : unmanaged, Enum
         {
+            var peek = reader.TryPeekStringProperty(property, out var text);
+            if (peek is not PeekError.Success)
+            {
+                value = default;
+                return peek;
+            }
+
+            return EnumExtensions.Parse(text, out value) ? PeekError.Success : PeekError.Invalid;
+        }
+
+
+        /// <summary> Read a string property from a single object regardless of property order in this object. </summary>
+        /// <param name="property"> The name of the requested property. </param>
+        /// <param name="value"> The parsed value for that property on success or default on failure. </param>
+        /// <returns> The reason for failure or success. </returns>
+        /// <remarks> Assumes a starting point on a StartObject. </remarks>
+        public PeekError TryPeekStringProperty(ReadOnlySpan<byte> property, out StringU8 value)
+        {
             // We create a copy of the reader to be independent of the order of properties.
             var copy = reader;
-            value = default;
+            value = StringU8.Empty;
             var nonEnumPropertyEncountered = false;
             var success                    = false;
             var objectReader               = copy.CreateObjectReader();
@@ -250,12 +268,10 @@ public static class JsonFunctions
                     if (copy.ValueTextEquals(property))
                     {
                         // Type properties will be parsed, If this all succeeds, break out of the loop.
-                        if (!copy.Read() || !copy.TryReadUtf8String(out var text))
+                        if (!copy.Read() || !copy.TryReadUtf8String(out var v))
                             return PeekError.Invalid;
 
-                        if (!EnumExtensions.Parse(text.Value, out value))
-                            return PeekError.Invalid;
-
+                        value   = v.Value;
                         success = true;
                         break;
                     }
