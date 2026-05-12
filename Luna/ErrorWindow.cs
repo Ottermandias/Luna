@@ -1,3 +1,4 @@
+using Dalamud.Bindings.ImGui;
 using Dalamud.Interface.Windowing;
 using Dalamud.Plugin;
 using Dalamud.Plugin.Services;
@@ -16,6 +17,7 @@ public class ErrorWindow : Window, IDisposable
 
     /// <summary> Create a new error window that will also create its own window system and subscribe to drawing. </summary>
     /// <param name="pi"> The plugin interface. </param>
+    /// <param name="log"> The logger to use. </param>
     /// <param name="label"> The label for the window itself. </param>
     /// <param name="name"> The name of the plugin and window system. </param>
     public ErrorWindow(IDalamudPluginInterface pi, LunaLogger log, string label, string name)
@@ -34,6 +36,17 @@ public class ErrorWindow : Window, IDisposable
     /// <inheritdoc/>
     public override void Draw()
     {
+        if (!ImSharpConfiguration.IsInitialized)
+        {
+            using (ImGuiColor.Text.Push(LunaStyle.ErrorForeground))
+            {
+                ImGui.TextWrapped($"Error initializing {_name}. Further information can be found in /xllog.");
+                ImGui.Text("No ImSharp context setup.");
+            }
+
+            return;
+        }
+
         using (ImGuiColor.Text.Push(LunaStyle.ErrorForeground))
         {
             Im.TextWrapped($"Error initializing {_name}. Further information can be found in /xllog.");

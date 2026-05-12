@@ -23,6 +23,10 @@ public readonly struct AwesomeIcon : IIconStandIn, IEquatable<AwesomeIcon>, IEqu
     public bool IsEmpty
         => _data is 0ul;
 
+    /// <summary> Calculate the size of this icon. </summary>
+    public Vector2 CalculateSize()
+        => Font.CalculateTextSize(Span, false);
+
     /// <inheritdoc/>
     public unsafe ReadOnlySpan<byte> Span
     {
