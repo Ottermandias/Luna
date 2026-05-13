@@ -4,7 +4,7 @@ namespace Luna;
 
 /// <summary> A condition that evaluates to true if all its subconditions evaluate to true. </summary>
 /// <typeparam name="TContext"><inheritdoc cref="ICondition{TContext}"/></typeparam>
-public sealed class AndCondition<TContext>() : List<ICondition<TContext>>(), ICondition<TContext>
+public sealed class AndCondition<TContext>() : List<ICondition<TContext>>, ICondition<TContext>
 {
     /// <summary> Create an And-Condition from existing conditions. </summary>
     public AndCondition(params IReadOnlyList<ICondition<TContext>> conditions)
@@ -69,5 +69,26 @@ public sealed class AndCondition<TContext>() : List<ICondition<TContext>>(), ICo
         ret.EnsureCapacity(Count);
         ret.AddRange(this.Select(c => c.DeepCopy()));
         return ret;
+    }
+
+    /// <inheritdoc/>
+    public IEnumerable<ICondition<TContext>> Subconditions
+        => this.SelectMany(c => c.Subconditions);
+
+    /// <inheritdoc/>
+    public int RemoveSubconditions(Func<ICondition<TContext>, bool> predicate)
+    {
+        var sum = 0;
+        for (var i = Count - 1; i >= 0; --i)
+        {
+            sum += this[i].RemoveSubconditions(predicate);
+            if (predicate(this[i]))
+            {
+                ++sum;
+                RemoveAt(i);
+            }
+        }
+
+        return sum;
     }
 }

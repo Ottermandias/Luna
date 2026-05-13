@@ -28,4 +28,12 @@ public sealed record TrueCondition<TContext> : ICondition<TContext>
     /// <inheritdoc/>
     public ICondition<TContext> DeepCopy()
         => Instance;
+
+    /// <inheritdoc/>
+    public IEnumerable<ICondition<TContext>> Subconditions
+        => [];
+
+    /// <inheritdoc/>
+    public int RemoveSubconditions(Func<ICondition<TContext>, bool> predicate)
+        => 0;
 }

@@ -21,4 +21,12 @@ public interface ICondition<TContext>
 
     /// <summary> Create a deep copy of this condition. </summary>
     public ICondition<TContext> DeepCopy();
+
+    /// <summary> Get all condition objects contained in this condition. </summary>
+    public IEnumerable<ICondition<TContext>> Subconditions { get; }
+
+    /// <summary> Remove all condition objects contained in this that match the predicate. </summary>
+    /// <param name="predicate"> The predicate, any condition returning true shall be removed. </param>
+    /// <returns> The number of removed subconditions in all descendant conditions of this. </returns>
+    public int RemoveSubconditions(Func<ICondition<TContext>, bool> predicate);
 }

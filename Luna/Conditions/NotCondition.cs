@@ -32,4 +32,12 @@ public sealed record NotCondition<TContext>(ICondition<TContext> Condition) : IC
     /// <inheritdoc/>
     public ICondition<TContext> DeepCopy()
         => new NotCondition<TContext>(Condition.DeepCopy());
+
+    /// <inheritdoc/>
+    public IEnumerable<ICondition<TContext>> Subconditions
+        => Condition.Subconditions;
+
+    /// <inheritdoc/>
+    public int RemoveSubconditions(Func<ICondition<TContext>, bool> predicate)
+        => 0;
 }

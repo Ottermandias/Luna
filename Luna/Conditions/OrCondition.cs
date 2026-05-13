@@ -35,7 +35,7 @@ public sealed class OrCondition<TContext>() : List<ICondition<TContext>>(), ICon
             var condition = this[i].Reduce();
             switch (condition)
             {
-                case TrueCondition<TContext>:  return TrueCondition<TContext>.Instance; 
+                case TrueCondition<TContext>:  return TrueCondition<TContext>.Instance;
                 case FalseCondition<TContext>: RemoveAt(i); break;
                 default:                       this[i] = condition; break;
             }
@@ -69,5 +69,26 @@ public sealed class OrCondition<TContext>() : List<ICondition<TContext>>(), ICon
         ret.EnsureCapacity(Count);
         ret.AddRange(this.Select(c => c.DeepCopy()));
         return ret;
+    }
+
+    /// <inheritdoc/>
+    public IEnumerable<ICondition<TContext>> Subconditions
+        => this.SelectMany(c => c.Subconditions);
+
+    /// <inheritdoc/>
+    public int RemoveSubconditions(Func<ICondition<TContext>, bool> predicate)
+    {
+        var sum = 0;
+        for (var i = Count - 1; i >= 0; --i)
+        {
+            sum += this[i].RemoveSubconditions(predicate);
+            if (predicate(this[i]))
+            {
+                ++sum;
+                RemoveAt(i);
+            }
+        }
+
+        return sum;
     }
 }
