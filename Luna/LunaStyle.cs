@@ -72,6 +72,12 @@ public static partial class LunaStyle
     /// <summary> The icon that should be used for buttons that collapse something that is currently expanded rightwards. </summary>
     public static readonly AwesomeIcon CollapseLeftIcon = FontAwesomeIcon.CaretLeft;
 
+    /// <summary> An icon to be used with buttons that manage conditions. </summary>
+    public static readonly AwesomeIcon ConditionIcon = FontAwesomeIcon.ProjectDiagram;
+
+    /// <summary> An icon to be used with buttons that manage layout. </summary>
+    public static readonly AwesomeIcon LayoutIcon = FontAwesomeIcon.Indent;
+
     /// <summary> The icon that should be used for pinning things. </summary>
     public static readonly AwesomeIcon PinIcon = FontAwesomeIcon.Thumbtack;
 

@@ -4,20 +4,28 @@ namespace Luna;
 
 /// <summary> A condition that inverts its subcondition. </summary>
 /// <typeparam name="TContext"><inheritdoc cref="ICondition{TContext}"/></typeparam>
-public sealed record NotCondition<TContext>(ICondition<TContext> Condition) : ICondition<TContext>
+public sealed class NotCondition<TContext>(ICondition<TContext> condition) : ICondition<TContext>
 {
+    /// <summary> The inverted condition. </summary>
+    public ICondition<TContext> Condition = condition;
+
     /// <inheritdoc/>
     public bool Evaluate(in TContext context)
         => !Condition.Evaluate(context);
 
     /// <inheritdoc/>
     public ICondition<TContext> Reduce()
-        => Condition.Reduce() switch
+    {
+        switch (Condition.Reduce())
         {
-            TrueCondition<TContext>  => FalseCondition<TContext>.Instance,
-            FalseCondition<TContext> => TrueCondition<TContext>.Instance,
-            { } d                    => new NotCondition<TContext>(d),
-        };
+            case TrueCondition<TContext>:  return FalseCondition<TContext>.Instance;
+            case FalseCondition<TContext>: return TrueCondition<TContext>.Instance;
+            case NotCondition<TContext> n: return n.Condition;
+            case { } d:                    Condition = d; break;
+        }
+
+        return this;
+    }
 
     /// <inheritdoc/>
     public void WriteJson(Utf8JsonWriter j)
