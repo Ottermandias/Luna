@@ -98,4 +98,22 @@ public static class ListExtensions
             list.Add(default!);
         return toAdd;
     }
+
+    /// <summary> Remove all duplicate elements in a list. </summary>
+    /// <typeparam name="T"> The type of the elements. </typeparam>
+    /// <param name="list"> The list to remove duplicates from. </param>
+    /// <returns> The number of removed elements. </returns>
+    /// <remarks> If the equatable items are not truly equal, note that this will keep the last occurence of each item evaluating as equal, not the first. </remarks>
+    public static int RemoveDuplicates<T>(this IList<T> list) where T : IEquatable<T>
+    {
+        var oldCount = list.Count;
+        var set      = new HashSet<T>(list.Count);
+        for (var i = list.Count - 1; i >= 0; --i)
+        {
+            if (!set.Add(list[i]))
+                list.RemoveAt(i);
+        }
+
+        return oldCount - list.Count;
+    }
 }
