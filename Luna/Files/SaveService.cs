@@ -28,25 +28,69 @@ public class BaseSaveService(LunaLogger log, FrameworkManager framework)
     /// <summary> Whether this save service should back up files before deleting or overwriting them, and in what way. </summary>
     public BackupMode BackupMode { get; init; } = BackupMode.TimestampedBackup;
 
+    /// <summary> The number of backup files for a specific file type that are kept at once in <see cref="BackupMode.TimestampedBackup"/> mode. </summary>
+    /// <remarks> If this is <see cref="int.MaxValue"/> or less than 1 it is treated as unlimited. </remarks>
+    public int BackupLimit { get; set; } = 3;
+
     /// <summary> The logger to use. </summary>
     public readonly LunaLogger Log = log;
 
     /// <summary> The framework event handler to use. </summary>
     protected readonly FrameworkManager Framework = framework;
 
-    /// <inheritdoc cref="WriteWithBackup(LunaLogger,string,Action{string},BackupMode)"/>
+    /// <inheritdoc cref="WriteWithBackup(LunaLogger,string,Action{string},BackupMode,int)"/>
     public void WriteWithBackup(string filePath, Action<string> writeFile)
-        => WriteWithBackup(Log, filePath, writeFile, BackupMode);
+        => WriteWithBackup(Log, filePath, writeFile, BackupMode, BackupLimit);
 
-    /// <inheritdoc cref="DeleteWithBackup(LunaLogger,string,BackupMode)"/>
+    /// <inheritdoc cref="DeleteWithBackup(LunaLogger,string,BackupMode,int)"/>
     public void DeleteWithBackup(string filePath)
-        => DeleteWithBackup(Log, filePath, BackupMode);
+        => DeleteWithBackup(Log, filePath, BackupMode, BackupLimit);
+
+    /// <summary> Delete all files ending in .bak in a given directory and its subdirectories. </summary>
+    /// <param name="log"> The logger to use. </param>
+    /// <param name="directoryPath"> The path to the topmost directory from which to search. </param>
+    /// <param name="predicate"> An optional predicate. If this is passed, only backup files for which it returns true are deleted. </param>
+    public static void CleanAllBackups(LunaLogger log, string directoryPath, Func<string, bool>? predicate = null)
+    {
+        var deleted = 0;
+        var failed  = 0;
+        var skipped = 0;
+        if (!Directory.Exists(directoryPath))
+            return;
+
+        foreach (var file in Directory.EnumerateFiles(directoryPath, "*.bak", SearchOption.AllDirectories))
+        {
+            try
+            {
+                if (predicate?.Invoke(file) ?? true)
+                {
+                    File.Delete(file);
+                    ++deleted;
+                    log.Verbose($"Deleted backup file {file} during cleanup.");
+                }
+                else
+                {
+                    ++skipped;
+                    log.Verbose($"Skipped deleting backup file {file} during cleanup due to predicate.");
+                }
+            }
+            catch (Exception ex)
+            {
+                ++failed;
+                log.Error($"Failed to delete backup file {file}:\n{ex}");
+            }
+        }
+
+        log.Information(
+            $"Cleanup of backup files found {deleted + failed + skipped} backup files, deleted {deleted}, skipped {skipped}, and failed to delete {failed} of them.");
+    }
 
     /// <summary> Safely move a file to a backup location or delete it, depending on mode. </summary>
     /// <param name="log"> The logger to use. </param>
     /// <param name="filePath"> The file to delete or move. </param>
     /// <param name="mode"> The backup mode to use. </param>
-    public static void DeleteWithBackup(LunaLogger log, string filePath, BackupMode mode = BackupMode.NoBackups)
+    /// <param name="backupLimit"> The number of backups of this file to keep if using <see cref="BackupMode.TimestampedBackup"/>. Older backups will be deleted when this is surpassed. </param>
+    public static void DeleteWithBackup(LunaLogger log, string filePath, BackupMode mode = BackupMode.NoBackups, int backupLimit = 3)
     {
         if (filePath.Length is 0)
             return;
@@ -58,7 +102,7 @@ public class BaseSaveService(LunaLogger log, FrameworkManager framework)
         try
         {
             log.Information($"{threadPrefix}Deleting {filePath}...");
-            if (CreateBackup(log, mode, threadPrefix, "file", filePath, filePath, out var backup) && backup is not null)
+            if (CreateBackup(log, mode, backupLimit, threadPrefix, "file", filePath, filePath, out var backup) && backup is not null)
                 File.Delete(filePath);
         }
         catch (Exception ex)
@@ -72,8 +116,9 @@ public class BaseSaveService(LunaLogger log, FrameworkManager framework)
     /// <param name="filePath"> The original file path to write to. </param>
     /// <param name="writeFile"> The function that writes the file. </param>
     /// <param name="mode"> The backup mode to use. </param>
+    /// <param name="backupLimit"> The number of backups of this file to keep if using <see cref="BackupMode.TimestampedBackup"/>. Older backups will be deleted when this is surpassed. </param>
     public static void WriteWithBackup(LunaLogger log, string filePath, Action<string> writeFile,
-        BackupMode mode = BackupMode.TimestampedBackup)
+        BackupMode mode = BackupMode.TimestampedBackup, int backupLimit = 3)
     {
         if (filePath.Length is 0)
             throw new ArgumentException($"{filePath} can not be empty.", nameof(filePath));
@@ -181,18 +226,22 @@ public class BaseSaveService(LunaLogger log, FrameworkManager framework)
                 log.Error($"{threadPrefix}Failed to delete temporary file {tmpPath} after failure to move it:\n{e5}");
             }
         }
+
+        CleanBackups(log, mode, backupLimit, threadPrefix, filePath);
     }
 
     /// <summary> Move a file to its backup location. </summary>
     /// <param name="log"> The logger to use. </param>
     /// <param name="mode"> The backup mode to use. If this is <see cref="BackupMode.NoBackups"/>, this just returns true. </param>
+    /// <param name="keptBackups"> The number of concurrent backups of a specific file to keep. </param>
     /// <param name="threadPrefix"> The thread prefix for the log. </param>
     /// <param name="typeName"> The name of the backed up object type. </param>
     /// <param name="logName"> The name of the backed up value for logging. </param>
     /// <param name="name"> The full original file path of the backed up file. </param>
     /// <param name="backupName"> The path the backed up file is moved to on success, <c>null</c> if <see cref="BackupMode.NoBackups"/> is used. </param>
     /// <returns> True if <see cref="BackupMode.NoBackups"/> is used or the backup was successful, false otherwise. </returns>
-    protected static bool CreateBackup(LunaLogger log, BackupMode mode, string threadPrefix, string typeName, string logName, string name,
+    protected static bool CreateBackup(LunaLogger log, BackupMode mode, int keptBackups, string threadPrefix, string typeName, string logName,
+        string name,
         out string? backupName)
     {
         backupName = GetBackupName(mode, name);
@@ -212,6 +261,41 @@ public class BaseSaveService(LunaLogger log, FrameworkManager framework)
         }
     }
 
+    /// <summary> Clean all older timestamped backup files if there are too many. </summary>
+    /// <param name="log"> The logger to use. </param>
+    /// <param name="mode"> The backup mode to use. If this is <see cref="BackupMode.NoBackups"/>, this just returns true. </param>
+    /// <param name="keptBackups"> The number of concurrent backups of a specific file to keep. </param>
+    /// <param name="threadPrefix"> The thread prefix for the log. </param>
+    /// <param name="name"> The full original file path of the backed up file. </param>
+    protected static void CleanBackups(LunaLogger log, BackupMode mode, int keptBackups, string threadPrefix, string name)
+    {
+        if (mode is not BackupMode.TimestampedBackup)
+            return;
+
+        if (keptBackups is int.MaxValue or <= 0)
+            return;
+
+        var directory = Path.GetDirectoryName(name)!;
+        var pattern   = $"{Path.GetFileNameWithoutExtension(name.AsSpan())}_*{Path.GetExtension(name.AsSpan())}.bak";
+        var files     = Directory.EnumerateFiles(directory, pattern, SearchOption.TopDirectoryOnly).Order().ToList();
+        if (files.Count <= keptBackups)
+            return;
+
+        log.Debug(
+            $"{threadPrefix}Found {files.Count} backups for {name} with {keptBackups} backups to be kept, cleaning up {files.Count - keptBackups}...");
+        foreach (var file in files.Take(keptBackups))
+        {
+            try
+            {
+                File.Delete(file);
+            }
+            catch (Exception ex)
+            {
+                log.Error($"{threadPrefix}Failed to delete surplus backup of {name} at {file}:\n{ex}");
+            }
+        }
+    }
+
     /// <summary> Get the log prefix of the current thread ID. </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     protected static string GetThreadPrefix()
@@ -223,9 +307,16 @@ public class BaseSaveService(LunaLogger log, FrameworkManager framework)
         {
             BackupMode.NoBackups         => null,
             BackupMode.SingleBackup      => original + ".bak",
-            BackupMode.TimestampedBackup => Path.ChangeExtension(original, $"_{DateTime.Now:yyyyMMddhhmmss}{Path.GetExtension(original)}.bak"),
+            BackupMode.TimestampedBackup => GetTimeBackup(original),
             _                            => null,
         };
+
+    private static string GetTimeBackup(string original)
+    {
+        var extension = Path.GetExtension(original.AsSpan());
+        var path      = original.AsSpan(0, original.Length - extension.Length);
+        return $"{path}_{DateTime.Now:yyyyMMddhhmmss}{extension}.bak";
+    }
 }
 
 /// <summary> A service to simplify file-saving and deleting across the application. </summary>
@@ -357,7 +448,7 @@ public abstract class BaseSaveService<T>(LunaLogger log, FrameworkManager framew
                 // If we wrote to a temporary file, move the fully written file to replace the original file when done.
                 if (fileExisted)
                 {
-                    if (!CreateBackup(Log, BackupMode, threadPrefix, typeName, logName, name, out var backup))
+                    if (!CreateBackup(Log, BackupMode, BackupLimit, threadPrefix, typeName, logName, name, out var backup))
                         try
                         {
                             File.Delete(firstName);
@@ -447,7 +538,7 @@ public abstract class BaseSaveService<T>(LunaLogger log, FrameworkManager framew
                 if (BackupMode is BackupMode.NoBackups)
                     File.Delete(name);
                 else
-                    CreateBackup(Log, BackupMode, threadPrefix, typeName, logName, name, out _);
+                    CreateBackup(Log, BackupMode, BackupLimit, threadPrefix, typeName, logName, name, out _);
             }
             catch (Exception ex)
             {
