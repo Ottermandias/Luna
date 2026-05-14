@@ -2,6 +2,21 @@ using Dalamud.Bindings.ImGui;
 
 namespace Luna;
 
+/// <summary> A helper class that can be used without referencing Dalamud.Bindings.ImGui for its Click handler. </summary>
+public sealed class TitleBarButton : Dalamud.Interface.Windowing.TitleBarButton
+{
+    /// <summary> Subscribe to Dalamud's Click handler. </summary>
+    public TitleBarButton()
+        => base.Click += OnClick;
+
+    /// <inheritdoc cref="Dalamud.Interface.Windowing.TitleBarButton.Click"/>
+    public new event Action<MouseButton>? Click;
+
+    /// <summary> Click-redirection due to incompatible imgui types.</summary>
+    private void OnClick(ImGuiMouseButton button)
+        => Click?.Invoke((MouseButton)button);
+}
+
 /// <summary> Wrapper to avoid Dalamud.Bindings.Imgui as much as possible while still using <see cref="WindowSystem"/>. </summary>
 public abstract class Window : Dalamud.Interface.Windowing.Window, IUiService
 {
