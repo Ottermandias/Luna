@@ -4,7 +4,7 @@ namespace Luna;
 
 /// <summary> The basis for a simple boolean condition system. </summary>
 /// <typeparam name="TContext"> The context type passed to evaluate conditions. </typeparam>
-public interface ICondition<TContext>
+public interface ICondition<TContext> : IEquatable<ICondition<TContext>>
 {
     /// <summary> Evaluate this condition. </summary>
     /// <param name="context"> The context on which to base the evaluation. </param>

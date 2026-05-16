@@ -36,4 +36,12 @@ public sealed record FalseCondition<TContext> : ICondition<TContext>
     /// <inheritdoc/>
     public int RemoveSubconditions(Func<ICondition<TContext>, bool> predicate)
         => 0;
+
+    /// <inheritdoc/>
+    public bool Equals(ICondition<TContext>? other)
+        => other is FalseCondition<TContext>;
+
+    /// <inheritdoc/>
+    public override int GetHashCode()
+        => typeof(FalseCondition<TContext>).GetHashCode();
 }

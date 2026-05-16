@@ -91,4 +91,12 @@ public sealed class AndCondition<TContext>() : List<ICondition<TContext>>, ICond
 
         return sum;
     }
+
+    /// <inheritdoc/>
+    public bool Equals(ICondition<TContext>? other)
+        => other is AndCondition<TContext> a && a.SequenceEqual(this);
+
+    /// <inheritdoc/>
+    public override int GetHashCode()
+        => this.Aggregate(typeof(AndCondition<TContext>).GetHashCode(), HashCode.Combine);
 }

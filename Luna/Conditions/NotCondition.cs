@@ -48,4 +48,13 @@ public sealed class NotCondition<TContext>(ICondition<TContext> condition) : ICo
     /// <inheritdoc/>
     public int RemoveSubconditions(Func<ICondition<TContext>, bool> predicate)
         => 0;
+
+    /// <inheritdoc/>
+    public bool Equals(ICondition<TContext>? other)
+        => other is NotCondition<TContext> n && n.Condition.Equals(Condition);
+
+    /// <inheritdoc/>
+    public override int GetHashCode()
+        // ReSharper disable once NonReadonlyMemberInGetHashCode
+        => HashCode.Combine(typeof(NotCondition<TContext>).GetHashCode(), Condition.GetHashCode());
 }

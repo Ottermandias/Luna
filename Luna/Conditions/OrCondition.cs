@@ -91,4 +91,12 @@ public sealed class OrCondition<TContext>() : List<ICondition<TContext>>(), ICon
 
         return sum;
     }
+
+    /// <inheritdoc/>
+    public bool Equals(ICondition<TContext>? other)
+        => other is OrCondition<TContext> a && a.SequenceEqual(this);
+
+    /// <inheritdoc/>
+    public override int GetHashCode()
+        => this.Aggregate(typeof(OrCondition<TContext>).GetHashCode(), HashCode.Combine);
 }
