@@ -36,7 +36,7 @@ public class ConditionParser<TContext>
         {
             while (obj.Read(ref reader))
             {
-                if (!reader.CheckPropertyValue("Conditions"u8))
+                if (!reader.CheckProperty("Conditions"u8))
                     continue;
 
                 if (reader.TokenType is JsonTokenType.Null)
@@ -58,7 +58,7 @@ public class ConditionParser<TContext>
         {
             while (obj.Read(ref reader))
             {
-                if (!reader.CheckPropertyValue("Conditions"u8))
+                if (!reader.CheckProperty("Conditions"u8))
                     continue;
 
                 if (reader.TokenType is JsonTokenType.Null)
@@ -80,7 +80,7 @@ public class ConditionParser<TContext>
         {
             while (obj.Read(ref reader))
             {
-                if (!reader.CheckPropertyValue("Condition"u8))
+                if (!reader.CheckProperty("Condition"u8))
                     continue;
 
                 if (reader.TokenType is not JsonTokenType.StartObject)

@@ -173,7 +173,7 @@ public static class JsonFunctions
         /// <returns> True if the property names correspond, false otherwise. </returns>
         /// <exception cref="JsonException"> If the property matches but has no following value token to read. </exception>
         [MethodImpl(ImSharpConfiguration.OptInl)]
-        public bool CheckPropertyValue(ReadOnlySpan<byte> propertyName)
+        public bool CheckProperty(ReadOnlySpan<byte> propertyName)
         {
             Debug.Assert(reader.TokenType is JsonTokenType.PropertyName);
             if (!reader.ValueTextEquals(propertyName))
@@ -187,44 +187,216 @@ public static class JsonFunctions
 
         /// <summary> Check whether the current property name token corresponds to the given property and has a following value. </summary>
         /// <param name="propertyName"> The property name to check for. </param>
-        /// <param name="expectedType"> The expected token type for the following value token. </param>
+        /// <param name="objectReader"> An object reader for the current object. </param>
+        /// <param name="allowNull"> Whether null is allowed for the object value. </param>
         /// <returns> True if the property names correspond, false otherwise. </returns>
-        /// <exception cref="JsonException"> If the property matches but has no following value token to read, or if the value token has the wrong type. </exception>
+        /// <exception cref="JsonException"> If the property matches but has no following value token to read or is not the start of an object. </exception>
         [MethodImpl(ImSharpConfiguration.OptInl)]
-        public bool CheckPropertyValue(ReadOnlySpan<byte> propertyName, JsonTokenType expectedType)
+        public bool ObjectProperty(ReadOnlySpan<byte> propertyName, out Utf8JsonObjectReader objectReader, bool allowNull = false)
         {
             Debug.Assert(reader.TokenType is JsonTokenType.PropertyName);
             if (!reader.ValueTextEquals(propertyName))
+            {
+                objectReader = default;
                 return false;
+            }
 
             if (!reader.Read())
                 throw new JsonException($"Unexpected end after property {Encoding.UTF8.GetString(propertyName)}.");
 
-            if (expectedType != reader.TokenType)
-                throw new JsonException($"Unexpected value type {reader.TokenType} for property {Encoding.UTF8.GetString(propertyName)}.");
+            if (reader.TokenType is JsonTokenType.StartObject)
+            {
+                objectReader = new Utf8JsonObjectReader(reader);
+                return true;
+            }
 
-            return true;
+            if (allowNull && reader.TokenType is JsonTokenType.Null)
+            {
+                objectReader = new Utf8JsonObjectReader(reader);
+                return true;
+            }
+
+            throw new JsonException($"Unexpected token {reader.TokenType} for expected object.");
         }
 
         /// <summary> Check whether the current property name token corresponds to the given property and has a following value. </summary>
         /// <param name="propertyName"> The property name to check for. </param>
-        /// <param name="validTypes"> The supported token types for the following value token. </param>
+        /// <param name="arrayReader"> An object reader for the current array. </param>
+        /// <param name="allowNull"> Whether null is allowed for the array value. </param>
         /// <returns> True if the property names correspond, false otherwise. </returns>
-        /// <exception cref="JsonException"> If the property matches but has no following value token to read, or if the value token is not supported. </exception>
+        /// <exception cref="JsonException"> If the property matches but has no following value token to read or is not the start of an object or null if allowed. </exception>
         [MethodImpl(ImSharpConfiguration.OptInl)]
-        public bool CheckPropertyValue(ReadOnlySpan<byte> propertyName, params HashSet<JsonTokenType> validTypes)
+        public bool ArrayProperty(ReadOnlySpan<byte> propertyName, out Utf8JsonObjectReader arrayReader, bool allowNull = false)
         {
             Debug.Assert(reader.TokenType is JsonTokenType.PropertyName);
             if (!reader.ValueTextEquals(propertyName))
+            {
+                arrayReader = default;
                 return false;
+            }
 
             if (!reader.Read())
                 throw new JsonException($"Unexpected end after property {Encoding.UTF8.GetString(propertyName)}.");
 
-            if (!validTypes.Contains(reader.TokenType))
-                throw new JsonException($"Unexpected value type {reader.TokenType} for property {Encoding.UTF8.GetString(propertyName)}.");
+            if (reader.TokenType is JsonTokenType.StartArray)
+            {
+                arrayReader = new Utf8JsonObjectReader(reader);
+                return true;
+            }
+
+            if (allowNull && reader.TokenType is JsonTokenType.Null)
+            {
+                arrayReader = new Utf8JsonObjectReader(reader);
+                return true;
+            }
+
+            throw new JsonException($"Unexpected token {reader.TokenType} for expected object.");
+        }
+
+        /// <summary> Check whether the current property name token corresponds to the given property and has boolean value. </summary>
+        /// <param name="propertyName"> The property name to check for. </param>
+        /// <param name="value"> The parsed boolean on success. </param>
+        /// <returns> True if the property names correspond, false otherwise. </returns>
+        /// <exception cref="JsonException"> If the property matches but has no following value token to read, or if the value token is not a boolean. </exception>
+        [MethodImpl(ImSharpConfiguration.OptInl)]
+        public bool BoolProperty(ReadOnlySpan<byte> propertyName, out bool value)
+        {
+            Debug.Assert(reader.TokenType is JsonTokenType.PropertyName);
+            if (!reader.ValueTextEquals(propertyName))
+                return value = false;
+
+            if (!reader.Read())
+                throw new JsonException($"Unexpected end after boolean property {Encoding.UTF8.GetString(propertyName)}.");
+
+            if (reader.TryReadBoolean(out value))
+                throw new JsonException(
+                    $"Unexpected {reader.TokenType} value for boolean property {Encoding.UTF8.GetString(propertyName)}.");
 
             return true;
+        }
+
+        /// <summary> Check whether the current property name token corresponds to the given property and has numerical value. </summary>
+        /// <param name="propertyName"> The property name to check for. </param>
+        /// <param name="value"> The parsed number on success. </param>
+        /// <returns> True if the property names correspond, false otherwise. </returns>
+        /// <exception cref="JsonException"> If the property matches but has no following value token to read, or if the value token is not a number. </exception>
+        [MethodImpl(ImSharpConfiguration.OptInl)]
+        public bool NumberProperty<TNumber>(ReadOnlySpan<byte> propertyName, out TNumber value)
+            where TNumber : unmanaged, INumber<TNumber>
+        {
+            Debug.Assert(reader.TokenType is JsonTokenType.PropertyName);
+            if (!reader.ValueTextEquals(propertyName))
+            {
+                value = default!;
+                return false;
+            }
+
+            if (!reader.Read())
+                throw new JsonException($"Unexpected end after numeric property {Encoding.UTF8.GetString(propertyName)}.");
+
+            return reader.TryReadNumber(out value)
+                ? true
+                : throw new JsonException(
+                    $"Unexpected {reader.TokenType} value for numeric property {Encoding.UTF8.GetString(propertyName)}.");
+        }
+
+        /// <summary> Check whether the current property name token corresponds to the given property and has a textual enumeration value. </summary>
+        /// <param name="propertyName"> The property name to check for. </param>
+        /// <param name="value"> The parsed enumeration value on success. </param>
+        /// <returns> True if the property names correspond, false otherwise. </returns>
+        /// <exception cref="JsonException"> If the property matches but has no following value token to read, or if the value token is not parsable as the given enumeration. </exception>
+        [MethodImpl(ImSharpConfiguration.OptInl)]
+        public bool EnumProperty<TEnum>(ReadOnlySpan<byte> propertyName, out TEnum value)
+            where TEnum : unmanaged, Enum
+        {
+            Debug.Assert(reader.TokenType is JsonTokenType.PropertyName);
+            if (!reader.ValueTextEquals(propertyName))
+            {
+                value = default!;
+                return false;
+            }
+
+            if (!reader.Read())
+                throw new JsonException($"Unexpected end after enum property {Encoding.UTF8.GetString(propertyName)}.");
+
+            return reader.TryReadTextEnum(out value)
+                ? true
+                : throw new JsonException(
+                    $"Unexpected {reader.TokenType} value for enum property {Encoding.UTF8.GetString(propertyName)}.");
+        }
+
+        /// <summary> Check whether the current property name token corresponds to the given property and has a textual enumeration value. </summary>
+        /// <param name="propertyName"> The property name to check for. </param>
+        /// <param name="value"> The parsed enumeration value on success. </param>
+        /// <param name="allowNull"> Whether null is allowed for the string value. </param>
+        /// <returns> True if the property names correspond, false otherwise. </returns>
+        /// <exception cref="JsonException"> If the property matches but has no following value token to read, or if the value token is not parsable as the given enumeration. </exception>
+        [MethodImpl(ImSharpConfiguration.OptInl)]
+        public bool StringProperty(ReadOnlySpan<byte> propertyName, out string? value, bool allowNull = false)
+        {
+            Debug.Assert(reader.TokenType is JsonTokenType.PropertyName);
+            if (!reader.ValueTextEquals(propertyName))
+            {
+                value = null;
+                return false;
+            }
+
+            if (!reader.Read())
+                throw new JsonException($"Unexpected end after string property {Encoding.UTF8.GetString(propertyName)}.");
+
+            return reader.TryReadString(out value, allowNull: allowNull)
+                ? true
+                : throw new JsonException(
+                    $"Unexpected {reader.TokenType} value for string property {Encoding.UTF8.GetString(propertyName)}.");
+        }
+
+        /// <summary> Check whether the current property name token corresponds to the given property and has a textual enumeration value. </summary>
+        /// <param name="propertyName"> The property name to check for. </param>
+        /// <param name="value"> The parsed enumeration value on success. </param>
+        /// <param name="allowNull"> Whether null is allowed for the string value. </param>
+        /// <returns> True if the property names correspond, false otherwise. </returns>
+        /// <exception cref="JsonException"> If the property matches but has no following value token to read, or if the value token is not parsable as the given enumeration. </exception>
+        [MethodImpl(ImSharpConfiguration.OptInl)]
+        public bool StringProperty(ReadOnlySpan<byte> propertyName, out StringU8 value, bool allowNull = false)
+        {
+            Debug.Assert(reader.TokenType is JsonTokenType.PropertyName);
+            if (!reader.ValueTextEquals(propertyName))
+            {
+                value = StringU8.Null;
+                return false;
+            }
+
+            if (!reader.Read())
+                throw new JsonException($"Unexpected end after string property {Encoding.UTF8.GetString(propertyName)}.");
+
+            return reader.TryReadUtf8String(out value, allowNull)
+                ? true
+                : throw new JsonException(
+                    $"Unexpected {reader.TokenType} value for string property {Encoding.UTF8.GetString(propertyName)}.");
+        }
+
+        /// <summary> Check whether the current property name token corresponds to the given property and is a valid GUID value. </summary>
+        /// <param name="propertyName"> The property name to check for. </param>
+        /// <param name="value"> The parsed GUID value on success. </param>
+        /// <returns> True if the property names correspond, false otherwise. </returns>
+        /// <exception cref="JsonException"> If the property matches but has no following value token to read, or if the value token is not parsable to a GUID. </exception>
+        [MethodImpl(ImSharpConfiguration.OptInl)]
+        public bool GuidProperty(ReadOnlySpan<byte> propertyName, out Guid value)
+        {
+            Debug.Assert(reader.TokenType is JsonTokenType.PropertyName);
+            if (!reader.ValueTextEquals(propertyName))
+            {
+                value = Guid.Empty;
+                return false;
+            }
+
+            if (!reader.Read())
+                throw new JsonException($"Unexpected end after GUID property {Encoding.UTF8.GetString(propertyName)}.");
+
+            return reader.TryGetGuid(out value)
+                ? true
+                : throw new JsonException(
+                    $"Unexpected {reader.TokenType} value for string property {Encoding.UTF8.GetString(propertyName)}.");
         }
 
         /// <summary> Read an enumeration property type from a single object regardless of property order in this object. </summary>
@@ -268,10 +440,9 @@ public static class JsonFunctions
                     if (copy.ValueTextEquals(property))
                     {
                         // Type properties will be parsed, If this all succeeds, break out of the loop.
-                        if (!copy.Read() || !copy.TryReadUtf8String(out var v))
+                        if (!copy.Read() || !copy.TryReadUtf8String(out value))
                             return PeekError.Invalid;
 
-                        value   = v.Value;
                         success = true;
                         break;
                     }
@@ -301,13 +472,14 @@ public static class JsonFunctions
 
         /// <summary> Read the UTF8 string at the current token, unescaped, into an UTF8 string without re-encoding. </summary>
         /// <param name="text"> On success, the UTF8 string. </param>
+        /// <param name="allowNull"> Whether a null token is allowed to be parsed into null, or is a failure to parse. </param>
         /// <returns> True on success, false if the current token is not a string. </returns>
-        public bool TryReadUtf8String([NotNullWhen(true)] out StringU8? text)
+        public bool TryReadUtf8String(out StringU8 text, bool allowNull = false)
         {
             if (reader.TokenType is not JsonTokenType.String and not JsonTokenType.PropertyName)
             {
-                text = null;
-                return false;
+                text = StringU8.Null;
+                return allowNull && reader.TokenType is JsonTokenType.Null;
             }
 
             if (!reader.HasValueSequence)
@@ -438,10 +610,10 @@ public static class JsonFunctions
                     continue;
                 }
 
-                if (!reader.TryReadUtf8String(out var text))
+                if (!reader.TryReadUtf8String(out var text, allowsNullEntries))
                     throw new JsonException($"Found non-string token of type {reader.TokenType} in string array.");
 
-                ret.Add(text.Value);
+                ret.Add(text);
             }
 
             if (reader.TokenType is not JsonTokenType.EndArray)
@@ -454,7 +626,7 @@ public static class JsonFunctions
         /// <param name="allowsNullArray"> Whether the array itself may be null or not. </param>
         /// <returns> Null if the array is null and this is allowed, a list of GUID values otherwise. </returns>
         /// <exception cref="JsonException"> Throws if the array is null and this is not allowed, or if the JSON is malformed or not an array of strings. </exception>
-        public List<Guid>? ReadGuidUtf8Array(bool allowsNullArray = true)
+        public List<Guid>? ReadGuidArray(bool allowsNullArray = false)
         {
             if (allowsNullArray && reader.TokenType is JsonTokenType.Null)
                 return null;
@@ -486,7 +658,7 @@ public static class JsonFunctions
         /// <param name="allowsNullArray"> Whether the array itself may be null or not. </param>
         /// <returns> Null if the array is null and this is allowed, a list of parsed numbers otherwise. </returns>
         /// <exception cref="JsonException"> Throws if the array is null and this is not allowed, or if the JSON is malformed or not an array of numbers. </exception>
-        public List<TNumber>? ReadNumberArray<TNumber>(bool allowsNullArray = true) where TNumber : unmanaged, INumber<TNumber>
+        public List<TNumber>? ReadNumberArray<TNumber>(bool allowsNullArray = false) where TNumber : unmanaged, INumber<TNumber>
         {
             if (allowsNullArray && reader.TokenType is JsonTokenType.Null)
                 return null;
@@ -552,7 +724,7 @@ public static class JsonFunctions
                 return false;
             }
 
-            return EnumExtensions.Parse(text.Value, out value);
+            return EnumExtensions.Parse(text, out value);
         }
 
         /// <summary> Try to read the current token as a number of the given type. </summary>
@@ -631,7 +803,7 @@ public static class JsonFunctions
 
             // Read the number as string and try to parse it.
             // TryReadUtf8String checks the token type itself.
-            if (reader.TryReadUtf8String(out var text) && TNumber.TryParse(text.Value, null, out number))
+            if (reader.TryReadUtf8String(out var text) && TNumber.TryParse(text, null, out number))
                 return true;
 
             // All other cases are not valid numbers.
@@ -715,7 +887,7 @@ public static class JsonFunctions
             // Read the number as string and try to parse it.
             // TryReadUtf8String checks the token type itself.
             if (reader.TryReadUtf8String(out var text))
-                return TNumber.Parse(text.Value, null);
+                return TNumber.Parse(text, null);
 
             throw new JsonException($"Invalid JSON token of type {reader.TokenType} could not be read as a number.");
         }
