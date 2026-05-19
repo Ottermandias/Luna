@@ -450,6 +450,38 @@ public static class JsonFunctions
             return ret;
         }
 
+        /// <summary> Read an array of GUIDs. </summary>
+        /// <param name="allowsNullArray"> Whether the array itself may be null or not. </param>
+        /// <returns> Null if the array is null and this is allowed, a list of GUID values otherwise. </returns>
+        /// <exception cref="JsonException"> Throws if the array is null and this is not allowed, or if the JSON is malformed or not an array of strings. </exception>
+        public List<Guid>? ReadGuidUtf8Array(bool allowsNullArray = true)
+        {
+            if (allowsNullArray && reader.TokenType is JsonTokenType.Null)
+                return null;
+
+            if (reader.TokenType is not JsonTokenType.StartArray)
+                throw new JsonException($"Expected GUID array but got {reader.TokenType}.");
+
+            var ret   = new List<Guid>();
+            var array = reader.CreateObjectReader();
+            while (array.Read(ref reader))
+            {
+                if (reader.TokenType is JsonTokenType.EndArray)
+                    return ret;
+
+                if (!reader.TryGetGuid(out var guid))
+                    throw new JsonException($"Found invalid GUID token of type {reader.TokenType} in GUID array.");
+
+                ret.Add(guid);
+            }
+
+            if (reader.TokenType is not JsonTokenType.EndArray)
+                throw new JsonException("Unexpected end without terminating string array.");
+
+            return ret;
+        }
+
+
         /// <summary> Read an array of numeric values. </summary>
         /// <param name="allowsNullArray"> Whether the array itself may be null or not. </param>
         /// <returns> Null if the array is null and this is allowed, a list of parsed numbers otherwise. </returns>
