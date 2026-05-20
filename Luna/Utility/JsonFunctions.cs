@@ -626,7 +626,7 @@ public static class JsonFunctions
         /// <param name="allowsNullArray"> Whether the array itself may be null or not. </param>
         /// <returns> Null if the array is null and this is allowed, a list of GUID values otherwise. </returns>
         /// <exception cref="JsonException"> Throws if the array is null and this is not allowed, or if the JSON is malformed or not an array of strings. </exception>
-        public List<Guid>? ReadGuidArray(bool allowsNullArray = false)
+        public List<Guid>? ReadGuidArray(bool allowsNullArray = true)
         {
             if (allowsNullArray && reader.TokenType is JsonTokenType.Null)
                 return null;
@@ -658,7 +658,7 @@ public static class JsonFunctions
         /// <param name="allowsNullArray"> Whether the array itself may be null or not. </param>
         /// <returns> Null if the array is null and this is allowed, a list of parsed numbers otherwise. </returns>
         /// <exception cref="JsonException"> Throws if the array is null and this is not allowed, or if the JSON is malformed or not an array of numbers. </exception>
-        public List<TNumber>? ReadNumberArray<TNumber>(bool allowsNullArray = false) where TNumber : unmanaged, INumber<TNumber>
+        public List<TNumber>? ReadNumberArray<TNumber>(bool allowsNullArray = true) where TNumber : unmanaged, INumber<TNumber>
         {
             if (allowsNullArray && reader.TokenType is JsonTokenType.Null)
                 return null;
