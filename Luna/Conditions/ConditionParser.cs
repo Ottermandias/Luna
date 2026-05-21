@@ -11,7 +11,7 @@ public class ConditionParser<TContext>
 {
     public bool TryParse(ref Utf8JsonReader reader, out ICondition<TContext>? condition)
     {
-        var obj = reader.CreateObjectReader();
+        var obj = reader.CreateObjectLimit();
         condition = null;
         if (reader.TryPeekStringProperty("Type"u8, out var type) is not JsonFunctions.PeekError.Success)
         {
@@ -116,7 +116,7 @@ public class ConditionParser<TContext>
     /// <param name="obj"> The object reader that can be used to stay within the current JSON object. </param>
     /// <param name="type"> The value of the 'Type'-property. </param>
     /// <returns> A non-null object when a custom condition could be parsed and created successfully, null otherwise. </returns>
-    protected virtual ICondition<TContext>? ParseCustomType(ref Utf8JsonReader reader, Utf8JsonObjectReader obj, StringU8 type)
+    protected virtual ICondition<TContext>? ParseCustomType(ref Utf8JsonReader reader, Utf8JsonObjectLimit obj, StringU8 type)
         => null;
 
     /// <summary> Read an array of conditions. <c>null</c> is treated as an empty array. </summary>
@@ -135,7 +135,7 @@ public class ConditionParser<TContext>
         }
 
         var list        = new List<ICondition<TContext>>();
-        var arrayReader = reader.CreateObjectReader();
+        var arrayReader = reader.CreateObjectLimit();
         var failure     = false;
         while (arrayReader.Read(ref reader))
         {
