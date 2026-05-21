@@ -280,7 +280,7 @@ public static class JsonFunctions
             if (!reader.Read())
                 throw new JsonException($"Unexpected end after boolean property {Encoding.UTF8.GetString(propertyName)}.");
 
-            if (reader.TryReadBoolean(out value))
+            if (!reader.TryReadBoolean(out value))
                 throw new JsonException(
                     $"Unexpected {reader.TokenType} value for boolean property {Encoding.UTF8.GetString(propertyName)}.");
 
@@ -1510,7 +1510,7 @@ public ref struct Utf8JsonObjectReader(scoped in Utf8JsonReader reader)
     public Utf8JsonReader Reader = reader;
 
     /// <summary> The type of the end token we use as stop. </summary>
-    public readonly JsonTokenType Type = reader.TokenType switch
+    public JsonTokenType Type { get; private set; } = reader.TokenType switch
     {
         JsonTokenType.StartArray  => JsonTokenType.EndArray,
         JsonTokenType.StartObject => JsonTokenType.EndObject,
@@ -1533,20 +1533,24 @@ public ref struct Utf8JsonObjectReader(scoped in Utf8JsonReader reader)
         if (!Reader.Read())
             throw new JsonException("Invalid JSON: Object is not ended.");
 
-        return Reader.TokenType != Type || Reader.CurrentDepth > ObjectDepth;
+        if (Reader.TokenType != Type || Reader.CurrentDepth > ObjectDepth)
+            return true;
+
+        Type = JsonTokenType.None;
+        return false;
     }
 }
 
 /// <summary> A helper struct to parse within a single property value or object. </summary>
 /// <param name="reader"> The reader to base this on. </param>
 /// <remarks> This does not copy the reader at the current location and can only be used with a referenced reader. </remarks>
-public readonly ref struct Utf8JsonObjectLimit(scoped in Utf8JsonReader reader)
+public ref struct Utf8JsonObjectLimit(scoped in Utf8JsonReader reader)
 {
     /// <summary> The depth of the current object. </summary>
     public readonly int ObjectDepth = reader.CurrentDepth;
 
     /// <summary> The type of the end token we use as stop. </summary>
-    public readonly JsonTokenType Type = reader.TokenType switch
+    public JsonTokenType Type { get; private set; } = reader.TokenType switch
     {
         JsonTokenType.StartArray  => JsonTokenType.EndArray,
         JsonTokenType.StartObject => JsonTokenType.EndObject,
@@ -1566,6 +1570,9 @@ public readonly ref struct Utf8JsonObjectLimit(scoped in Utf8JsonReader reader)
         if (Type is JsonTokenType.None)
             return false;
 
+        if (reader.TokenType == Type && reader.CurrentDepth == ObjectDepth)
+            return false;
+
         if (!reader.Read())
             throw new JsonException("Invalid JSON: Object is not ended.");
 
@@ -1573,6 +1580,10 @@ public readonly ref struct Utf8JsonObjectLimit(scoped in Utf8JsonReader reader)
         if (reader.CurrentDepth < ObjectDepth)
             throw new JsonException("Invalid JSON: Left object depth without ending it.");
 
-        return reader.TokenType != Type || reader.CurrentDepth > ObjectDepth;
+        if (reader.TokenType != Type || reader.CurrentDepth > ObjectDepth)
+            return true;
+
+        Type = JsonTokenType.None;
+        return false;
     }
 }
