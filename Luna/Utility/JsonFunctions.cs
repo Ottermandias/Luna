@@ -312,6 +312,41 @@ public static class JsonFunctions
                     $"Unexpected {reader.TokenType} value for numeric property {Encoding.UTF8.GetString(propertyName)}.");
         }
 
+        /// <summary> Check whether the current property name token corresponds to the given property and has numerical value. </summary>
+        /// <param name="propertyName"> The property name to check for. </param>
+        /// <param name="value"> The parsed number on success. </param>
+        /// <returns> True if the property names correspond, false otherwise. </returns>
+        /// <exception cref="JsonException"> If the property matches but has no following value token to read, or if the value token is not a number. </exception>
+        [MethodImpl(ImSharpConfiguration.OptInl)]
+        public bool NumberProperty<TNumber>(ReadOnlySpan<byte> propertyName, out TNumber? value)
+            where TNumber : unmanaged, INumber<TNumber>
+        {
+            Debug.Assert(reader.TokenType is JsonTokenType.PropertyName);
+            if (!reader.ValueTextEquals(propertyName))
+            {
+                value = null;
+                return false;
+            }
+
+            if (!reader.Read())
+                throw new JsonException($"Unexpected end after numeric property {Encoding.UTF8.GetString(propertyName)}.");
+
+            if (reader.TokenType is JsonTokenType.Null)
+            {
+                value = null;
+                return true;
+            }
+
+            if (reader.TryReadNumber(out TNumber number))
+            {
+                value = number;
+                return true;
+            }
+
+            throw new JsonException(
+                $"Unexpected {reader.TokenType} value for numeric property {Encoding.UTF8.GetString(propertyName)}.");
+        }
+
         /// <summary> Check whether the current property name token corresponds to the given property and has a textual enumeration value. </summary>
         /// <param name="propertyName"> The property name to check for. </param>
         /// <param name="value"> The parsed enumeration value on success. </param>
@@ -1513,13 +1548,13 @@ public readonly ref struct Utf8JsonObjectLimit(scoped in Utf8JsonReader reader)
     /// <summary> The type of the end token we use as stop. </summary>
     public readonly JsonTokenType Type = reader.TokenType switch
     {
-        JsonTokenType.StartArray => JsonTokenType.EndArray,
+        JsonTokenType.StartArray  => JsonTokenType.EndArray,
         JsonTokenType.StartObject => JsonTokenType.EndObject,
-        JsonTokenType.Null => JsonTokenType.None,
-        JsonTokenType.Number => JsonTokenType.None,
-        JsonTokenType.String => JsonTokenType.None,
-        JsonTokenType.True => JsonTokenType.None,
-        JsonTokenType.False => JsonTokenType.None,
+        JsonTokenType.Null        => JsonTokenType.None,
+        JsonTokenType.Number      => JsonTokenType.None,
+        JsonTokenType.String      => JsonTokenType.None,
+        JsonTokenType.True        => JsonTokenType.None,
+        JsonTokenType.False       => JsonTokenType.None,
         _ => throw new JsonException(
             $"{nameof(Utf8JsonObjectLimit)} needs to be initialized on a value token, {nameof(JsonTokenType.StartObject)} or a {nameof(JsonTokenType.StartArray)} token, but is at a {reader.TokenType}."),
     };

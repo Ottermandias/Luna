@@ -9,7 +9,8 @@ public interface IJsonParsable
     /// <param name="log"> The logger to use. </param>
     /// <param name="filePath"> The file path affected. </param>
     /// <param name="flags"> The recovery methods used. </param>
-    public virtual static void OnRecovery(LunaLogger log, string filePath, JsonRecoveryFlags flags)
+    /// <param name="userInput"> An additional, optional user-defined object passed to the other functions. </param>
+    public virtual static void OnRecovery(LunaLogger log, string filePath, JsonRecoveryFlags flags, object? userInput = null)
     {
         var sb = new StringBuilder("Recovered valid JSON from ");
         sb.Append(filePath);
@@ -24,8 +25,10 @@ public interface IJsonParsable
     /// <param name="saveService"> The service used to save the recovered data. </param>
     /// <param name="filePath"> The full path to the file. </param>
     /// <param name="replace"> Whether to back up and replace the file if recovery is triggered and successful. </param>
+    /// <param name="userInput"> An additional, optional user-defined object passed to the other functions. </param>
     /// <returns> The parsed object. </returns>
-    public static TRet ReadJson<TRet>(BaseSaveService saveService, string filePath, bool replace = true) where TRet : IJsonParsable<TRet>
+    public static TRet ReadJson<TRet>(BaseSaveService saveService, string filePath, bool replace = true, object? userInput = null)
+        where TRet : IJsonParsable<TRet>, allows ref struct
     {
         // Read the data as UTF8 bytes.
         var bytes = JsonFunctions.ReadUtf8Bytes(filePath, out var originalData);
@@ -33,7 +36,7 @@ public interface IJsonParsable
         {
             // Try to parse the data with the return types Read function.
             var reader = new Utf8JsonReader(bytes.Span, JsonFunctions.ReaderOptions);
-            return TRet.Read(ref reader);
+            return TRet.Read(ref reader, filePath, userInput);
         }
         // Catch only JSON exceptions to try and recover.
         catch (JsonException ex)
@@ -44,9 +47,9 @@ public interface IJsonParsable
                 var (recovered, _, recoveries) = JsonFunctions.RecoverBytes(originalData, true, JsonRecoveryFlags.Safe);
                 // Try to parse the recovered JSON.
                 var reader = new Utf8JsonReader(recovered, JsonFunctions.ReaderOptions);
-                var ret    = TRet.Read(ref reader);
+                var ret    = TRet.Read(ref reader, filePath, userInput);
                 // Log the recovery of the file.
-                TRet.OnRecovery(saveService.Log, filePath, recoveries);
+                TRet.OnRecovery(saveService.Log, filePath, recoveries, userInput);
 
                 // If replacement is enabled, try to replace the file with the recovered data.
                 if (replace)
@@ -63,10 +66,12 @@ public interface IJsonParsable
 }
 
 /// <inheritdoc/>
-public interface IJsonParsable<out TSelf> : IJsonParsable
+public interface IJsonParsable<out TSelf> : IJsonParsable where TSelf : allows ref struct
 {
     /// <summary> Read and return this object from JSON. </summary>
     /// <param name="reader"> The JSON reader. </param>
+    /// <param name="filePath"> The path to the file being read. </param>
+    /// <param name="userInput"> An additional, optional user-defined object passed from the wrapper function. </param>
     /// <returns> The read and parsed object. </returns>
-    public abstract static TSelf Read(ref Utf8JsonReader reader);
+    public abstract static TSelf Read(scoped ref Utf8JsonReader reader, string filePath, object? userInput = null);
 }

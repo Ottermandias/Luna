@@ -365,7 +365,10 @@ public abstract class FileSystemSaver<TSaveService, TProvider> : FileSystemSaver
 
             var identifier = path.AsSpan(1);
             if (GetValueFromIdentifier(identifier, out var value))
+            {
                 (value.Node as FileSystemNode)?.SetSelected(true);
+                return true;
+            }
         }
         else if (FileSystem.Find(path, out var node))
         {
@@ -487,10 +490,10 @@ public abstract class FileSystemSaver<TSaveService, TProvider> : FileSystemSaver
         {
             var changes = false;
             foreach (var (folder, data) in organization.Folders)
-                changes |= ApplyFolder(folder, data);
+                changes |= !ApplyFolder(folder, data);
 
             foreach (var (separator, data) in organization.Separators)
-                changes |= ApplySeparator(separator, data.Color, data.CreationDate, data.Folder);
+                changes |= !ApplySeparator(separator, data.Color, data.CreationDate, data.Folder);
 
             if (changes)
                 SaveService.DelaySave(new OrganizationData(this));
@@ -503,7 +506,7 @@ public abstract class FileSystemSaver<TSaveService, TProvider> : FileSystemSaver
         var changes     = false;
         if (_storedLockedPaths is not null)
         {
-            changes            = _storedLockedPaths.Aggregate(changes, (current, path) => current | ApplyLockedNode(path, false));
+            changes            = _storedLockedPaths.Aggregate(changes, (current, path) => current | !ApplyLockedNode(path, false));
             _storedLockedPaths = null;
         }
 
@@ -522,7 +525,7 @@ public abstract class FileSystemSaver<TSaveService, TProvider> : FileSystemSaver
         var changes       = false;
         if (_storedSelectedPaths is not null)
         {
-            changes              = _storedSelectedPaths.Aggregate(changes, (current, path) => current | ApplySelectedNode(path, false));
+            changes              = _storedSelectedPaths.Aggregate(changes, (current, path) => current | !ApplySelectedNode(path, false));
             _storedSelectedPaths = null;
         }
 
