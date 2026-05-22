@@ -205,7 +205,7 @@ public static partial class Backup
 
     /// <summary> Compare two streams per byte and return if they are equal. </summary>
     [SkipLocalsInit]
-    private static bool Equals(Stream lhs, Stream rhs)
+    private static unsafe bool Equals(Stream lhs, Stream rhs)
     {
         const int  bufferSize = 1024;
         Span<byte> bufferLhs  = stackalloc byte[bufferSize];

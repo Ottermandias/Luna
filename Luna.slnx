@@ -6,6 +6,13 @@
     <File Path=".editorconfig" />
     <File Path=".gitignore" />
   </Folder>
+  <Folder Name="/Solution Items/Schemas/">
+    <File Path="schemas/and_condition.json" />
+    <File Path="schemas/or_condition.json" />
+    <File Path="schemas/not_condition.json" />
+    <File Path="schemas/true_condition.json" />
+    <File Path="schemas/false_condition.json" />
+  </Folder>
   <Project Path="ImSharp/ImSharp/ImSharp.csproj">
     <Platform Project="x64" />
   </Project>

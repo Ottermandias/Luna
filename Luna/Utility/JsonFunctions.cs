@@ -1,3 +1,4 @@
+using System.Text.Encodings.Web;
 using System.Text.Json;
 using JsonSerializer = System.Text.Json.JsonSerializer;
 
@@ -15,6 +16,7 @@ public static class JsonFunctions
     {
         WriteIndented       = true,
         AllowTrailingCommas = true,
+        Encoder             = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
     };
 
     /// <summary> The default JSON Writer options we use. </summary>
@@ -24,6 +26,7 @@ public static class JsonFunctions
         IndentCharacter = ' ',
         IndentSize      = 4,
         NewLine         = "\n",
+        Encoder         = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
     };
 
     /// <summary> The default JSON Writer options we use. </summary>
@@ -33,6 +36,7 @@ public static class JsonFunctions
         Indented       = false,
         IndentSize     = 0,
         NewLine        = "\n",
+        Encoder        = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
     };
 
     /// <summary> The default JSON Reader options we use. </summary>
@@ -528,30 +532,10 @@ public static class JsonFunctions
                 return allowNull && reader.TokenType is JsonTokenType.Null;
             }
 
-            if (!reader.HasValueSequence)
-            {
-                var array = new byte[reader.ValueSpan.Length + 1];
-                array[reader.ValueSpan.Length] = 0;
-                reader.ValueSpan.CopyTo(array);
-                text = StringU8.CreateUnchecked(array.AsMemory(..^1));
-                return true;
-            }
-
-            var seq    = reader.ValueSequence;
-            var length = 1;
-            foreach (var span in seq)
-                length += span.Length;
-
-            var ret = new byte[length];
-            ret[^1] = 0;
-            var tmp = ret.AsMemory();
-            foreach (var span in seq)
-            {
-                span.CopyTo(tmp);
-                tmp = tmp[span.Length..];
-            }
-
-            text = StringU8.CreateUnchecked(ret.AsMemory(..^1));
+            var array = new byte[reader.ValueSpan.Length + 1];
+            var bytes = reader.CopyString(array);
+            array[bytes] = 0;
+            text         = StringU8.CreateUnchecked(array.AsMemory(0, bytes));
             return true;
         }
 
