@@ -4,7 +4,11 @@ namespace Luna;
 public interface IIndexed
 {
     /// <summary> The index of this object inside its parent container. </summary>
-    public int Index { get; set; }
+    public int Index { get; }
+
+    /// <summary> Update the index of this object inside its parent container. </summary>
+    /// <remarks> Should only be used by <see cref="IndexList{T}"/> and not manually. </remarks>
+    public void SetIndex(int newIndex);
 }
 
 /// <summary> A list of objects that know their own index that keeps this index invariantly correct. </summary>
@@ -107,7 +111,7 @@ public sealed class IndexList<T> : IAdvancedList<T>
     {
         if (_size == _items.Length)
             Grow(_size + 1);
-        item.Index    = _size;
+        item.SetIndex(_size);
         _items[_size] = item;
         ++_size;
     }
@@ -160,11 +164,11 @@ public sealed class IndexList<T> : IAdvancedList<T>
             for (var i = index; i < _size; ++i)
             {
                 var shiftedItem = _items[i];
-                shiftedItem.Index  = i + 1;
+                shiftedItem.SetIndex(i + 1);
                 _items[item.Index] = shiftedItem;
             }
 
-        item.Index    = index;
+        item.SetIndex(index);
         _items[index] = item;
         ++_size;
     }
@@ -181,7 +185,7 @@ public sealed class IndexList<T> : IAdvancedList<T>
             for (var i = index; i < _size; ++i)
             {
                 var shiftedItem = _items[index + 1];
-                shiftedItem.Index = index;
+                shiftedItem.SetIndex(index);
                 _items[index]     = shiftedItem;
             }
 
@@ -208,11 +212,41 @@ public sealed class IndexList<T> : IAdvancedList<T>
             for (var i = index; i < _size - index; ++i)
             {
                 var item = _items[i + count];
-                item.Index = i;
+                item.SetIndex(i);
                 _items[i]  = item;
             }
 
         Array.Clear(_items, _size, count);
+    }
+
+    /// <inheritdoc cref="List{T}.RemoveAll"/>
+    public int RemoveAll(Predicate<T> match)
+    {
+        var removedIndex = 0;
+        while (removedIndex < _size && !match(_items[removedIndex]))
+            ++removedIndex;
+
+        if (removedIndex == _size)
+            return 0;
+
+        var keptIndex = removedIndex + 1;
+        while (keptIndex < _size)
+        {
+            while (keptIndex < _size && match(_items[keptIndex]))
+                ++keptIndex;
+
+            if (keptIndex < _size)
+            {
+                var keptItem = _items[keptIndex++];
+                keptItem.SetIndex(removedIndex);
+                _items[removedIndex++] = keptItem;
+            }
+        }
+
+        Array.Clear(_items, removedIndex, _size - removedIndex);
+        var ret = _size - removedIndex;
+        _size = removedIndex;
+        return ret;
     }
 
     /// <inheritdoc cref="List{T}.EnsureCapacity"/>
@@ -231,7 +265,7 @@ public sealed class IndexList<T> : IAdvancedList<T>
         set
         {
             _items[index] = value;
-            value.Index   = index;
+            value.SetIndex(index);
         }
     }
 
@@ -262,7 +296,7 @@ public sealed class IndexList<T> : IAdvancedList<T>
             for (var i = where; i < _size; ++i)
             {
                 var item = _items[i];
-                item.Index           = i + count;
+                item.SetIndex(i + count);
                 newItems[item.Index] = item;
             }
 
@@ -280,7 +314,7 @@ public sealed class IndexList<T> : IAdvancedList<T>
         var idx = _size;
         foreach (var item in items)
         {
-            item.Index    = idx;
+            item.SetIndex(idx);
             _items[idx++] = item;
         }
 

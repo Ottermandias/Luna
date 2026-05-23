@@ -10,6 +10,9 @@ public interface IAdvancedList<T> : IList<T>, IReadOnlyList<T>
     /// <inheritdoc cref="List{T}.RemoveRange"/>
     public void RemoveRange(int index, int count);
 
+    /// <inheritdoc cref="List{T}.RemoveAll"/>
+    public int RemoveAll(Predicate<T> match);
+
     /// <inheritdoc cref="List{T}.EnsureCapacity"/>
     public int EnsureCapacity(int capacity);
 
