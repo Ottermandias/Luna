@@ -20,7 +20,7 @@
 
     <PropertyGroup>
         <DefineConstants>PROFILING</DefineConstants>
-        <DefineConstants>HAS_NEWTONSOFT;HAS_TERRAFX</DefineConstants>
+        <DefineConstants>HAS_NEWTONSOFT</DefineConstants>
         <Use_DalamudPackager>false</Use_DalamudPackager>
     </PropertyGroup>
 

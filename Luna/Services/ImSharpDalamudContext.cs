@@ -2,6 +2,7 @@ using Dalamud.Interface;
 using Dalamud.Plugin;
 using Dalamud.Plugin.Services;
 using Microsoft.Extensions.Logging;
+using Luna.DirectX;
 
 namespace Luna;
 

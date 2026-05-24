@@ -1,16 +1,18 @@
+using Luna.DirectX;
+
 namespace Luna;
 
 /// <summary> A combo to display named colors. </summary>
 public abstract class FilterComboColors : FilterComboBase<FilterComboColors.Item>
 {
-    private static readonly PixelShader DyeGlossOverlayPixelShader = PixelShader.FromManifestResource("DyeGlossOverlay");
-
     // We are keeping two of these to avoid constant re-renderings due to the rounding being canceled within the popup.
-    private static readonly FullScreenQuadWithUniforms<DyeGlossOverlayUniforms> PreviewDyeGlossOverlay =
-        new(DyeGlossOverlayPixelShader, default, $"{nameof(FilterComboColors)}.{nameof(PreviewDyeGlossOverlay)}");
+    private static readonly FullScreenQuadWithUniforms PreviewDyeGlossOverlay =
+        new(LunaShaders.DyeGlossOverlay, new ConstantBuffer<LunaShaders.DyeGlossOverlayUniforms>(),
+            $"{nameof(FilterComboColors)}.{nameof(PreviewDyeGlossOverlay)}");
 
-    private static readonly FullScreenQuadWithUniforms<DyeGlossOverlayUniforms> PopupDyeGlossOverlay =
-        new(DyeGlossOverlayPixelShader, default, $"{nameof(FilterComboColors)}.{nameof(PopupDyeGlossOverlay)}");
+    private static readonly FullScreenQuadWithUniforms PopupDyeGlossOverlay =
+        new(LunaShaders.DyeGlossOverlay, new ConstantBuffer<LunaShaders.DyeGlossOverlayUniforms>(),
+            $"{nameof(FilterComboColors)}.{nameof(PopupDyeGlossOverlay)}");
 
     /// <summary> A tracker variable for styles and colors pushed across function boundaries. </summary>
     protected readonly Im.ColorStyleDisposable Style = new();
@@ -117,11 +119,12 @@ public abstract class FilterComboColors : FilterComboBase<FilterComboColors.Item
         DrawDyeGlossOverlay(PreviewDyeGlossOverlay, min, Im.Item.LowerRightCorner with { X = min.X + width });
     }
 
-    private static void DrawDyeGlossOverlay(FullScreenQuadWithUniforms<DyeGlossOverlayUniforms> overlay, Vector2 upperLeft, Vector2 lowerRight)
+    private static void DrawDyeGlossOverlay(FullScreenQuadWithUniforms overlay, Vector2 upperLeft, Vector2 lowerRight)
     {
         // This removes frame rounding but there is currently no easy way to obtain a multicolored rectangle with rounding.
         // Im.Window.DrawList.Shape.RectangleMulticolor(upperLeft, lowerRight, 0x50FFFFFF, 0x50000000, 0x50FFFFFF, 0x50000000);
-        if (LunaHelpers.SetDifferent(ref overlay.Uniforms.Rounding, Im.Style.FrameRounding))
+        var uniforms = (ConstantBuffer<LunaShaders.DyeGlossOverlayUniforms>)overlay.Uniforms!;
+        if (LunaHelpers.SetDifferent(ref uniforms.Contents.Rounding, new Vector4(Im.Style.FrameRounding)))
             overlay.Update();
 
         Im.Window.DrawList.Image(
@@ -187,10 +190,4 @@ public abstract class FilterComboColors : FilterComboBase<FilterComboColors.Item
     /// <inheritdoc/>
     protected override FilterComboBaseCache<Item> CreateCache()
         => new ColorsCache(this);
-
-    [StructLayout(LayoutKind.Sequential)]
-    private struct DyeGlossOverlayUniforms
-    {
-        public float Rounding;
-    }
 }
