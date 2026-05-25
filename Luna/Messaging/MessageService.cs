@@ -1,3 +1,4 @@
+using Dalamud.Interface.ImGuiNotification;
 using Dalamud.Plugin.Services;
 
 namespace Luna;
@@ -22,6 +23,9 @@ public class MessageService(LunaLogger log, IChatGui chat, INotificationManager 
     /// <summary> Contains sent messages that should be printed in the Notification log. </summary>
     private readonly SortedDictionary<DateTime, IMessage> _messages = [];
 
+    /// <summary> Contains all currently active notifications. </summary>
+    private readonly ConcurrentDictionary<IMessage, IActiveNotification> _activeNotifications = [];
+
     /// <summary> How often tagged messages should be cleaned (in frames). </summary>
     public int LastTaggedMessageCleanCycle { get; init; } = 128;
 
@@ -33,6 +37,10 @@ public class MessageService(LunaLogger log, IChatGui chat, INotificationManager 
 
     /// <summary> A dictionary of messages for specific tags and the time they got sent. </summary>
     private readonly ConcurrentDictionary<string, (DateTime LastMessage, IMessage Message)> _taggedMessages = [];
+
+    /// <summary> Enumerate all messages with currently active notifications from this service. </summary>
+    public IEnumerable<KeyValuePair<IMessage, IActiveNotification>> Active
+        => _activeNotifications;
 
     /// <summary> Print a message with a tag only if it has not been sent within <seealso cref="LastTaggedMessageMaxAge"/>. </summary>
     /// <param name="tag"> The tag to compare messages by. </param>
@@ -100,6 +108,9 @@ public class MessageService(LunaLogger log, IChatGui chat, INotificationManager 
                 notification.DrawActions += message.OnNotificationActions;
                 if (message is INotificationAwareMessage notificationAwareMessage)
                     notificationAwareMessage.OnNotificationCreated(notification);
+
+                _activeNotifications.AddOrUpdate(message, _ => notification, (_, _) => notification);
+                notification.Dismiss += _ => _activeNotifications.TryRemove(KeyValuePair.Create(message, notification));
             }
         }
 
