@@ -180,7 +180,7 @@ public static partial class LunaStyle
 
     /// <summary> The color for warning button or frame backgrounds. </summary>
     public static Vector4 WarningBackground
-        => ImGuiColors.WarningForeground;
+        => ImGuiColors.WarningBackground;
 
     /// <summary> The color for error button or frame backgrounds. </summary>
     public static Vector4 ErrorBackground
