@@ -1,10 +1,9 @@
-using System.Text.Json;
-
 namespace Luna;
 
 /// <summary> A condition that evaluates to true if all its subconditions evaluate to true. </summary>
 /// <typeparam name="TContext"><inheritdoc cref="ICondition{TContext}"/></typeparam>
-public sealed class AndCondition<TContext>() : List<ICondition<TContext>>, ICondition<TContext>
+public sealed class AndCondition<TContext>() : ListCondition<TContext>
+    where TContext : IConditionContext<TContext>
 {
     /// <summary> Create an And-Condition from existing conditions. </summary>
     public AndCondition(params IReadOnlyList<ICondition<TContext>> conditions)
@@ -15,7 +14,11 @@ public sealed class AndCondition<TContext>() : List<ICondition<TContext>>, ICond
     }
 
     /// <inheritdoc/>
-    public bool Evaluate(in TContext context)
+    protected override ReadOnlySpan<byte> Type
+        => "And"u8;
+
+    /// <inheritdoc/>
+    public override bool Evaluate(in TContext context)
     {
         foreach (var condition in this)
         {
@@ -27,7 +30,7 @@ public sealed class AndCondition<TContext>() : List<ICondition<TContext>>, ICond
     }
 
     /// <inheritdoc/>
-    public ICondition<TContext> Reduce()
+    public override ICondition<TContext> Reduce()
     {
         // Reduce all child conditions, then check for any that are always false, remove all that are always true.
         for (var i = Count - 1; i >= 0; --i)
@@ -51,19 +54,7 @@ public sealed class AndCondition<TContext>() : List<ICondition<TContext>>, ICond
     }
 
     /// <inheritdoc/>
-    public void WriteJson(Utf8JsonWriter j)
-    {
-        j.WriteStartObject();
-        j.WriteString("Type"u8, "And"u8);
-        j.WriteStartArray("Conditions"u8);
-        foreach (var condition in this)
-            condition.WriteJson(j);
-        j.WriteEndArray();
-        j.WriteEndObject();
-    }
-
-    /// <inheritdoc/>
-    public ICondition<TContext> DeepCopy()
+    public override ICondition<TContext> DeepCopy()
     {
         var ret = new AndCondition<TContext>();
         ret.EnsureCapacity(Count);
@@ -72,28 +63,7 @@ public sealed class AndCondition<TContext>() : List<ICondition<TContext>>, ICond
     }
 
     /// <inheritdoc/>
-    public IEnumerable<ICondition<TContext>> Subconditions
-        => this.SelectMany(c => c.Subconditions);
-
-    /// <inheritdoc/>
-    public int RemoveSubconditions(Func<ICondition<TContext>, bool> predicate)
-    {
-        var sum = 0;
-        for (var i = Count - 1; i >= 0; --i)
-        {
-            sum += this[i].RemoveSubconditions(predicate);
-            if (predicate(this[i]))
-            {
-                ++sum;
-                RemoveAt(i);
-            }
-        }
-
-        return sum;
-    }
-
-    /// <inheritdoc/>
-    public bool Equals(ICondition<TContext>? other)
+    public override bool Equals(ICondition<TContext>? other)
         => other is AndCondition<TContext> a && a.SequenceEqual(this);
 
     /// <inheritdoc/>

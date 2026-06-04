@@ -3,6 +3,7 @@ namespace Luna;
 /// <summary>   A base class for drawing conditions that can be extended to handle the actual context-based conditions. </summary>
 /// <typeparam name="TContext"><inheritdoc cref="ICondition{TContext}"/></typeparam>
 public class ConditionDrawer<TContext>
+    where TContext : IConditionContext<TContext>
 {
     /// <summary> A stack that lists AND/OR/NOT notes as parents. </summary>
     protected readonly Stack<ICondition<TContext>> ParentStack = [];

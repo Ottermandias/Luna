@@ -3,13 +3,14 @@ using System.Text.Json;
 namespace Luna;
 
 /// <summary>
-///   A base class for parsing conditions that can be extended to handle the actual context-based conditions.
+///   A base utility for parsing conditions.
 ///   The type parsing and all the basic building block conditions are already handled.
 /// </summary>
-/// <typeparam name="TContext"><inheritdoc cref="ICondition{TContext}"/></typeparam>
-public class ConditionParser<TContext>
+public static class ConditionParser
 {
-    public bool TryParse(ref Utf8JsonReader reader, out ICondition<TContext>? condition)
+    /// <typeparam name="TContext"><inheritdoc cref="ICondition{TContext}"/></typeparam>
+    public static bool TryParse<TContext>(ref Utf8JsonReader reader, out ICondition<TContext>? condition)
+        where TContext : IConditionContext<TContext>
     {
         var obj = reader.CreateObjectLimit();
         condition = null;
@@ -43,7 +44,7 @@ public class ConditionParser<TContext>
                 {
                     condition = TrueCondition<TContext>.Instance;
                 }
-                else if (!TryReadArray(ref reader, out var array))
+                else if (!TryReadArray<TContext>(ref reader, out var array))
                 {
                     ret = false;
                 }
@@ -65,7 +66,7 @@ public class ConditionParser<TContext>
                 {
                     condition = FalseCondition<TContext>.Instance;
                 }
-                else if (!TryReadArray(ref reader, out var array))
+                else if (!TryReadArray<TContext>(ref reader, out var array))
                 {
                     ret = false;
                 }
@@ -87,7 +88,7 @@ public class ConditionParser<TContext>
                 {
                     ret = false;
                 }
-                else if (TryParse(ref reader, out var subCondition))
+                else if (TryParse<TContext>(ref reader, out var subCondition))
                 {
                     condition = new NotCondition<TContext>(subCondition!).Reduce();
                     ret       = true;
@@ -100,7 +101,7 @@ public class ConditionParser<TContext>
         }
         else
         {
-            condition = ParseCustomType(ref reader, obj, type);
+            condition = TContext.ParseCustomType(ref reader, obj, type);
             ret       = condition is not null;
         }
 
@@ -111,16 +112,9 @@ public class ConditionParser<TContext>
         return ret;
     }
 
-    /// <summary> Handle all custom condition types for this context. </summary>
-    /// <param name="reader"> The reader, currently placed either at the start of an object or after the 'Type'-property, if it was the first in the object. </param>
-    /// <param name="obj"> The object reader that can be used to stay within the current JSON object. </param>
-    /// <param name="type"> The value of the 'Type'-property. </param>
-    /// <returns> A non-null object when a custom condition could be parsed and created successfully, null otherwise. </returns>
-    protected virtual ICondition<TContext>? ParseCustomType(ref Utf8JsonReader reader, Utf8JsonObjectLimit obj, StringU8 type)
-        => null;
-
     /// <summary> Read an array of conditions. <c>null</c> is treated as an empty array. </summary>
-    private bool TryReadArray(ref Utf8JsonReader reader, out ICondition<TContext>[]? array)
+    private static bool TryReadArray<TContext>(ref Utf8JsonReader reader, out ICondition<TContext>[]? array)
+        where TContext : IConditionContext<TContext>
     {
         if (reader.TokenType is JsonTokenType.Null)
         {
@@ -139,7 +133,7 @@ public class ConditionParser<TContext>
         var failure     = false;
         while (arrayReader.Read(ref reader))
         {
-            if (reader.TokenType is JsonTokenType.StartObject && TryParse(ref reader, out var subCondition))
+            if (reader.TokenType is JsonTokenType.StartObject && TryParse<TContext>(ref reader, out var subCondition))
             {
                 list.Add(subCondition!);
             }

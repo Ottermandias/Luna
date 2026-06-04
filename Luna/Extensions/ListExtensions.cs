@@ -160,10 +160,11 @@ public static class ListExtensions
 
     /// <summary> Remove all duplicate elements in a list. </summary>
     /// <typeparam name="T"> The type of the elements. </typeparam>
+    /// <typeparam name="TCompare"> The equatable base type of the elements. </typeparam>
     /// <param name="list"> The list to remove duplicates from. </param>
     /// <returns> The number of removed elements. </returns>
     /// <remarks> If the equatable items are not truly equal, note that this will keep the last occurence of each item evaluating as equal, not the first. </remarks>
-    public static int RemoveDuplicates<T>(this IList<T> list) where T : IEquatable<T>
+    public static int RemoveDuplicates<T, TCompare>(this IList<T> list) where T : IEquatable<TCompare>, TCompare
     {
         var oldCount = list.Count;
         var set      = new HashSet<T>(list.Count);
@@ -176,6 +177,9 @@ public static class ListExtensions
         return oldCount - list.Count;
     }
 
+    /// <inheritdoc cref="RemoveDuplicates{T,TCompare}"/>
+    public static int RemoveDuplicates<T>(this IList<T> list) where T : IEquatable<T>
+        => list.RemoveDuplicates<T, T>();
 
     /// <summary> Fix up the indices for a range removal according to the actual size of the container.</summary>
     /// <returns> False if there is nothing to do after fixing. </returns>

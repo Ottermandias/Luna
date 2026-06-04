@@ -5,6 +5,7 @@ namespace Luna;
 /// <summary> A condition that inverts its subcondition. </summary>
 /// <typeparam name="TContext"><inheritdoc cref="ICondition{TContext}"/></typeparam>
 public sealed class NotCondition<TContext>(ICondition<TContext> condition) : ICondition<TContext>
+    where TContext : IConditionContext<TContext>
 {
     /// <summary> The inverted condition. </summary>
     public ICondition<TContext> Condition = condition;
@@ -43,11 +44,26 @@ public sealed class NotCondition<TContext>(ICondition<TContext> condition) : ICo
 
     /// <inheritdoc/>
     public IEnumerable<ICondition<TContext>> Subconditions
-        => Condition.Subconditions;
+        => Condition.Subconditions.Prepend(Condition);
 
     /// <inheritdoc/>
     public int RemoveSubconditions(Func<ICondition<TContext>, bool> predicate)
         => 0;
+
+    /// <inheritdoc/>
+    public ICondition<TContext>? EditConditions(Func<ICondition<TContext>, ICondition<TContext>?> method)
+    {
+        if (method(Condition) is { } change)
+        {
+            Condition = change;
+            return method(this) ?? this;
+        }
+
+        if (method(this) is { } self)
+            return self;
+
+        return null;
+    }
 
     /// <inheritdoc/>
     public bool Equals(ICondition<TContext>? other)

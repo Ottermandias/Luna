@@ -1,10 +1,9 @@
-using System.Text.Json;
-
 namespace Luna;
 
 /// <summary> A condition that evaluates to true if any of its subconditions evaluates to true. </summary>
 /// <typeparam name="TContext"><inheritdoc cref="ICondition{TContext}"/></typeparam>
-public sealed class OrCondition<TContext>() : List<ICondition<TContext>>(), ICondition<TContext>
+public sealed class OrCondition<TContext>() : ListCondition<TContext>
+    where TContext : IConditionContext<TContext>
 {
     /// <summary> Create an Or-Condition from existing conditions. </summary>
     public OrCondition(params IReadOnlyList<ICondition<TContext>> conditions)
@@ -15,7 +14,11 @@ public sealed class OrCondition<TContext>() : List<ICondition<TContext>>(), ICon
     }
 
     /// <inheritdoc/>
-    public bool Evaluate(in TContext context)
+    protected override ReadOnlySpan<byte> Type
+        => "Or"u8;
+
+    /// <inheritdoc/>
+    public override bool Evaluate(in TContext context)
     {
         foreach (var condition in this)
         {
@@ -27,7 +30,7 @@ public sealed class OrCondition<TContext>() : List<ICondition<TContext>>(), ICon
     }
 
     /// <inheritdoc/>
-    public ICondition<TContext> Reduce()
+    public override ICondition<TContext> Reduce()
     {
         // Reduce all child conditions, then check for any that are always true, remove all that are always false.
         for (var i = Count - 1; i >= 0; --i)
@@ -50,50 +53,19 @@ public sealed class OrCondition<TContext>() : List<ICondition<TContext>>(), ICon
         };
     }
 
-    /// <inheritdoc/>
-    public void WriteJson(Utf8JsonWriter j)
-    {
-        j.WriteStartObject();
-        j.WriteString("Type"u8, "Or"u8);
-        j.WriteStartArray("Conditions"u8);
-        foreach (var condition in this)
-            condition.WriteJson(j);
-        j.WriteEndArray();
-        j.WriteEndObject();
-    }
 
     /// <inheritdoc/>
-    public ICondition<TContext> DeepCopy()
+    public override ICondition<TContext> DeepCopy()
     {
-        var ret = new AndCondition<TContext>();
+        var ret = new OrCondition<TContext>();
         ret.EnsureCapacity(Count);
         ret.AddRange(this.Select(c => c.DeepCopy()));
         return ret;
     }
 
-    /// <inheritdoc/>
-    public IEnumerable<ICondition<TContext>> Subconditions
-        => this.SelectMany(c => c.Subconditions);
 
     /// <inheritdoc/>
-    public int RemoveSubconditions(Func<ICondition<TContext>, bool> predicate)
-    {
-        var sum = 0;
-        for (var i = Count - 1; i >= 0; --i)
-        {
-            sum += this[i].RemoveSubconditions(predicate);
-            if (predicate(this[i]))
-            {
-                ++sum;
-                RemoveAt(i);
-            }
-        }
-
-        return sum;
-    }
-
-    /// <inheritdoc/>
-    public bool Equals(ICondition<TContext>? other)
+    public override bool Equals(ICondition<TContext>? other)
         => other is OrCondition<TContext> a && a.SequenceEqual(this);
 
     /// <inheritdoc/>
