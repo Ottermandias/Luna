@@ -1,7 +1,10 @@
 #ifndef LANCZOS3_HLSLI_INCLUDED
 #define LANCZOS3_HLSLI_INCLUDED
 
+#include "Utility.hlsli"
+
 // Ported from https://gitlab.com/higan/xml-shaders/blob/master/shaders/OpenGL/v1.0/Lanczos%20(6tap).shader
+// Original licensed under GPL-2.0-or-later, see also https://www.gnu.org/licenses/gpl-faq#AllCompatibility
 
 struct lanczos3
 {
@@ -21,7 +24,6 @@ struct lanczos3
 
     float3 weights3(float x)
     {
-        static const float pi = 3.1415926535897932384626433832795f;
         static const float radius = 3.0f;
         float3 texels = max(2.0f * pi * float3(x - 1.5f, x - 0.5f, x + 0.5f), 1e-5f);
 

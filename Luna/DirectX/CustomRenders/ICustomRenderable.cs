@@ -15,7 +15,7 @@ public interface ICustomRenderable
     /// <summary> The version of this object. Change to invalidate all existing renders. </summary>
     public long Version { get; }
 
-    /// <summary> How the depth-stencil and render targets shall be cleared before rendering. </summary>
+    /// <summary> How the depth-stencil, render targets and unordered access views shall be cleared before rendering. </summary>
     public ITargetClearStrategy? ClearStrategy { get; }
 
     /// <summary> The desired depth-stencil state for rendering. </summary>

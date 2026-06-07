@@ -15,7 +15,7 @@ public abstract class RenderOutputsBase : IDisposable, IReadOnlyList<ImTextureId
     internal RenderTarget[] Outputs = [];
 
     /// <inheritdoc/>
-    public int Count
+    public virtual int Count
         => Outputs.Length;
 
     /// <inheritdoc/>
@@ -72,7 +72,7 @@ public abstract class RenderOutputsBase : IDisposable, IReadOnlyList<ImTextureId
     /// <param name="outputs"> The span to fill with the outputs. </param>
     /// <exception cref="ArgumentOutOfRangeException"> <paramref name="index"/> is less than <c>-1</c> or greater than or equal to <see cref="Count"/>. </exception>
     /// <exception cref="ArgumentException"> Some of the requested outputs are past <see cref="Count"/>. </exception>
-    public void ExportOutputs(int index, Span<ImTextureId> outputs)
+    public virtual void ExportOutputs(int index, Span<ImTextureId> outputs)
     {
         ArgumentOutOfRangeException.ThrowIfLessThan(index, -1);
         ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(index, Outputs.Length);
@@ -93,7 +93,7 @@ public abstract class RenderOutputsBase : IDisposable, IReadOnlyList<ImTextureId
     ///   If you want to use this output somewhere that expects a <see cref="TextureStandIn"/>, prefer <see cref="TextureStandIn(IReadOnlyList{ImTextureId},int)"/>.
     ///   This object is a <see cref="IReadOnlyList{ImTextureId}"/>.
     /// </remarks>
-    public Image GetOutputAsImage(int index)
+    public virtual Image GetOutputAsImage(int index)
     {
         ArgumentOutOfRangeException.ThrowIfLessThan(index, -1);
         ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(index, Outputs.Length);
@@ -107,18 +107,20 @@ public abstract class RenderOutputsBase : IDisposable, IReadOnlyList<ImTextureId
     /// <inheritdoc/>
     public virtual unsafe void Clear(ITargetClearStrategy strategy, ID3D11DeviceContext* deviceContext)
     {
-        strategy.ClearDepthStencil(deviceContext, DepthStencil.DepthStencilView);
+        strategy.ClearDepthStencil(deviceContext, DepthStencil.DepthStencilView.Get());
         for (var i = 0; i < Outputs.Length; ++i)
-            strategy.ClearRenderTarget(deviceContext, i, Outputs[i].RenderTargetView);
+            strategy.ClearRenderTarget(deviceContext, i, Outputs[i].RenderTargetView.Get());
     }
 
     /// <inheritdoc/>
+    [SkipLocalsInit]
     public virtual unsafe void Bind(ID3D11DeviceContext* deviceContext)
     {
-        var outputRtViews = stackalloc ID3D11RenderTargetView*[Outputs.Length];
-        for (var i = 0; i < Outputs.Length; ++i)
-            outputRtViews[i] = Outputs[i].RenderTargetView;
-        deviceContext->OMSetRenderTargets((uint)Outputs.Length, outputRtViews, DepthStencil.DepthStencilView);
+        var rtvCount = Outputs.Length;
+        var rtvs     = stackalloc ID3D11RenderTargetView*[rtvCount];
+        for (var i = 0; i < rtvCount; ++i)
+            rtvs[i] = Outputs[i].RenderTargetView.Get();
+        deviceContext->OMSetRenderTargets((uint)rtvCount, rtvs, DepthStencil.DepthStencilView);
     }
 
     /// <inheritdoc/>

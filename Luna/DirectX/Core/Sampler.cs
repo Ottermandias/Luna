@@ -7,11 +7,11 @@ namespace Luna.DirectX;
 /// <param name="description"> The specifications of the sampler. </param>
 public class Sampler(in D3D11_SAMPLER_DESC description) : IDisposable
 {
-    /// <summary> A default sampler. </summary>
+    /// <summary> A default sampler, with UV clamping and bilinear filtering. </summary>
     public static readonly Sampler Default = new(D3D11_SAMPLER_DESC.DEFAULT);
 
     /// <summary> Similar to <see cref="Default"/>, but with nearest-neighbor filtering. </summary>
-    public static readonly Sampler DefaultNearestNeighbor = new Sampler(D3D11_SAMPLER_DESC.DEFAULT with
+    public static readonly Sampler DefaultNearestNeighbor = new(D3D11_SAMPLER_DESC.DEFAULT with
     {
         Filter = D3D11_FILTER.D3D11_FILTER_MIN_MAG_MIP_POINT,
     });
@@ -20,6 +20,17 @@ public class Sampler(in D3D11_SAMPLER_DESC description) : IDisposable
     public readonly D3D11_SAMPLER_DESC Description = description;
 
     private ComPtr<ID3D11SamplerState> _sampler;
+
+    /// <summary> Creates a <see cref="Sampler"/> from an existing Direct3D object. </summary>
+    /// <param name="sampler"> The existing object. </param>
+    /// <param name="addRef"> Whether to increment the reference count of <paramref name="sampler"/>. </param>
+    public unsafe Sampler(ID3D11SamplerState* sampler, bool addRef = true) : this(GetDescription(sampler))
+    {
+        if (addRef)
+            sampler->AddRef();
+
+        _sampler.Attach(sampler);
+    }
 
     ~Sampler()
         => Dispose(false);
@@ -56,5 +67,12 @@ public class Sampler(in D3D11_SAMPLER_DESC description) : IDisposable
         }
 
         return sampler;
+    }
+
+    private static unsafe D3D11_SAMPLER_DESC GetDescription(ID3D11SamplerState* sampler)
+    {
+        D3D11_SAMPLER_DESC desc;
+        sampler->GetDesc(&desc);
+        return desc;
     }
 }

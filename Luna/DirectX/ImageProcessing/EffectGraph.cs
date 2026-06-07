@@ -1,27 +1,34 @@
 using System.Collections.Immutable;
 using Dalamud.Plugin.Services;
+using Microsoft.Extensions.Logging;
 
 namespace Luna.DirectX;
 
 /// <summary>
 ///   A graph of image processing effects and dependencies between them.
-///   Handles execution planning and thread hopping.
+///   Handles execution planning (wrt dependencies), and thread hopping for safe Direct3D device use.
 /// </summary>
 public class EffectGraph : ISet<IEffect>, IDisposable
 {
     private readonly HashSet<IEffect> _effects;
 
-    private ImmutableArray<IEffect> _effectPlan = [];
+    private ImmutableArray<IEffect> _effectPlan;
 
-    private Execution? _currentExecution;
+    private GraphRun? _currentRun;
 
     /// <summary> Whether this effect graph is currently running. </summary>
     public bool Running
-        => _currentExecution is { Task.IsCompleted: false };
+        => _currentRun is { Task.IsCompleted: false };
 
-    /// <summary> A task representing the current execution, if there is one, otherwise the last. </summary>
-    public Task CurrentExecutionTask
-        => _currentExecution is null ? Task.CompletedTask : _currentExecution.Task;
+    /// <summary> A task representing the current run, if there is one, otherwise the last. </summary>
+    public Task CurrentRunTask
+        => _currentRun is null ? Task.CompletedTask : _currentRun.Task;
+
+    /// <summary> An event that gets triggered just before this effect graph begins running. </summary>
+    public event Action<EffectGraph>? BeforeRun;
+
+    /// <summary> An event that gets triggered just after this effect graph has finished running. </summary>
+    public event Action<EffectGraph>? AfterRun;
 
     /// <inheritdoc/>
     public int Count
@@ -33,17 +40,26 @@ public class EffectGraph : ISet<IEffect>, IDisposable
 
     /// <summary> Creates a new empty effect graph. </summary>
     public EffectGraph()
-        => _effects = [];
+    {
+        _effects    = [];
+        _effectPlan = [];
+    }
 
     /// <summary> Creates a new empty effect graph, with reserved space for a given number of effects. </summary>
     /// <param name="capacity"> The number of effects for which to reserve space. </param>
     public EffectGraph(int capacity)
-        => _effects = new HashSet<IEffect>(capacity);
+    {
+        _effects    = new HashSet<IEffect>(capacity);
+        _effectPlan = [];
+    }
 
     /// <summary> Creates a new effect graph, containing the given effects. </summary>
     /// <param name="effects"> Effects to add to the graph. </param>
     public EffectGraph(IEnumerable<IEffect> effects)
-        => _effects = [..effects];
+    {
+        _effects    = [..effects];
+        _effectPlan = _effects.Count > 0 ? default : [];
+    }
 
     ~EffectGraph()
         => Dispose(false);
@@ -189,21 +205,31 @@ public class EffectGraph : ISet<IEffect>, IDisposable
         => _effectPlan = default;
 
     /// <summary> Runs the effects in this graph, in an order that ensures dependencies are met. </summary>
-    /// <param name="framework"> Dalamud's framework service. </param>
+    /// <param name="framework">
+    ///   Dalamud's framework service. This is used to ensure safe usage of the Direct3D device object.
+    ///   Passing <c>null</c> shifts this responsibility on the caller.
+    /// </param>
     /// <param name="cancellationToken"> A cancellation token. </param>
     /// <returns> A task that represents this effect graph running. </returns>
     /// <exception cref="InvalidOperationException"> This effect graph is already running, or contains a cyclic dependency. </exception>
-    public unsafe Task Run(IFramework framework, CancellationToken cancellationToken = default)
+    public unsafe Task Run(IFramework? framework, CancellationToken cancellationToken = default)
     {
-        if (_currentExecution is { Task.IsCompleted: false })
+        if (_currentRun is { Task.IsCompleted: false })
             throw new InvalidOperationException("This EffectGraph is already running");
 
-        var run = new Execution(Plan(), cancellationToken);
-        _currentExecution = run;
+        var run = new GraphRun(this, Plan(), cancellationToken);
+        _currentRun = run;
+
+        BeforeRun?.Invoke(this);
 
         // If we aren't in an ImGui frame, or if we have work that cannot be completed synchronously, enable per-frame processing ticks.
-        if (!framework.IsInFrameworkUpdateThread || !Im.Context.Pointer->WithinFrameScope || run.Tick())
+        if (framework is not null && (!framework.IsInFrameworkUpdateThread || !Im.Context.Pointer->WithinFrameScope) || run.Tick())
             ImSharpPerFrame.Update += run.PerFrameTick;
+        else
+        {
+            // Everything has already run synchronously.
+            AfterRun?.Invoke(this);
+        }
 
         return run.Task;
     }
@@ -232,7 +258,7 @@ public class EffectGraph : ISet<IEffect>, IDisposable
             return;
 
         if (cycleDetector.Contains(effect))
-            throw new InvalidOperationException("Cyclic dependency in DxEffectGraph");
+            throw new InvalidOperationException("Cyclic dependency in EffectGraph");
 
         cycleDetector.Push(effect);
         try
@@ -251,7 +277,7 @@ public class EffectGraph : ISet<IEffect>, IDisposable
         }
     }
 
-    private sealed class Execution(ImmutableArray<IEffect> effects, CancellationToken cancellationToken)
+    private sealed class GraphRun(EffectGraph graph, ImmutableArray<IEffect> effects, CancellationToken cancellationToken)
     {
         private readonly TaskCompletionSource _taskCompletionSource = new();
 
@@ -292,7 +318,9 @@ public class EffectGraph : ISet<IEffect>, IDisposable
 
                 try
                 {
-                    task = effects[_nextIndex++].Run(cancellationToken);
+                    var nextEffect = effects[_nextIndex++];
+                    CustomRenderManager.Instance.Logger.LogDebug("Running effect {NextEffect}...", nextEffect.ToString());
+                    task = nextEffect.Run(cancellationToken);
                 }
                 catch (Exception e)
                 {
@@ -320,7 +348,10 @@ public class EffectGraph : ISet<IEffect>, IDisposable
         public void PerFrameTick()
         {
             if (!Tick())
+            {
                 ImSharpPerFrame.Update -= PerFrameTick;
+                graph.AfterRun?.Invoke(graph);
+            }
         }
     }
 }

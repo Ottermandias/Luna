@@ -3,6 +3,9 @@ namespace Luna.DirectX;
 /// <summary> An image processing effect, and the list of its outputs. </summary>
 public interface IEffect : IReadOnlyList<ImTextureId>
 {
+    /// <summary> A pseudo-effect that does nothing and has no outputs. Can be used as placeholder. </summary>
+    public static readonly IEffect Null = new NullEffect();
+
     /// <summary> Gets the dependencies of this effect. </summary>
     /// <returns> The effects whose outputs are inputs to this effect. </returns>
     /// <remarks> This may return duplicates. </remarks>

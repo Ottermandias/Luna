@@ -10,6 +10,12 @@ namespace Luna.DirectX;
 public class FullScreenQuad(PixelShader pixelShader, ImmutableArray<DXGI_FORMAT> outputFormats, string? description)
     : ICustomRenderable, IDisposable
 {
+    /// <summary> A default output format for Standard Dynamic Range renders. </summary>
+    public const DXGI_FORMAT DefaultOutputFormat = DXGI_FORMAT.DXGI_FORMAT_B8G8R8A8_UNORM;
+
+    /// <summary> A default output format for High Dynamic Range renders. </summary>
+    public const DXGI_FORMAT DefaultHdrOutputFormat = DXGI_FORMAT.DXGI_FORMAT_R16G16B16A16_FLOAT;
+
     /// <summary> The pixel shader to use to render this quad. </summary>
     protected PixelShader PixelShader = pixelShader;
 
@@ -49,7 +55,7 @@ public class FullScreenQuad(PixelShader pixelShader, ImmutableArray<DXGI_FORMAT>
     /// <param name="pixelShader"> The pixel shader to use to render this quad. </param>
     /// <param name="description"> A description of this object, for debugging and logging purposes. </param>
     public FullScreenQuad(PixelShader pixelShader, string? description)
-        : this(pixelShader, [DXGI_FORMAT.DXGI_FORMAT_B8G8R8A8_UNORM], description)
+        : this(pixelShader, [DefaultOutputFormat], description)
     { }
 
     ~FullScreenQuad()
@@ -104,7 +110,7 @@ public class FullScreenQuad(PixelShader pixelShader, ImmutableArray<DXGI_FORMAT>
         return _resolutionBuffer;
     }
 
-    private Vector4 CalculateResolutionVector(uint width, uint height)
+    private static Vector4 CalculateResolutionVector(uint width, uint height)
         => new(width, height, 1.0f / width, 1.0f / height);
 
     /// <inheritdoc/>

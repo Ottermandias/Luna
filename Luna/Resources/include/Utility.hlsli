@@ -1,5 +1,7 @@
-#ifndef IMGUIUTIL_HLSLI_INCLUDED
-#define IMGUIUTIL_HLSLI_INCLUDED
+#ifndef UTILITY_HLSLI_INCLUDED
+#define UTILITY_HLSLI_INCLUDED
+
+static const float pi = 3.1415926535897932384626433832795f;
 
 float im_rounding_mask(float2 position, float2 size, float4 rounding)
 {
@@ -11,11 +13,16 @@ float im_rounding_mask(float2 position, float2 size, float4 rounding)
     return 1.0f - smoothstep(max(0.0f, effective_rounding - 0.5f), effective_rounding + 0.5f, length(rounding_position));
 }
 
+#endif
+
 #ifdef FSQUAD_HLSLI_INCLUDED
+#ifndef UTILITY_HLSLI_AND_FSQUAD_HLSLI_INCLUDED
+#define UTILITY_HLSLI_AND_FSQUAD_HLSLI_INCLUDED
+
 float im_rounding_mask(float2 uv, float4 rounding)
 {
     return im_rounding_mask(uv * resolution, resolution, rounding);
 }
-#endif
 
+#endif
 #endif

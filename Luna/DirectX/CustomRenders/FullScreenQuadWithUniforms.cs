@@ -10,7 +10,7 @@ namespace Luna.DirectX;
 /// <param name="description"> A description of this object, for debugging and logging purposes. </param>
 public class FullScreenQuadWithUniforms(
     PixelShader pixelShader,
-    ConstantBufferBase? uniforms,
+    Buffer? uniforms,
     ImmutableArray<DXGI_FORMAT> outputFormats,
     string? description)
     : FullScreenQuad(pixelShader, outputFormats, description)
@@ -18,7 +18,7 @@ public class FullScreenQuadWithUniforms(
     private long _version = 0;
 
     /// <summary> The custom pixel shader input data. </summary>
-    public ConstantBufferBase? Uniforms
+    public Buffer? Uniforms
         => uniforms;
 
     /// <inheritdoc/>
@@ -29,8 +29,8 @@ public class FullScreenQuadWithUniforms(
     /// <param name="pixelShader"> The pixel shader to use to render this quad. </param>
     /// <param name="uniforms"> A constant buffer with custom data to pass to the pixel shader. </param>
     /// <param name="description"> A description of this object, for debugging and logging purposes. </param>
-    public FullScreenQuadWithUniforms(PixelShader pixelShader, ConstantBufferBase? uniforms, string? description)
-        : this(pixelShader, uniforms, [DXGI_FORMAT.DXGI_FORMAT_B8G8R8A8_UNORM], description)
+    public FullScreenQuadWithUniforms(PixelShader pixelShader, Buffer? uniforms, string? description)
+        : this(pixelShader, uniforms, [DefaultOutputFormat], description)
     { }
 
     /// <summary> Increments this object's version, invalidating all cached renders. Use after modifying the input data. </summary>

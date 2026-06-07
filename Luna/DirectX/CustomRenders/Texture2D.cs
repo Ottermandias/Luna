@@ -3,16 +3,37 @@ using TerraFX.Interop.Windows;
 
 namespace Luna.DirectX;
 
+/// <summary> A Direct3D 2D texture. </summary>
 internal unsafe struct Texture2D : IDisposable
 {
-    public ComPtr<ID3D11Texture2D>          Texture;
+    /// <summary> The texture. </summary>
+    public ComPtr<ID3D11Texture2D> Texture;
+
+    /// <summary> A view of the texture, for use as a shader resource. </summary>
     public ComPtr<ID3D11ShaderResourceView> ShaderResourceView;
 
+    /// <summary> Creates a new <see cref="Texture2D"/>. </summary>
+    /// <param name="device"> The device to create the texture on. </param>
+    /// <param name="width"> The desired width. </param>
+    /// <param name="height"> The desired height. </param>
+    /// <param name="format"> The desired format. </param>
+    /// <param name="bind"> How this texture will be bound. </param>
+    /// <param name="misc"> Miscellaneous flags for the texture. </param>
+    /// <param name="withMips"> Whether to create a full mipmap chain. </param>
     public Texture2D(ID3D11Device* device, uint width, uint height, DXGI_FORMAT format, D3D11_BIND_FLAG bind, D3D11_RESOURCE_MISC_FLAG misc,
         bool withMips = false)
         : this(device, width, height, format, bind, misc, format, withMips)
     { }
 
+    /// <summary> Creates a new <see cref="Texture2D"/>. </summary>
+    /// <param name="device"> The device to create the texture on. </param>
+    /// <param name="width"> The desired width. </param>
+    /// <param name="height"> The desired height. </param>
+    /// <param name="format"> The desired format. </param>
+    /// <param name="bind"> How this texture will be bound. </param>
+    /// <param name="misc"> Miscellaneous flags for the texture. </param>
+    /// <param name="srvFormat"> The format for the shader resource view. </param>
+    /// <param name="withMips"> Whether to create a full mipmap chain. </param>
     public Texture2D(ID3D11Device* device, uint width, uint height, DXGI_FORMAT format, D3D11_BIND_FLAG bind, D3D11_RESOURCE_MISC_FLAG misc,
         DXGI_FORMAT srvFormat, bool withMips = false)
     {
@@ -53,6 +74,9 @@ internal unsafe struct Texture2D : IDisposable
         }
     }
 
+    /// <summary> Wraps an existing texture in a <see cref="Texture2D"/>. Reference counts won't be incremented. </summary>
+    /// <param name="texture"> The texture. </param>
+    /// <param name="shaderResourceView"> The shader resource view. </param>
     public Texture2D(ID3D11Texture2D* texture, ID3D11ShaderResourceView* shaderResourceView)
     {
         Texture.Attach(texture);
@@ -66,6 +90,8 @@ internal unsafe struct Texture2D : IDisposable
         Texture.Dispose();
     }
 
+    /// <summary> Gets the specifications of this texture. </summary>
+    /// <param name="desc"> The specifications. </param>
     public void GetDescription(out D3D11_TEXTURE2D_DESC desc)
         => DxUtility.GetDescription(Texture.Get(), out desc);
 

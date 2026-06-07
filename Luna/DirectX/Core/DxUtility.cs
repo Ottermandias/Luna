@@ -38,6 +38,77 @@ public static unsafe class DxUtility
             => GetDescriptionFromView((ID3D11ShaderResourceView*)id.Value, out desc);
     }
 
+    /// <summary> Extensions for DXGI formats. </summary>
+    /// <param name="format"> The DXGI format. </param>
+    extension(DXGI_FORMAT format)
+    {
+        /// <summary> Gets the component type of this DXGI format. </summary>
+        public DxgiFormatComponentType ComponentType
+            => format switch
+            {
+                DXGI_FORMAT.DXGI_FORMAT_R32G32B32A32_FLOAT         => DxgiFormatComponentType.Float,
+                DXGI_FORMAT.DXGI_FORMAT_R32G32B32A32_UINT          => DxgiFormatComponentType.UInt,
+                DXGI_FORMAT.DXGI_FORMAT_R32G32B32A32_SINT          => DxgiFormatComponentType.SInt,
+                DXGI_FORMAT.DXGI_FORMAT_R32G32B32_FLOAT            => DxgiFormatComponentType.Float,
+                DXGI_FORMAT.DXGI_FORMAT_R32G32B32_UINT             => DxgiFormatComponentType.UInt,
+                DXGI_FORMAT.DXGI_FORMAT_R32G32B32_SINT             => DxgiFormatComponentType.SInt,
+                DXGI_FORMAT.DXGI_FORMAT_R16G16B16A16_FLOAT         => DxgiFormatComponentType.Float,
+                DXGI_FORMAT.DXGI_FORMAT_R16G16B16A16_UNORM         => DxgiFormatComponentType.UNorm,
+                DXGI_FORMAT.DXGI_FORMAT_R16G16B16A16_UINT          => DxgiFormatComponentType.UInt,
+                DXGI_FORMAT.DXGI_FORMAT_R16G16B16A16_SNORM         => DxgiFormatComponentType.SNorm,
+                DXGI_FORMAT.DXGI_FORMAT_R16G16B16A16_SINT          => DxgiFormatComponentType.SInt,
+                DXGI_FORMAT.DXGI_FORMAT_R32G32_FLOAT               => DxgiFormatComponentType.Float,
+                DXGI_FORMAT.DXGI_FORMAT_R32G32_UINT                => DxgiFormatComponentType.UInt,
+                DXGI_FORMAT.DXGI_FORMAT_R32G32_SINT                => DxgiFormatComponentType.SInt,
+                DXGI_FORMAT.DXGI_FORMAT_R10G10B10A2_UNORM          => DxgiFormatComponentType.UNorm,
+                DXGI_FORMAT.DXGI_FORMAT_R10G10B10A2_UINT           => DxgiFormatComponentType.UInt,
+                DXGI_FORMAT.DXGI_FORMAT_R11G11B10_FLOAT            => DxgiFormatComponentType.Float,
+                DXGI_FORMAT.DXGI_FORMAT_R8G8B8A8_UNORM             => DxgiFormatComponentType.UNorm,
+                DXGI_FORMAT.DXGI_FORMAT_R8G8B8A8_UNORM_SRGB        => DxgiFormatComponentType.UNorm,
+                DXGI_FORMAT.DXGI_FORMAT_R8G8B8A8_UINT              => DxgiFormatComponentType.UInt,
+                DXGI_FORMAT.DXGI_FORMAT_R8G8B8A8_SNORM             => DxgiFormatComponentType.SNorm,
+                DXGI_FORMAT.DXGI_FORMAT_R8G8B8A8_SINT              => DxgiFormatComponentType.SInt,
+                DXGI_FORMAT.DXGI_FORMAT_R16G16_FLOAT               => DxgiFormatComponentType.Float,
+                DXGI_FORMAT.DXGI_FORMAT_R16G16_UNORM               => DxgiFormatComponentType.UNorm,
+                DXGI_FORMAT.DXGI_FORMAT_R16G16_UINT                => DxgiFormatComponentType.UInt,
+                DXGI_FORMAT.DXGI_FORMAT_R16G16_SNORM               => DxgiFormatComponentType.SNorm,
+                DXGI_FORMAT.DXGI_FORMAT_R16G16_SINT                => DxgiFormatComponentType.SInt,
+                DXGI_FORMAT.DXGI_FORMAT_D32_FLOAT                  => DxgiFormatComponentType.Float,
+                DXGI_FORMAT.DXGI_FORMAT_R32_FLOAT                  => DxgiFormatComponentType.Float,
+                DXGI_FORMAT.DXGI_FORMAT_R32_UINT                   => DxgiFormatComponentType.UInt,
+                DXGI_FORMAT.DXGI_FORMAT_R32_SINT                   => DxgiFormatComponentType.SInt,
+                DXGI_FORMAT.DXGI_FORMAT_R8G8_UNORM                 => DxgiFormatComponentType.UNorm,
+                DXGI_FORMAT.DXGI_FORMAT_R8G8_UINT                  => DxgiFormatComponentType.UInt,
+                DXGI_FORMAT.DXGI_FORMAT_R8G8_SNORM                 => DxgiFormatComponentType.SNorm,
+                DXGI_FORMAT.DXGI_FORMAT_R8G8_SINT                  => DxgiFormatComponentType.SInt,
+                DXGI_FORMAT.DXGI_FORMAT_R16_FLOAT                  => DxgiFormatComponentType.Float,
+                DXGI_FORMAT.DXGI_FORMAT_D16_UNORM                  => DxgiFormatComponentType.UNorm,
+                DXGI_FORMAT.DXGI_FORMAT_R16_UNORM                  => DxgiFormatComponentType.UNorm,
+                DXGI_FORMAT.DXGI_FORMAT_R16_UINT                   => DxgiFormatComponentType.UInt,
+                DXGI_FORMAT.DXGI_FORMAT_R16_SNORM                  => DxgiFormatComponentType.SNorm,
+                DXGI_FORMAT.DXGI_FORMAT_R16_SINT                   => DxgiFormatComponentType.SInt,
+                DXGI_FORMAT.DXGI_FORMAT_R8_UNORM                   => DxgiFormatComponentType.UNorm,
+                DXGI_FORMAT.DXGI_FORMAT_R8_UINT                    => DxgiFormatComponentType.UInt,
+                DXGI_FORMAT.DXGI_FORMAT_R8_SNORM                   => DxgiFormatComponentType.SNorm,
+                DXGI_FORMAT.DXGI_FORMAT_R8_SINT                    => DxgiFormatComponentType.SInt,
+                DXGI_FORMAT.DXGI_FORMAT_A8_UNORM                   => DxgiFormatComponentType.UNorm,
+                DXGI_FORMAT.DXGI_FORMAT_R1_UNORM                   => DxgiFormatComponentType.UNorm,
+                DXGI_FORMAT.DXGI_FORMAT_R9G9B9E5_SHAREDEXP         => DxgiFormatComponentType.Float,
+                DXGI_FORMAT.DXGI_FORMAT_R8G8_B8G8_UNORM            => DxgiFormatComponentType.UNorm,
+                DXGI_FORMAT.DXGI_FORMAT_G8R8_G8B8_UNORM            => DxgiFormatComponentType.UNorm,
+                DXGI_FORMAT.DXGI_FORMAT_B5G6R5_UNORM               => DxgiFormatComponentType.UNorm,
+                DXGI_FORMAT.DXGI_FORMAT_B5G5R5A1_UNORM             => DxgiFormatComponentType.UNorm,
+                DXGI_FORMAT.DXGI_FORMAT_B8G8R8A8_UNORM             => DxgiFormatComponentType.UNorm,
+                DXGI_FORMAT.DXGI_FORMAT_B8G8R8X8_UNORM             => DxgiFormatComponentType.UNorm,
+                DXGI_FORMAT.DXGI_FORMAT_R10G10B10_XR_BIAS_A2_UNORM => DxgiFormatComponentType.UNorm,
+                DXGI_FORMAT.DXGI_FORMAT_B8G8R8A8_UNORM_SRGB        => DxgiFormatComponentType.UNorm,
+                DXGI_FORMAT.DXGI_FORMAT_B8G8R8X8_UNORM_SRGB        => DxgiFormatComponentType.UNorm,
+                DXGI_FORMAT.DXGI_FORMAT_B4G4R4A4_UNORM             => DxgiFormatComponentType.UNorm,
+                DXGI_FORMAT.DXGI_FORMAT_A4B4G4R4_UNORM             => DxgiFormatComponentType.UNorm,
+                _                                                  => DxgiFormatComponentType.Unknown,
+            };
+    }
+
     /// <summary> Wraps a COM object pointer in a <see cref="ComPtr{T}"/> without incrementing its reference count. </summary>
     /// <param name="ptr"> The raw pointer. </param>
     /// <typeparam name="T"> The object's type. </typeparam>

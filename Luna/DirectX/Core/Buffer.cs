@@ -5,16 +5,19 @@ namespace Luna.DirectX;
 
 using static DxUtility;
 
-/// <summary> A Direct3D constant buffer. </summary>
-public abstract class ConstantBufferBase : IDisposable
+/// <summary> A Direct3D buffer. </summary>
+public abstract class Buffer : IDisposable
 {
     private ComPtr<ID3D11Buffer> _buffer;
     private bool                 _dirty;
 
-    /// <summary> A raw view of the contents of this constant buffer. </summary>
+    /// <summary> How this buffer will be bound. </summary>
+    public abstract D3D11_BIND_FLAG BindFlags { get; }
+
+    /// <summary> A raw view of the contents of this buffer. </summary>
     public abstract ReadOnlySpan<byte> ContentsAsBytes { get; }
 
-    ~ConstantBufferBase()
+    ~Buffer()
         => Dispose(false);
 
     /// <summary> Releases the resources used by this object. </summary>
@@ -29,26 +32,27 @@ public abstract class ConstantBufferBase : IDisposable
     protected virtual void Dispose(bool disposing)
         => _buffer.Dispose();
 
-    /// <summary> Schedules an update of this constant buffer object on the next use. </summary>
+    /// <summary> Schedules an update of this buffer object on the next use. </summary>
     public void SetDirty()
         => _dirty = true;
 
-    /// <summary> Gets the Direct3D constant buffer object, creating it if necessary. </summary>
+    /// <summary> Gets the Direct3D buffer object, creating it if necessary. </summary>
     /// <param name="deviceContext"> The device context to use if the buffer needs to be updated. </param>
-    /// <returns> The constant buffer object. </returns>
+    /// <returns> The buffer object. </returns>
     public unsafe ID3D11Buffer* GetOrCreateBuffer(ID3D11DeviceContext* deviceContext)
     {
         if (!_buffer.Valid)
         {
-            _buffer.Attach(Create(ContentsAsBytes));
+            _buffer.Attach(Create(ContentsAsBytes, BindFlags));
             _dirty = false;
         }
         else if (_dirty)
         {
             var contents = ContentsAsBytes;
+            var bind     = BindFlags;
 
             GetDescription(_buffer, out var desc);
-            if (contents.Length == desc.ByteWidth)
+            if (contents.Length == desc.ByteWidth && (bind & (D3D11_BIND_FLAG)desc.BindFlags) == bind)
             {
                 fixed (byte* pContents = contents)
                 {
@@ -57,7 +61,7 @@ public abstract class ConstantBufferBase : IDisposable
             }
             else
             {
-                _buffer.Attach(Create(contents));
+                _buffer.Attach(Create(contents, bind));
             }
 
             _dirty = false;
@@ -66,23 +70,27 @@ public abstract class ConstantBufferBase : IDisposable
         return _buffer;
     }
 
-    /// <summary> Creates a Direct3D constant buffer object. </summary>
+    /// <summary> Creates a Direct3D buffer object. </summary>
     /// <param name="initialContents"> The initial contents of the buffer. May be null. </param>
     /// <param name="size"> The size of the buffer. Will be rounded up to a multiple of 16 bytes. </param>
-    /// <returns> The constant buffer object. </returns>
-    public static unsafe ID3D11Buffer* Create(void* initialContents, int size)
+    /// <param name="bind"> How the buffer will be bound. </param>
+    /// <returns> The buffer object. </returns>
+    public static unsafe ID3D11Buffer* Create(void* initialContents, int size, D3D11_BIND_FLAG bind)
     {
+        if (bind.HasFlag(D3D11_BIND_FLAG.D3D11_BIND_CONSTANT_BUFFER) && (size & 15) != 0)
+            throw new ArgumentException("Constant buffer must be a multiple of 16 bytes in size.");
+
         var bufferDesc = new D3D11_BUFFER_DESC
         {
-            ByteWidth           = (uint)((size + 15) & ~15),
+            ByteWidth           = (uint)size,
             Usage               = D3D11_USAGE.D3D11_USAGE_DEFAULT,
-            BindFlags           = (uint)D3D11_BIND_FLAG.D3D11_BIND_CONSTANT_BUFFER,
+            BindFlags           = (uint)bind,
             CPUAccessFlags      = 0,
             MiscFlags           = 0,
             StructureByteStride = 0,
         };
 
-        ID3D11Buffer* uniformsBuffer;
+        ID3D11Buffer* buffer;
         var subresData = new D3D11_SUBRESOURCE_DATA
         {
             pSysMem          = initialContents,
@@ -91,21 +99,20 @@ public abstract class ConstantBufferBase : IDisposable
         };
 
         Marshal.ThrowExceptionForHR(CustomRenderManager.Instance.Device->CreateBuffer(&bufferDesc,
-            initialContents is not null ? &subresData : null, &uniformsBuffer));
+            initialContents is not null ? &subresData : null, &buffer));
 
-        return uniformsBuffer;
+        return buffer;
     }
 
-    /// <summary> Creates a Direct3D constant buffer object. </summary>
+    /// <summary> Creates a Direct3D buffer object. </summary>
     /// <param name="initialContents"> The initial contents of the buffer. Must be a multiple of 16 bytes in size. </param>
-    /// <returns> The constant buffer object. </returns>
-    public static unsafe ID3D11Buffer* Create(ReadOnlySpan<byte> initialContents)
+    /// <param name="bind"> How the buffer will be bound. </param>
+    /// <returns> The buffer object. </returns>
+    public static unsafe ID3D11Buffer* Create(ReadOnlySpan<byte> initialContents, D3D11_BIND_FLAG bind)
     {
-        if ((initialContents.Length & 15) != 0)
-            throw new ArgumentException("Constant buffer initial contents must be a multiple of 16 bytes in size.");
         fixed (byte* pContents = initialContents)
         {
-            return Create(pContents, initialContents.Length);
+            return Create(pContents, initialContents.Length, bind);
         }
     }
 

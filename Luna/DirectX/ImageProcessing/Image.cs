@@ -47,6 +47,14 @@ public unsafe class Image : IDalamudTextureWrap
         }
     }
 
+    /// <summary> Gets the underlying Direct3D texture object. </summary>
+    public ID3D11Texture2D* Texture
+        => _texture.Texture.Get();
+
+    /// <summary> Gets the underlying Direct3D shader resource view object. </summary>
+    public ID3D11ShaderResourceView* View
+        => _texture.ShaderResourceView.Get();
+
     #region IDalamudTextureWrap implementation
 
     ImTextureID IDalamudTextureWrap.Handle
@@ -91,6 +99,7 @@ public unsafe class Image : IDalamudTextureWrap
     /// <summary> Constructs a new <see cref="Image"/> wrapping the texture of the given DirectX shader resource view. </summary>
     /// <param name="view"> A shader resource view of the texture to wrap. </param>
     /// <param name="addRef"> Whether to increment the reference count of <paramref name="view"/>. </param>
+    /// <remarks> Passing a view over a resource that isn't a 2D texture will throw an exception. </remarks>
     public Image(ID3D11ShaderResourceView* view, bool addRef = true)
         : this(GetTexture(view), view, false, addRef)
     { }
@@ -106,6 +115,7 @@ public unsafe class Image : IDalamudTextureWrap
     /// <param name="view"> An existing shader resource view of <paramref name="texture"/>. </param>
     /// <param name="addRefTexture"> Whether to increment the reference count of <paramref name="texture"/>. </param>
     /// <param name="addRefView"> Whether to increment the reference count of <paramref name="view"/>. </param>
+    /// <remarks> Passing a view over a resource that isn't the given texture will cause undefined behavior. </remarks>
     public Image(ID3D11Texture2D* texture, ID3D11ShaderResourceView* view, bool addRefTexture = true, bool addRefView = true)
     {
         if (addRefTexture)

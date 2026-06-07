@@ -12,7 +12,7 @@ namespace Luna.DirectX;
 /// <remarks> This uses <see cref="FullScreenQuadWithUniformsAndTextures"/>. The pixel shader has to accept the same inputs. </remarks>
 public class ShaderFilterEffect(
     PixelShader pixelShader,
-    ConstantBufferBase? uniforms,
+    Buffer? uniforms,
     ImmutableArray<DXGI_FORMAT> outputFormats,
     string? description)
     : IEffect, ITextureWrapProvider, IDisposable
@@ -27,20 +27,26 @@ public class ShaderFilterEffect(
     public int Height = DefaultHeight;
 
     /// <summary>
-    ///   The size this effect's outputs shall automatically take, as a factor multiplied by its first input texture size and rounded up, if applicable.
-    ///   Set to zero, infinity or <see cref="float.NaN"/> to disable.
+    ///   A function that calculates the output dimensions of this effect, from the input dimensions.
+    ///   It will be called just before this effect runs, and shall return <c>null</c> to keep the currently set <see cref="Width"/> and <see cref="Height"/>.
     /// </summary>
     /// <remarks> The effective output size can can be retrieved from <see cref="Width"/> and <see cref="Height"/> after this effect has run. </remarks>
-    public float AutoSizeFactor = 1.0f;
+    public Func<ReadOnlySpan<(int Width, int Height)>, (int Width, int Height)?>? DimensionsStrategy = ScaleLargestInput(1.0f);
 
     /// <summary> Whether to generate mipmaps for the outputs of this effect. </summary>
     public bool GenerateMips = false;
+
+    /// <summary> An event that gets triggered just before this effect begins rendering. </summary>
+    public event Action<ShaderFilterEffect>? BeforeRun;
+
+    /// <summary> An event that gets triggered just after this effect has finished rendering. </summary>
+    public event Action<ShaderFilterEffect>? AfterRun;
 
     private readonly FullScreenQuadWithUniformsAndTextures _quad    = new(pixelShader, uniforms, outputFormats, string.Empty);
     private readonly RenderOutputs                         _outputs = new(DefaultWidth, DefaultHeight, false, []);
 
     /// <inheritdoc cref="FullScreenQuadWithUniformsAndTextures.Uniforms"/>
-    public ConstantBufferBase? Uniforms
+    public Buffer? Uniforms
         => _quad.Uniforms;
 
     /// <inheritdoc cref="FullScreenQuadWithUniformsAndTextures.Textures"/>
@@ -50,6 +56,10 @@ public class ShaderFilterEffect(
     /// <inheritdoc cref="FullScreenQuadWithUniformsAndTextures.Samplers"/>
     public List<Sampler?> Samplers
         => _quad.Samplers;
+
+    /// <inheritdoc cref="RenderOutputs.UavOutputs"/>
+    public List<IUnorderedAccessViewWrap> UavOutputs
+        => _outputs.UavOutputs;
 
     /// <inheritdoc/>
     public int Count
@@ -63,8 +73,8 @@ public class ShaderFilterEffect(
     /// <param name="pixelShader"> The pixel shader that implements this filter effect. </param>
     /// <param name="uniforms"> The uniforms constant buffer. </param>
     /// <param name="description"> A description of this object, for debugging and logging purposes. </param>
-    public ShaderFilterEffect(PixelShader pixelShader, ConstantBufferBase? uniforms, string? description)
-        : this(pixelShader, uniforms, [DXGI_FORMAT.DXGI_FORMAT_B8G8R8A8_UNORM], description)
+    public ShaderFilterEffect(PixelShader pixelShader, Buffer? uniforms, string? description)
+        : this(pixelShader, uniforms, [FullScreenQuad.DefaultOutputFormat], description)
     { }
 
     ~ShaderFilterEffect()
@@ -108,17 +118,24 @@ public class ShaderFilterEffect(
     /// <inheritdoc/>
     public Task Run(CancellationToken cancellationToken)
     {
-        if (float.IsFinite(AutoSizeFactor) && AutoSizeFactor is not 0.0f)
+        BeforeRun?.Invoke(this);
+
+        if (DimensionsStrategy is not null)
         {
+            var inputDimensions = new List<(int Width, int Height)>(_quad.Textures.Count);
             foreach (var input in _quad.Textures)
             {
                 if (input.IsEmpty)
                     continue;
 
-                var dimensions = input.Id.Dimensions;
-                Width  = (int)MathF.Ceiling(dimensions.Width * AutoSizeFactor);
-                Height = (int)MathF.Ceiling(dimensions.Height * AutoSizeFactor);
-                break;
+                var (width, height) = input.Id.Dimensions;
+                inputDimensions.Add(((int)width, (int)height));
+            }
+
+            if (DimensionsStrategy(CollectionsMarshal.AsSpan(inputDimensions)) is { } dimensions)
+            {
+                Width  = dimensions.Width;
+                Height = dimensions.Height;
             }
         }
 
@@ -126,6 +143,8 @@ public class ShaderFilterEffect(
             _outputs.SetOutputs(Width, Height, GenerateMips, _quad);
 
         _outputs.RenderObject(_quad);
+
+        AfterRun?.Invoke(this);
 
         return Task.CompletedTask;
     }
@@ -137,4 +156,28 @@ public class ShaderFilterEffect(
     /// <inheritdoc cref="RenderOutputs.GetOutputAsImage"/>
     public Image GetOutputAsImage(int index)
         => _outputs.GetOutputAsImage(index);
+
+    /// <summary> Returns a function suitable for <see cref="DimensionsStrategy"/> that applies a scaling factor to the effect's largest input. </summary>
+    /// <param name="factor"> The scaling factor. </param>
+    /// <returns> The function that calculates dimensions. </returns>
+    public static Func<ReadOnlySpan<(int Width, int Height)>, (int Width, int Height)?>? ScaleLargestInput(float factor)
+        => (inputDimensions) =>
+        {
+            if (inputDimensions.Length is 0)
+                return null;
+
+            var largest     = inputDimensions[0];
+            var largestArea = (long)largest.Width * largest.Height;
+            for (var i = 1; i < inputDimensions.Length; ++i)
+            {
+                var area = (long)inputDimensions[i].Width * inputDimensions[i].Height;
+                if (area > largestArea)
+                {
+                    largest     = inputDimensions[i];
+                    largestArea = area;
+                }
+            }
+
+            return ((int)MathF.Ceiling(largest.Width * factor), (int)MathF.Ceiling(largest.Height * factor));
+        };
 }

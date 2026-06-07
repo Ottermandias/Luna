@@ -1,15 +1,21 @@
+using TerraFX.Interop.DirectX;
+
 namespace Luna.DirectX;
 
 /// <summary> A Direct3D constant buffer. </summary>
 /// <param name="contents"> The initial contents of the constant buffer. </param>
 /// <typeparam name="TContents"> The type of the structure to store in the constant buffer. Must be a multiple of 16 bytes in size. </typeparam>
 /// <exception cref="ArgumentException"> <typeparamref name="TContents"/> is not a multiple of 16 bytes in size. </exception>
-public class ConstantBuffer<TContents>(in TContents contents = default) : ConstantBufferBase where TContents : unmanaged
+public class ConstantBuffer<TContents>(in TContents contents = default) : Buffer where TContents : unmanaged
 {
     /// <summary> The contents of the constant buffer. </summary>
     public unsafe TContents Contents = (sizeof(TContents) & 15) == 0
         ? contents
         : throw new ArgumentException("The contents' size must be a multiple of 16 bytes.", nameof(TContents));
+
+    /// <inheritdoc/>
+    public override D3D11_BIND_FLAG BindFlags
+        => D3D11_BIND_FLAG.D3D11_BIND_CONSTANT_BUFFER;
 
     /// <inheritdoc/>
     public override ReadOnlySpan<byte> ContentsAsBytes
@@ -19,7 +25,7 @@ public class ConstantBuffer<TContents>(in TContents contents = default) : Consta
 /// <summary> A Direct3D constant buffer. </summary>
 /// <param name="contents"> The initial contents of the constant buffer. </param>
 /// <exception cref="ArgumentException"> <paramref name="contents"/> is not a multiple of 16 bytes in size. </exception>
-public class ConstantBuffer(byte[] contents) : ConstantBufferBase
+public class ConstantBuffer(byte[] contents) : Buffer
 {
     private byte[] _contents = (contents.Length & 15) == 0
         ? contents
@@ -43,6 +49,10 @@ public class ConstantBuffer(byte[] contents) : ConstantBufferBase
             SetDirty();
         }
     }
+
+    /// <inheritdoc/>
+    public override D3D11_BIND_FLAG BindFlags
+        => D3D11_BIND_FLAG.D3D11_BIND_CONSTANT_BUFFER;
 
     /// <inheritdoc/>
     public override ReadOnlySpan<byte> ContentsAsBytes

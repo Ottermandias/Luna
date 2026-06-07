@@ -51,7 +51,7 @@ public readonly struct TextureStandIn : IEquatable<TextureStandIn>
                 return true;
             case ITextureWrapProvider wrapProvider:
                 wrap = wrapProvider.GetTextureWrap(_index);
-                return true;
+                return wrap is not null;
             default:
                 wrap = null;
                 return false;
