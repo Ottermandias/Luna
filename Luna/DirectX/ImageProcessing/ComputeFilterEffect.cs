@@ -15,14 +15,24 @@ public class ComputeFilterEffect(ComputeShader computeShader, Buffer? uniforms, 
     public (int X, int Y, int Z) ThreadGroupCount =
         (D3D11.D3D11_CS_THREAD_GROUP_MIN_X, D3D11.D3D11_CS_THREAD_GROUP_MIN_Y, D3D11.D3D11_CS_THREAD_GROUP_MIN_Z);
 
-    /// <summary> The textures to pass to the compute shader. </summary>
-    public readonly List<TextureStandIn> Textures = new(8);
-
-    /// <summary> The samplers to pass to the compute shader. </summary>
-    public readonly List<Sampler?> Samplers = new(4);
+    private List<Buffer?>?        _extraBuffers;
+    private List<TextureStandIn>? _textures;
+    private List<Sampler?>?       _samplers;
 
     /// <summary> The outputs the compute shader shall write to. </summary>
     public readonly List<IUnorderedAccessViewWrap> Outputs = new(4);
+
+    /// <summary> Extra constant buffers to pass to the compute shader. </summary>
+    public List<Buffer?> ExtraBuffers
+        => _extraBuffers ??= new List<Buffer?>(4);
+
+    /// <summary> The textures to pass to the compute shader. </summary>
+    public List<TextureStandIn> Textures
+        => _textures ??= new List<TextureStandIn>(8);
+
+    /// <summary> The samplers to pass to the compute shader. </summary>
+    public List<Sampler?> Samplers
+        => _samplers ??= new List<Sampler?>(4);
 
     /// <summary> An event that gets triggered just before this computation begins running. </summary>
     public event Action<ComputeFilterEffect>? BeforeRun;
@@ -50,6 +60,9 @@ public class ComputeFilterEffect(ComputeShader computeShader, Buffer? uniforms, 
     /// <inheritdoc/>
     public ImTextureId this[int index]
         => Outputs[index].Id;
+
+    IList<TextureStandIn> IEffect.Inputs
+        => Textures;
 
     ~ComputeFilterEffect()
         => Dispose(false);
@@ -153,33 +166,47 @@ public class ComputeFilterEffect(ComputeShader computeShader, Buffer? uniforms, 
 
     private unsafe void Dispatch(ID3D11DeviceContext* deviceContext)
     {
-        deviceContext->CSSetShader(computeShader.GetOrCreateShader(), null, 0);
-
         // This is split in four separate functions so the stackallocs don't add up
         // (on top of each function being kinda logically independent).
-        BindConstantBuffers(deviceContext);
-        BindTextures(deviceContext);
-        BindSamplers(deviceContext);
         BindOutputs(deviceContext);
+        try
+        {
+            deviceContext->CSSetShader(computeShader.GetOrCreateShader(), null, 0);
+            BindConstantBuffers(deviceContext);
+            BindTextures(deviceContext);
+            BindSamplers(deviceContext);
 
-        deviceContext->Dispatch((uint)ThreadGroupCount.X, (uint)ThreadGroupCount.Y, (uint)ThreadGroupCount.Z);
-
-        UnbindOutputs(deviceContext, Outputs.Count);
+            deviceContext->Dispatch((uint)ThreadGroupCount.X, (uint)ThreadGroupCount.Y, (uint)ThreadGroupCount.Z);
+        }
+        finally
+        {
+            UnbindOutputs(deviceContext, Outputs.Count);
+        }
     }
 
     [SkipLocalsInit]
     private unsafe void BindConstantBuffers(ID3D11DeviceContext* deviceContext)
     {
-        var buffers = stackalloc ID3D11Buffer*[2];
+        var count = _extraBuffers?.Count ?? 0;
+        if (2 + count > D3D11.D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT)
+            throw new InvalidOperationException(
+                $"FullScreenQuad buffer count exceeds DirectX resource limit ({D3D11.D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT})");
+
+        var buffers = stackalloc ID3D11Buffer*[2 + count];
         buffers[0] = GetOrCreateSystemBuffer().GetOrCreateBuffer(deviceContext);
         buffers[1] = uniforms is not null ? uniforms.GetOrCreateBuffer(deviceContext) : null;
-        deviceContext->CSSetConstantBuffers(0, 2, buffers);
+        for (var i = 0; i < count; ++i)
+            buffers[2 + i] = _extraBuffers![i] is { } buffer ? buffer.GetOrCreateBuffer(deviceContext) : null;
+        deviceContext->CSSetConstantBuffers(0, 2 + (uint)count, buffers);
     }
 
     [SkipLocalsInit]
     private unsafe void BindTextures(ID3D11DeviceContext* deviceContext)
     {
-        var count = Textures.Count;
+        if (_textures is null)
+            return;
+
+        var count = _textures.Count;
         if (count <= 0)
             return;
 
@@ -189,14 +216,17 @@ public class ComputeFilterEffect(ComputeShader computeShader, Buffer? uniforms, 
 
         var views = stackalloc ID3D11ShaderResourceView*[count];
         for (var i = 0; i < count; ++i)
-            views[i] = (ID3D11ShaderResourceView*)Textures[i].Id.Value;
+            views[i] = (ID3D11ShaderResourceView*)_textures[i].Id.Value;
         deviceContext->CSSetShaderResources(0, (uint)count, views);
     }
 
     [SkipLocalsInit]
     private unsafe void BindSamplers(ID3D11DeviceContext* deviceContext)
     {
-        var count = Samplers.Count;
+        if (_samplers is null)
+            return;
+
+        var count = _samplers.Count;
         if (count <= 0)
             return;
 
@@ -206,7 +236,7 @@ public class ComputeFilterEffect(ComputeShader computeShader, Buffer? uniforms, 
 
         var samplers = stackalloc ID3D11SamplerState*[count];
         for (var i = 0; i < count; ++i)
-            samplers[i] = Samplers[i] is { } sampler ? sampler.GetOrCreateSampler() : null;
+            samplers[i] = _samplers[i] is { } sampler ? sampler.GetOrCreateSampler() : null;
         deviceContext->CSSetSamplers(0, (uint)count, samplers);
     }
 

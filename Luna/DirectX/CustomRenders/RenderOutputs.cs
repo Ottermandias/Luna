@@ -4,7 +4,7 @@ using TerraFX.Interop.DirectX;
 namespace Luna.DirectX;
 
 /// <summary>
-///     A collection of render targets, depth-stencil buffer and unordered access views, to use as persistent outputs for custom renders.
+///   A collection of render targets, depth-stencil buffer and unordered access views, to use as persistent outputs for custom renders.
 /// </summary>
 public unsafe class RenderOutputs : RenderOutputsBase
 {
@@ -69,8 +69,8 @@ public unsafe class RenderOutputs : RenderOutputsBase
     /// <exception cref="ArgumentException"> <paramref name="formats"/> is <c>default</c> or specifies too many outputs. </exception>
     public void SetOutputs(int width, int height, bool generateMips, ImmutableArray<DXGI_FORMAT> formats)
     {
-        ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(width,  0);
-        ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(height, 0);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(width);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(height);
         if (formats.IsDefault || formats.Length > D3D11.D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT)
             throw new ArgumentException(
                 $"The output formats array must not be default and must contain 0 to {D3D11.D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT} (inclusive) elements.",

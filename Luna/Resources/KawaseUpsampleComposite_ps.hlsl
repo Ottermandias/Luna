@@ -10,6 +10,7 @@
 float4 main(fs_quad_vertex vertex) : SV_Target
 {
     float4 input = input_texture.Sample(clamp_sampler, vertex.uv);
+    input.a *= unblurred_opacity;
 
     float2 rect_min = blur_rect_uv_min * resolution;
     float2 rect_max = blur_rect_uv_max * resolution;

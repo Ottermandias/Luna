@@ -25,7 +25,7 @@ struct lanczos3
     float3 weights3(float x)
     {
         static const float radius = 3.0f;
-        float3 texels = max(2.0f * pi * float3(x - 1.5f, x - 0.5f, x + 0.5f), 1e-5f);
+        float3 texels = max(abs(2.0f * pi * float3(x - 1.5f, x - 0.5f, x + 0.5f)), 1e-5f);
 
         // Lanczos3. Note: we normalize outside this function, so no point in multiplying by radius.
         return /*radius **/ sin(texels) * sin(texels / radius) / (texels * texels);

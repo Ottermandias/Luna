@@ -12,6 +12,7 @@ cbuffer blur : register(b1)
     float2 blur_rect_uv_max;
     float4 blur_rect_rounding;
     float blur_strength; // Kawase spread factor; typical range 0.5 – 4
+    float unblurred_opacity;
 }
 
 Texture2D source_texture : register(t0);

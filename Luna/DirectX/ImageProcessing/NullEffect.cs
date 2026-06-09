@@ -12,6 +12,9 @@ public sealed class NullEffect : IEffect
     public ImTextureId this[int index]
         => throw new NotSupportedException();
 
+    IList<TextureStandIn> IEffect.Inputs
+        => Array.Empty<TextureStandIn>();
+
     /// <inheritdoc/>
     public IEnumerable<IEffect> GetDependencies()
         => [];

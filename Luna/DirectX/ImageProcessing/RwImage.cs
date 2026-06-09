@@ -182,8 +182,8 @@ public unsafe class RwImage : IDalamudTextureWrap, IUnorderedAccessViewWrap
         => new();
 
     /// <summary>
-    ///     Recreates this read/write image with new specifications.
-    ///     If other objects were created from this one, the link will be broken, and they will continue wrapping the old image.
+    ///   Recreates this read/write image with new specifications.
+    ///   If other objects were created from this one, the link will be broken, and they will continue wrapping the old image.
     /// </summary>
     /// <param name="width"> The new width of the image. </param>
     /// <param name="height"> The new height of the image. </param>

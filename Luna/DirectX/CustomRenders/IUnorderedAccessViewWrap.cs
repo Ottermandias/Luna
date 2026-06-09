@@ -1,8 +1,8 @@
 namespace Luna.DirectX;
 
 /// <summary>
-///     An object wrapping a Direct3D 11 resource, with a shader resource view (read-only) and an unordered access view (read-write),
-///     i.e. a texture, buffer or other resource that can be arbitrarily read from or written to by a pixel or compute shader.
+///   An object wrapping a Direct3D 11 resource, with a shader resource view (read-only) and an unordered access view (read-write),
+///   i.e. a texture, buffer or other resource that can be arbitrarily read from or written to by a pixel or compute shader.
 /// </summary>
 public interface IUnorderedAccessViewWrap : IDisposable
 {

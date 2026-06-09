@@ -6,8 +6,11 @@ namespace Luna.DirectX;
 /// <param name="graph"> The effect graph to wrap. </param>
 public class SubGraphEffect(EffectGraph graph) : IEffect, IDisposable, ITextureWrapProvider
 {
+    /// <summary> A list of inputs of effects of the wrapped graph, re-exported by this effect. </summary>
+    public readonly List<(IEffect Effect, int Index)> InputBindings = new(4);
+
     /// <summary> A list of outputs of effects of the wrapped graph, re-exported by this effect. </summary>
-    public readonly List<TextureStandIn> Outputs = new(4);
+    public readonly List<TextureStandIn> OutputBindings = new(4);
 
     /// <summary> The wrapped effect graph. </summary>
     public EffectGraph EffectGraph
@@ -15,11 +18,14 @@ public class SubGraphEffect(EffectGraph graph) : IEffect, IDisposable, ITextureW
 
     /// <inheritdoc/>
     public int Count
-        => Outputs.Count;
+        => OutputBindings.Count;
 
     /// <inheritdoc/>
     public ImTextureId this[int index]
-        => Outputs[index];
+        => OutputBindings[index];
+
+    IList<TextureStandIn> IEffect.Inputs
+        => field ??= new InputList(this);
 
     ~SubGraphEffect()
         => Dispose(false);
@@ -42,11 +48,93 @@ public class SubGraphEffect(EffectGraph graph) : IEffect, IDisposable, ITextureW
 
     IDalamudTextureWrap? ITextureWrapProvider.GetTextureWrap(int index)
     {
-        Outputs[index].TryGetWrap(out var wrap);
+        OutputBindings[index].TryGetWrap(out var wrap);
         return wrap;
     }
 
     /// <inheritdoc/>
     public Task Run(CancellationToken cancellationToken)
         => graph.Run(null, cancellationToken);
+
+    private sealed class InputList(SubGraphEffect owner) : IList<TextureStandIn>
+    {
+        /// <inheritdoc/>
+        public int Count
+            => owner.InputBindings.Count;
+
+        /// <inheritdoc/>
+        public bool IsReadOnly
+            => false;
+
+        /// <inheritdoc/>
+        public TextureStandIn this[int index]
+        {
+            get => Get(owner.InputBindings[index]);
+            set => Set(owner.InputBindings[index], value);
+        }
+
+        private IEnumerable<TextureStandIn> AsEnumerable
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get => owner.InputBindings.Select(Get);
+        }
+
+        /// <inheritdoc/>
+        public IEnumerator<TextureStandIn> GetEnumerator()
+            => AsEnumerable.GetEnumerator();
+
+        IEnumerator IEnumerable.GetEnumerator()
+            => GetEnumerator();
+
+        /// <inheritdoc/>
+        public bool Contains(TextureStandIn item)
+            => AsEnumerable.Contains(item);
+
+        /// <inheritdoc/>
+        public void CopyTo(TextureStandIn[] array, int arrayIndex)
+        {
+            ArgumentOutOfRangeException.ThrowIfNegative(arrayIndex);
+            if (arrayIndex + owner.InputBindings.Count > array.Length)
+                throw new ArgumentException("The last item that would be copied is past the length of the array", nameof(arrayIndex));
+
+            foreach (var item in AsEnumerable)
+                array[arrayIndex++] = item;
+        }
+
+        /// <inheritdoc/>
+        public int IndexOf(TextureStandIn item)
+            => AsEnumerable.IndexOf(item);
+
+        #region Unsupported operations (this implementation is fixed-size)
+
+        /// <inheritdoc/>
+        public void Add(TextureStandIn item)
+            => throw new NotSupportedException();
+
+        /// <inheritdoc/>
+        public void Clear()
+            => throw new NotSupportedException();
+
+        /// <inheritdoc/>
+        public void Insert(int index, TextureStandIn item)
+            => throw new NotSupportedException();
+
+        /// <inheritdoc/>
+        public bool Remove(TextureStandIn item)
+            => throw new NotSupportedException();
+
+        /// <inheritdoc/>
+        public void RemoveAt(int index)
+            => throw new NotSupportedException();
+
+        #endregion
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static TextureStandIn Get((IEffect Effect, int Index) binding)
+            => binding.Effect.Inputs[binding.Index];
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void Set((IEffect Effect, int Index) binding, TextureStandIn value)
+            => binding.Effect.Inputs[binding.Index] = value;
+    }
 }

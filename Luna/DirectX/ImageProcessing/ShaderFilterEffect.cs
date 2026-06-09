@@ -5,16 +5,9 @@ using TerraFX.Interop.DirectX;
 namespace Luna.DirectX;
 
 /// <summary> An image filter effect implemented using a pixel shader. </summary>
-/// <param name="pixelShader"> The pixel shader that implements this filter effect. </param>
-/// <param name="uniforms"> The uniforms constant buffer. </param>
-/// <param name="outputFormats"> The effect's output formats. </param>
+/// <param name="quad"> The full-screen quad that implements this filter effect. </param>
 /// <param name="description"> A description of this object, for debugging and logging purposes. </param>
-/// <remarks> This uses <see cref="FullScreenQuadWithUniformsAndTextures"/>. The pixel shader has to accept the same inputs. </remarks>
-public class ShaderFilterEffect(
-    PixelShader pixelShader,
-    Buffer? uniforms,
-    ImmutableArray<DXGI_FORMAT> outputFormats,
-    string? description)
+public class ShaderFilterEffect(FullScreenQuad quad, string? description)
     : IEffect, ITextureWrapProvider, IDisposable
 {
     private const int DefaultWidth  = 32;
@@ -42,20 +35,23 @@ public class ShaderFilterEffect(
     /// <summary> An event that gets triggered just after this effect has finished rendering. </summary>
     public event Action<ShaderFilterEffect>? AfterRun;
 
-    private readonly FullScreenQuadWithUniformsAndTextures _quad    = new(pixelShader, uniforms, outputFormats, string.Empty);
-    private readonly RenderOutputs                         _outputs = new(DefaultWidth, DefaultHeight, false, []);
+    private readonly RenderOutputs _outputs = new(DefaultWidth, DefaultHeight, false, []);
 
-    /// <inheritdoc cref="FullScreenQuadWithUniformsAndTextures.Uniforms"/>
+    /// <inheritdoc cref="FullScreenQuad.Uniforms"/>
     public Buffer? Uniforms
-        => _quad.Uniforms;
+        => quad.Uniforms;
 
-    /// <inheritdoc cref="FullScreenQuadWithUniformsAndTextures.Textures"/>
+    /// <inheritdoc cref="FullScreenQuad.ExtraBuffers"/>
+    public List<Buffer?> ExtraBuffers
+        => quad.ExtraBuffers;
+
+    /// <inheritdoc cref="FullScreenQuad.Textures"/>
     public List<TextureStandIn> Textures
-        => _quad.Textures;
+        => quad.Textures;
 
-    /// <inheritdoc cref="FullScreenQuadWithUniformsAndTextures.Samplers"/>
+    /// <inheritdoc cref="FullScreenQuad.Samplers"/>
     public List<Sampler?> Samplers
-        => _quad.Samplers;
+        => quad.Samplers;
 
     /// <inheritdoc cref="RenderOutputs.UavOutputs"/>
     public List<IUnorderedAccessViewWrap> UavOutputs
@@ -69,12 +65,26 @@ public class ShaderFilterEffect(
     public ImTextureId this[int index]
         => _outputs[index];
 
+    IList<TextureStandIn> IEffect.Inputs
+        => quad.Textures;
+
+    /// <summary> Creates a new <see cref="ShaderFilterEffect"/>. </summary>
+    /// <param name="pixelShader"> The pixel shader that implements this filter effect. </param>
+    /// <param name="uniforms"> The uniforms constant buffer. </param>
+    /// <param name="outputFormats"> The effect's output formats. </param>
+    /// <param name="description"> A description of this object, for debugging and logging purposes. </param>
+    /// <remarks> This uses <see cref="FullScreenQuad"/>. The pixel shader has to accept the same inputs. </remarks>
+    public ShaderFilterEffect(PixelShader pixelShader, Buffer? uniforms, ImmutableArray<DXGI_FORMAT> outputFormats, string? description)
+        : this(new FullScreenQuad(pixelShader, uniforms, outputFormats, string.Empty), description)
+    { }
+
     /// <summary> Creates a new <see cref="ShaderFilterEffect"/>. </summary>
     /// <param name="pixelShader"> The pixel shader that implements this filter effect. </param>
     /// <param name="uniforms"> The uniforms constant buffer. </param>
     /// <param name="description"> A description of this object, for debugging and logging purposes. </param>
+    /// <remarks> This uses <see cref="FullScreenQuad"/>. The pixel shader has to accept the same inputs. </remarks>
     public ShaderFilterEffect(PixelShader pixelShader, Buffer? uniforms, string? description)
-        : this(pixelShader, uniforms, [FullScreenQuad.DefaultOutputFormat], description)
+        : this(new FullScreenQuad(pixelShader, uniforms, string.Empty), description)
     { }
 
     ~ShaderFilterEffect()
@@ -94,7 +104,7 @@ public class ShaderFilterEffect(
         if (!disposing)
             return;
 
-        _quad.Dispose();
+        quad.Dispose();
         _outputs.Dispose();
     }
 
@@ -105,7 +115,7 @@ public class ShaderFilterEffect(
     /// <inheritdoc/>
     public IEnumerable<IEffect> GetDependencies()
     {
-        foreach (var input in _quad.Textures)
+        foreach (var input in quad.Textures)
         {
             if (input.TryGetListAndIndex(out var list, out _) && list is IEffect effect)
                 yield return effect;
@@ -122,8 +132,8 @@ public class ShaderFilterEffect(
 
         if (DimensionsStrategy is not null)
         {
-            var inputDimensions = new List<(int Width, int Height)>(_quad.Textures.Count);
-            foreach (var input in _quad.Textures)
+            var inputDimensions = new List<(int Width, int Height)>(quad.Textures.Count);
+            foreach (var input in quad.Textures)
             {
                 if (input.IsEmpty)
                     continue;
@@ -140,9 +150,9 @@ public class ShaderFilterEffect(
         }
 
         if (_outputs.Count is 0 || _outputs.Width != Width || _outputs.Height != Height)
-            _outputs.SetOutputs(Width, Height, GenerateMips, _quad);
+            _outputs.SetOutputs(Width, Height, GenerateMips, quad);
 
-        _outputs.RenderObject(_quad);
+        _outputs.RenderObject(quad);
 
         AfterRun?.Invoke(this);
 
@@ -157,11 +167,27 @@ public class ShaderFilterEffect(
     public Image GetOutputAsImage(int index)
         => _outputs.GetOutputAsImage(index);
 
+    /// <summary> Returns a function suitable for <see cref="DimensionsStrategy"/> that applies a scaling factor to one of this effect's inputs. </summary>
+    /// <param name="index"> The index of the input to scale. </param>
+    /// <param name="factor"> The scaling factor. </param>
+    /// <returns> The function that calculates dimensions. </returns>
+    public static Func<ReadOnlySpan<(int Width, int Height)>, (int Width, int Height)?> ScaleInput(Index index, float factor)
+        => inputDimensions =>
+        {
+            var offset = index.GetOffset(inputDimensions.Length);
+            if (offset < 0 || offset >= inputDimensions.Length)
+                return null;
+
+            var input = inputDimensions[offset];
+
+            return ((int)MathF.Ceiling(input.Width * factor), (int)MathF.Ceiling(input.Height * factor));
+        };
+
     /// <summary> Returns a function suitable for <see cref="DimensionsStrategy"/> that applies a scaling factor to the effect's largest input. </summary>
     /// <param name="factor"> The scaling factor. </param>
     /// <returns> The function that calculates dimensions. </returns>
-    public static Func<ReadOnlySpan<(int Width, int Height)>, (int Width, int Height)?>? ScaleLargestInput(float factor)
-        => (inputDimensions) =>
+    public static Func<ReadOnlySpan<(int Width, int Height)>, (int Width, int Height)?> ScaleLargestInput(float factor)
+        => inputDimensions =>
         {
             if (inputDimensions.Length is 0)
                 return null;

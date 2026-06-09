@@ -13,9 +13,10 @@ public readonly struct TextureStandIn : IEquatable<TextureStandIn>
     public ImTextureId Id
         => _source switch
         {
-            IDalamudTextureWrap wrap          => wrap.Id,
-            IReadOnlyList<ImTextureId> source => source[_index],
-            _                                 => default,
+            IDalamudTextureWrap wrap               => wrap.Id,
+            IReadOnlyList<ImTextureId> source      => source[_index],
+            IReadOnlyList<TextureStandIn> indirect => indirect[_index].Id,
+            _                                      => default,
         };
 
     /// <summary> Whether this object is empty (<c>default</c>). </summary>
@@ -39,6 +40,16 @@ public readonly struct TextureStandIn : IEquatable<TextureStandIn>
         _index  = index;
     }
 
+    /// <summary> Creates an indirect <see cref="TextureStandIn"/> from a target specification. </summary>
+    /// <param name="list"> The list that contains the target. </param>
+    /// <param name="index"> The index of the target in <paramref name="list"/>. </param>
+    /// <remarks> It is the caller's responsibility to ensure that no cycles are created. </remarks>
+    public TextureStandIn(IReadOnlyList<TextureStandIn> list, int index)
+    {
+        _source = list;
+        _index  = index;
+    }
+
     /// <summary> Extracts the pre-determined texture this object was constructed from, if applicable. </summary>
     /// <param name="wrap"> The texture, or <c>null</c> if not applicable. </param>
     /// <returns> Whether this function succeeded. </returns>
@@ -52,6 +63,8 @@ public readonly struct TextureStandIn : IEquatable<TextureStandIn>
             case ITextureWrapProvider wrapProvider:
                 wrap = wrapProvider.GetTextureWrap(_index);
                 return wrap is not null;
+            case IReadOnlyList<TextureStandIn> indirect:
+                return indirect[_index].TryGetWrap(out wrap);
             default:
                 wrap = null;
                 return false;
@@ -64,7 +77,27 @@ public readonly struct TextureStandIn : IEquatable<TextureStandIn>
     /// <returns> Whether this function succeeded. </returns>
     public bool TryGetListAndIndex([NotNullWhen(true)] out IReadOnlyList<ImTextureId>? list, out int index)
     {
-        list  = _source as IReadOnlyList<ImTextureId>;
+        switch (_source)
+        {
+            case IReadOnlyList<ImTextureId> source:
+                list  = source;
+                index = _index;
+                return true;
+            case IReadOnlyList<TextureStandIn> indirect: return indirect[_index].TryGetListAndIndex(out list, out index);
+            default:
+                list  = null;
+                index = 0;
+                return false;
+        }
+    }
+
+    /// <summary> Extracts the indirection target specification this object was constructed from, if applicable. </summary>
+    /// <param name="list"> The list that contains the target, or <c>null</c> if not applicable. </param>
+    /// <param name="index"> The index of the target in <paramref name="list"/>. </param>
+    /// <returns> Whether this function succeeded. </returns>
+    public bool TryGetIndirectionTarget([NotNullWhen(true)] out IReadOnlyList<TextureStandIn>? list, out int index)
+    {
+        list  = _source as IReadOnlyList<TextureStandIn>;
         index = _index;
         return list is not null;
     }

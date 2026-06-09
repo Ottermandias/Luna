@@ -29,7 +29,9 @@ public abstract class Shader<T>(byte[] blob, string description) : IDisposable w
     /// <summary> Releases the resources used by this object. </summary>
     /// <param name="disposing"> True if called explicitly, false if garbage collected. </param>
     protected virtual void Dispose(bool disposing)
-        => _shader.Dispose();
+    {
+        InvalidateShader();
+    }
 
     /// <inheritdoc/>
     public override string? ToString()
@@ -42,18 +44,22 @@ public abstract class Shader<T>(byte[] blob, string description) : IDisposable w
         if (!_shader.Valid)
             _shader.Attach(CreateShader());
 
-        return _shader;
+        return _shader.Get();
     }
 
     /// <summary> Creates the Direct3D shader object. </summary>
     /// <returns> The shader object. </returns>
-    /// <remarks> This can be overridden to use Direct3D 11 class linkage features. </remarks>
     protected abstract unsafe T* CreateShader();
 
     /// <summary> Invalidates the Direct3D shader object. </summary>
-    /// <remarks> If using the default implementation of <see cref="CreateShader"/>, this should be called only after changing <see cref="Blob" />. </remarks>
+    /// <remarks>
+    ///   If using the default implementations of <see cref="Shader{T}.CreateShader"/>,
+    ///   this should be called only after changing <see cref="Shader.Blob" />.
+    /// </remarks>
     protected void InvalidateShader()
-        => _shader.Dispose();
+    {
+        _shader.Dispose();
+    }
 }
 
 /// <summary> A Direct3D vertex shader. </summary>
@@ -67,8 +73,9 @@ public class VertexShader(byte[] blob, string description) : Shader<ID3D11Vertex
         ID3D11VertexShader* shader;
         fixed (byte* pBlob = Blob)
         {
-            Marshal.ThrowExceptionForHR(
-                CustomRenderManager.Instance.Device->CreateVertexShader(pBlob, unchecked((uint)Blob.Length), null, &shader));
+            // pClassLinkage is hardcoded to null because of poor portability.
+            Marshal.ThrowExceptionForHR(CustomRenderManager.Instance.Device->CreateVertexShader(pBlob, unchecked((uint)Blob.Length),
+                null, &shader));
         }
 
         return shader;
@@ -86,8 +93,9 @@ public class PixelShader(byte[] blob, string description) : Shader<ID3D11PixelSh
         ID3D11PixelShader* shader;
         fixed (byte* pBlob = Blob)
         {
-            Marshal.ThrowExceptionForHR(
-                CustomRenderManager.Instance.Device->CreatePixelShader(pBlob, unchecked((uint)Blob.Length), null, &shader));
+            // pClassLinkage is hardcoded to null because of poor portability.
+            Marshal.ThrowExceptionForHR(CustomRenderManager.Instance.Device->CreatePixelShader(pBlob, unchecked((uint)Blob.Length),
+                null, &shader));
         }
 
         return shader;
@@ -105,8 +113,9 @@ public class GeometryShader(byte[] blob, string description) : Shader<ID3D11Geom
         ID3D11GeometryShader* shader;
         fixed (byte* pBlob = Blob)
         {
-            Marshal.ThrowExceptionForHR(
-                CustomRenderManager.Instance.Device->CreateGeometryShader(pBlob, unchecked((uint)Blob.Length), null, &shader));
+            // pClassLinkage is hardcoded to null because of poor portability.
+            Marshal.ThrowExceptionForHR(CustomRenderManager.Instance.Device->CreateGeometryShader(pBlob, unchecked((uint)Blob.Length),
+                null, &shader));
         }
 
         return shader;
@@ -124,8 +133,9 @@ public class HullShader(byte[] blob, string description) : Shader<ID3D11HullShad
         ID3D11HullShader* shader;
         fixed (byte* pBlob = Blob)
         {
-            Marshal.ThrowExceptionForHR(
-                CustomRenderManager.Instance.Device->CreateHullShader(pBlob, unchecked((uint)Blob.Length), null, &shader));
+            // pClassLinkage is hardcoded to null because of poor portability.
+            Marshal.ThrowExceptionForHR(CustomRenderManager.Instance.Device->CreateHullShader(pBlob, unchecked((uint)Blob.Length),
+                null, &shader));
         }
 
         return shader;
@@ -143,8 +153,9 @@ public class DomainShader(byte[] blob, string description) : Shader<ID3D11Domain
         ID3D11DomainShader* shader;
         fixed (byte* pBlob = Blob)
         {
-            Marshal.ThrowExceptionForHR(
-                CustomRenderManager.Instance.Device->CreateDomainShader(pBlob, unchecked((uint)Blob.Length), null, &shader));
+            // pClassLinkage is hardcoded to null because of poor portability.
+            Marshal.ThrowExceptionForHR(CustomRenderManager.Instance.Device->CreateDomainShader(pBlob, unchecked((uint)Blob.Length),
+                null, &shader));
         }
 
         return shader;
@@ -162,8 +173,9 @@ public class ComputeShader(byte[] blob, string description) : Shader<ID3D11Compu
         ID3D11ComputeShader* shader;
         fixed (byte* pBlob = Blob)
         {
-            Marshal.ThrowExceptionForHR(
-                CustomRenderManager.Instance.Device->CreateComputeShader(pBlob, unchecked((uint)Blob.Length), null, &shader));
+            // pClassLinkage is hardcoded to null because of poor portability.
+            Marshal.ThrowExceptionForHR(CustomRenderManager.Instance.Device->CreateComputeShader(pBlob, unchecked((uint)Blob.Length),
+                null, &shader));
         }
 
         return shader;

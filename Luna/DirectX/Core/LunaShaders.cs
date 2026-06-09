@@ -1,20 +1,21 @@
 namespace Luna.DirectX;
 
 /// <summary> A collection of built-in shaders. </summary>
-public static class LunaShaders
+public static partial class LunaShaders
 {
     private static readonly Lazy<VertexShader> FsQuadVs = new(() => GetVertexShader("FsQuad"));
 
     private static readonly Lazy<PixelShader> ApplyIndexPs              = new(() => GetPixelShader("ApplyIndex"));
+    private static readonly Lazy<PixelShader> Blend4Ps                  = new(() => GetPixelShader("Blend4"));
     private static readonly Lazy<PixelShader> ColorTransformPs          = new(() => GetPixelShader("ColorTransform"));
+    private static readonly Lazy<PixelShader> CompositePs               = new(() => GetPixelShader("Composite"));
+    private static readonly Lazy<PixelShader> CompositeControlledPs     = new(() => GetPixelShader("CompositeControlled"));
     private static readonly Lazy<PixelShader> DivideByMaxPs             = new(() => GetPixelShader("DivideByMax"));
     private static readonly Lazy<PixelShader> DyeGlossOverlayPs         = new(() => GetPixelShader("DyeGlossOverlay"));
-    private static readonly Lazy<PixelShader> IdentityPs                = new(() => GetPixelShader("Identity"));
     private static readonly Lazy<PixelShader> KawaseDownsamplePs        = new(() => GetPixelShader("KawaseDownsample"));
     private static readonly Lazy<PixelShader> KawaseUpsampleCompositePs = new(() => GetPixelShader("KawaseUpsampleComposite"));
     private static readonly Lazy<PixelShader> KawaseUpsamplePs          = new(() => GetPixelShader("KawaseUpsample"));
-    private static readonly Lazy<PixelShader> Lanczos3Ps                = new(() => GetPixelShader("Lanczos3"));
-    private static readonly Lazy<PixelShader> SymbolFilterPs            = new(() => GetPixelShader("SymbolFilter"));
+    private static readonly Lazy<PixelShader> ResamplePs                = new(() => GetPixelShader("Resample"));
 
     private static readonly Lazy<ComputeShader> RefractionRaycastCs = new(() => GetComputeShader("RefractionRaycast"));
     private static readonly Lazy<ComputeShader> MaxCs               = new(() => GetComputeShader("Max"));
@@ -32,11 +33,35 @@ public static class LunaShaders
         => ApplyIndexPs.Value;
 
     /// <summary>
+    ///   A pixel shader that rotates and scales a foreground input texture, then blends it onto a background input texture.
+    ///   Alpha is not treated as opacity, and just gets blended along red, green and blue without special treatment.
+    ///   Use with <see cref="FsQuad"/>, <see cref="Blend4Uniforms"/> and <see cref="FilterLinkage"/>.
+    /// </summary>
+    public static PixelShader Blend4
+        => Blend4Ps.Value;
+
+    /// <summary>
     ///   A pixel shader that applies a color transform to an input texture.
     ///   Use with <see cref="FsQuad"/> and <see cref="ColorTransformUniforms"/>.
     /// </summary>
     public static PixelShader ColorTransform
         => ColorTransformPs.Value;
+
+    /// <summary>
+    ///   A pixel shader that rotates and scales a foreground input texture, then blends and composites it onto a background input texture.
+    ///   Alpha is treated as opacity.
+    ///   Use with <see cref="FsQuad"/>, <see cref="CompositeUniforms"/> and <see cref="FilterLinkage"/>.
+    /// </summary>
+    public static PixelShader Composite
+        => CompositePs.Value;
+
+    /// <summary>
+    ///   A pixel shader that rotates and scales a foreground input texture, then blends and composites it onto a background input texture.
+    ///   Alpha is not treated as opacity. Instead, auxiliary control masks have to be provided.
+    ///   Use with <see cref="FsQuad"/>, <see cref="CompositeUniforms"/> and <see cref="FilterLinkage"/>.
+    /// </summary>
+    public static PixelShader CompositeControlled
+        => CompositeControlledPs.Value;
 
     /// <summary>
     ///   A pixel shader used to render a dye gloss overlay in ImGui.
@@ -55,11 +80,11 @@ public static class LunaShaders
         => DivideByMaxPs.Value;
 
     /// <summary>
-    ///   A pixel shader that passes its input texture through unchanged.
-    ///   Use with <see cref="FsQuad"/>.
+    ///   A pixel shader that resamples its input texture according to configurable filters.
+    ///   Use with <see cref="FsQuad"/> and <see cref="FilterLinkage"/>.
     /// </summary>
-    public static PixelShader Identity
-        => IdentityPs.Value;
+    public static PixelShader Resample
+        => ResamplePs.Value;
 
     /// <summary>
     ///   A pixel shader that applies a Dual Kawase downsampling pass to its input texture.
@@ -83,22 +108,6 @@ public static class LunaShaders
         => KawaseUpsampleCompositePs.Value;
 
     /// <summary>
-    ///   A pixel shader that resamples its input texture using a Lanczos3 filter.
-    ///   Use with <see cref="FsQuad"/>.
-    /// </summary>
-    public static PixelShader Lanczos3
-        => Lanczos3Ps.Value;
-
-    /// <summary>
-    ///   A pixel shader that resamples its input texture using a bespoke filter that treats the red channel values as symbols,
-    ///   and conditionally applies bilinear, nearest-neighbor, marching squares, or a blend thereof, depending on these symbols' equality.
-    ///   Designed around index map semantics.
-    ///   Use with <see cref="FsQuad"/>.
-    /// </summary>
-    public static PixelShader SymbolFilter
-        => SymbolFilterPs.Value;
-
-    /// <summary>
     ///   A compute shader that casts rays refracted according to its input normal map and counts hits.
     ///   Use with <see cref="RefractionRaycastUniforms"/>.
     /// </summary>
@@ -111,83 +120,6 @@ public static class LunaShaders
     /// </summary>
     public static ComputeShader Max
         => MaxCs.Value;
-
-    /// <summary> Input data for <see cref="ApplyIndex"/>. </summary>
-    [StructLayout(LayoutKind.Sequential, Size = 0x210)]
-    public struct ApplyIndexUniforms
-    {
-        /// <summary> An exponent to apply to the palette lookup/interpolation results. </summary>
-        public Vector4 Exponent;
-
-        /// <summary> The color palette. </summary>
-        public Palette Palette;
-    }
-
-    /// <summary> A color palette. </summary>
-    /// <seealso cref="ApplyIndex"/>
-    [InlineArray(32)]
-    public struct Palette
-    {
-        private Vector4 _element;
-    }
-
-    /// <summary> Input data for <see cref="ColorTransform"/>. </summary>
-    [StructLayout(LayoutKind.Sequential, Size = 0x50)]
-    public struct ColorTransformUniforms
-    {
-        /// <summary> The red basis vector of the transform. </summary>
-        public Vector4 BasisRed;
-
-        /// <summary> The green basis vector of the transform. </summary>
-        public Vector4 BasisGreen;
-
-        /// <summary> The blue basis vector of the transform. </summary>
-        public Vector4 BasisBlue;
-
-        /// <summary> The alpha basis vector of the transform. </summary>
-        public Vector4 BasisAlpha;
-
-        /// <summary> The origin point of the transform. </summary>
-        public Vector4 Origin;
-    }
-
-    /// <summary> Input data for <see cref="DyeGlossOverlay"/>. </summary>
-    [StructLayout(LayoutKind.Sequential, Size = 0x10)]
-    public struct DyeGlossOverlayUniforms
-    {
-        /// <summary> The radius of the rounding of frame corners, in clockwise order starting from upper left. </summary>
-        /// <seealso cref="Im.ImGuiStyle.FrameRounding"/>
-        public Vector4 Rounding;
-    }
-
-    /// <summary> Input data for <see cref="KawaseDownsample"/>, <see cref="KawaseUpsample"/> and <see cref="KawaseUpsampleComposite"/>. </summary>
-    [StructLayout(LayoutKind.Sequential, Size = 0x30)]
-    public struct KawaseUniforms
-    {
-        /// <summary> The UV coordinates of the upper-left corner of the blurred rectangle. </summary>
-        public Vector2 BlurRectUvMin;
-
-        /// <summary> The UV coordinates of the lower-right corner of the blurred rectangle. </summary>
-        public Vector2 BlurRectUvMax;
-
-        /// <summary> The radius of the rounding of frame corners for the blurred rectangle, in clockwise order starting from upper left. </summary>
-        /// <seealso cref="Im.ImGuiStyle.FrameRounding"/>
-        public Vector4 BlurRectRounding;
-
-        /// <summary> Kawase spread factor; typical range 0.5 – 4. </summary>
-        public float BlurStrength;
-    }
-
-    /// <summary> Input data for <see cref="RefractionRaycast"/>. </summary>
-    [StructLayout(LayoutKind.Sequential, Size = 0x10)]
-    public struct RefractionRaycastUniforms
-    {
-        /// <summary></summary>
-        public float IndexOfRefraction;
-
-        /// <summary> </summary>
-        public float Depth;
-    }
 
     private static VertexShader GetVertexShader(string shaderName)
         => new(ResourceProvider.GetManifestResourceBytes(shaderName + "_vs.dxbc"), shaderName);

@@ -6,11 +6,11 @@ namespace Luna;
 public abstract class FilterComboColors : FilterComboBase<FilterComboColors.Item>
 {
     // We are keeping two of these to avoid constant re-renderings due to the rounding being canceled within the popup.
-    private static readonly FullScreenQuadWithUniforms PreviewDyeGlossOverlay =
+    private static readonly FullScreenQuad PreviewDyeGlossOverlay =
         new(LunaShaders.DyeGlossOverlay, new ConstantBuffer<LunaShaders.DyeGlossOverlayUniforms>(),
             $"{nameof(FilterComboColors)}.{nameof(PreviewDyeGlossOverlay)}");
 
-    private static readonly FullScreenQuadWithUniforms PopupDyeGlossOverlay =
+    private static readonly FullScreenQuad PopupDyeGlossOverlay =
         new(LunaShaders.DyeGlossOverlay, new ConstantBuffer<LunaShaders.DyeGlossOverlayUniforms>(),
             $"{nameof(FilterComboColors)}.{nameof(PopupDyeGlossOverlay)}");
 
@@ -119,7 +119,7 @@ public abstract class FilterComboColors : FilterComboBase<FilterComboColors.Item
         DrawDyeGlossOverlay(PreviewDyeGlossOverlay, min, Im.Item.LowerRightCorner with { X = min.X + width });
     }
 
-    private static void DrawDyeGlossOverlay(FullScreenQuadWithUniforms overlay, Vector2 upperLeft, Vector2 lowerRight)
+    private static void DrawDyeGlossOverlay(FullScreenQuad overlay, Vector2 upperLeft, Vector2 lowerRight)
     {
         // This removes frame rounding but there is currently no easy way to obtain a multicolored rectangle with rounding.
         // Im.Window.DrawList.Shape.RectangleMulticolor(upperLeft, lowerRight, 0x50FFFFFF, 0x50000000, 0x50FFFFFF, 0x50000000);

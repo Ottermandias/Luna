@@ -4,52 +4,52 @@ using TerraFX.Interop.DirectX;
 namespace Luna.DirectX;
 
 /// <summary> A collection of built-in image processing effects, in the form of factory functions. </summary>
-public static class LunaEffects
+public static partial class LunaEffects
 {
-    /// <summary> Creates an effect that resizes its input to a fixed size. </summary>
-    /// <param name="input"> The image to resize. </param>
+    /// <summary> Creates an effect that resamples its input to a fixed size. </summary>
+    /// <param name="input"> The image to resample. </param>
     /// <param name="width"> The desired width. </param>
     /// <param name="height"> The desired height. </param>
     /// <param name="method"> The resampling filter/algorithm. </param>
-    /// <param name="generateMips"> Whether to generate mipmaps for the resized image. </param>
-    /// <param name="format"> The pixel format of the resized image. </param>
-    /// <returns> The newly-created resize effect. </returns>
-    public static IEffect Resize(TextureStandIn input, int width, int height, ResizeMethod method, bool generateMips = false,
+    /// <param name="generateMips"> Whether to generate mipmaps for the resampled image. </param>
+    /// <param name="format"> The pixel format of the resampled image. </param>
+    /// <returns> The newly-created resample effect. </returns>
+    public static IEffect Resample(TextureStandIn input, int width, int height, ResampleMethod method, bool generateMips = false,
         DXGI_FORMAT format = FullScreenQuad.DefaultOutputFormat)
     {
-        var effect = Resize(input, method, format, generateMips);
+        var effect = Resample(input, method, format, generateMips);
         effect.DimensionsStrategy = null;
         effect.Width              = width;
         effect.Height             = height;
         return effect;
     }
 
-    /// <summary> Creates an effect that resizes its input proportionally. </summary>
-    /// <param name="input"> The image to resize. </param>
-    /// <param name="factor"> The scaling factor. </param>
+    /// <summary> Creates an effect that resamples its input to a size proportional to the original. </summary>
+    /// <param name="input"> The image to resample. </param>
+    /// <param name="scale"> The scaling factor. </param>
     /// <param name="method"> The resampling filter/algorithm. </param>
-    /// <param name="generateMips"> Whether to generate mipmaps for the resized image. </param>
-    /// <param name="format"> The pixel format of the resized image. </param>
-    /// <returns> The newly-created resize effect. </returns>
-    public static IEffect Resize(TextureStandIn input, float factor, ResizeMethod method, bool generateMips = false,
+    /// <param name="generateMips"> Whether to generate mipmaps for the resampled image. </param>
+    /// <param name="format"> The pixel format of the resampled image. </param>
+    /// <returns> The newly-created resample effect. </returns>
+    public static IEffect Resample(TextureStandIn input, float scale, ResampleMethod method, bool generateMips = false,
         DXGI_FORMAT format = FullScreenQuad.DefaultOutputFormat)
     {
-        var effect = Resize(input, method, format, generateMips);
-        effect.DimensionsStrategy = ShaderFilterEffect.ScaleLargestInput(factor);
+        var effect = Resample(input, method, format, generateMips);
+        effect.DimensionsStrategy = ShaderFilterEffect.ScaleLargestInput(scale);
         return effect;
     }
 
-    /// <summary> Creates an effect that resizes its input according to a custom function. </summary>
-    /// <param name="input"> The image to resize. </param>
+    /// <summary> Creates an effect that resamples its input according to a custom function. </summary>
+    /// <param name="input"> The image to resample. </param>
     /// <param name="dimensionsStrategy"> A function that calculates the output dimensions from the input dimensions. </param>
     /// <param name="method"> The resampling filter/algorithm. </param>
-    /// <param name="generateMips"> Whether to generate mipmaps for the resized image. </param>
-    /// <param name="format"> The pixel format of the resized image. </param>
-    /// <returns> The newly-created resize effect. </returns>
-    public static IEffect Resize(TextureStandIn input, Func<int, int, (int Width, int Height)> dimensionsStrategy, ResizeMethod method,
+    /// <param name="generateMips"> Whether to generate mipmaps for the resampled image. </param>
+    /// <param name="format"> The pixel format of the resampled image. </param>
+    /// <returns> The newly-created resample effect. </returns>
+    public static IEffect Resample(TextureStandIn input, Func<int, int, (int Width, int Height)> dimensionsStrategy, ResampleMethod method,
         bool generateMips = false, DXGI_FORMAT format = FullScreenQuad.DefaultOutputFormat)
     {
-        var effect = Resize(input, method, format, generateMips);
+        var effect = Resample(input, method, format, generateMips);
         effect.DimensionsStrategy = inputDimensions =>
         {
             if (inputDimensions.IsEmpty)
@@ -75,7 +75,7 @@ public static class LunaEffects
         var effect = new ShaderFilterEffect(LunaShaders.ColorTransform, uniforms, [format], "Color Transform");
         effect.GenerateMips = generateMips;
         effect.Textures.Add(input);
-        effect.Samplers.Add(Sampler.Default);
+        effect.Samplers.Add(Sampler.ClampBilinear);
         return effect;
     }
 
@@ -94,7 +94,105 @@ public static class LunaEffects
         var effect = new ShaderFilterEffect(LunaShaders.ApplyIndex, uniforms, [format], "Color Transform");
         effect.GenerateMips = generateMips;
         effect.Textures.Add(input);
-        effect.Samplers.Add(Sampler.Default);
+        effect.Samplers.Add(Sampler.ClampBilinear);
+        return effect;
+    }
+
+    /// <summary>
+    ///   Creates an effect that blends a foreground texture onto a background texture.
+    ///   Alpha is not treated as opacity, and just gets blended along red, green and blue without special treatment.
+    /// </summary>
+    /// <param name="backgroundInput"> The background texture to blend onto. </param>
+    /// <param name="foregroundInput"> The foreground texture to blend. </param>
+    /// <param name="blend"> The blend function to use. </param>
+    /// <param name="uniforms"> A constant buffer that can be used to modify the blend parameters between runs. </param>
+    /// <param name="initialUniforms"> The initial blend parameters. </param>
+    /// <param name="foregroundResampling"> The resampling function to use for the foreground texture. </param>
+    /// <param name="generateMips"> Whether to generate mipmaps for the blended texture. </param>
+    /// <param name="format"> The pixel format of the blended texture. </param>
+    /// <returns> The newly-created blending effect. </returns>
+    public static IEffect Blend4(TextureStandIn backgroundInput, TextureStandIn foregroundInput,
+        out ConstantBuffer<LunaShaders.Blend4Uniforms> uniforms, in LunaShaders.Blend4Uniforms initialUniforms = default,
+        ResampleMethod foregroundResampling = ResampleMethod.Bilinear, bool generateMips = false,
+        DXGI_FORMAT format = FullScreenQuad.DefaultOutputFormat)
+    {
+        uniforms = new ConstantBuffer<LunaShaders.Blend4Uniforms>(in initialUniforms);
+        var shader = LunaShaders.Blend4;
+        var effect = new ShaderFilterEffect(shader, uniforms, [format], "RGBA Blend");
+        effect.DimensionsStrategy = ShaderFilterEffect.ScaleInput(0, 1.0f);
+        effect.GenerateMips       = generateMips;
+        effect.ExtraBuffers.Add(FilterLinkage(foregroundResampling.ToFilter()));
+        effect.Textures.Add(backgroundInput);
+        effect.Textures.Add(foregroundInput);
+        effect.Samplers.Add(Sampler.ClampBilinear);
+        effect.Samplers.Add(GetWrapSampler(foregroundResampling));
+        return effect;
+    }
+
+    /// <summary> Creates an effect that composites a foreground image onto a background image. Alpha is treated as opacity. </summary>
+    /// <param name="backgroundInput"> The background image to composite onto. </param>
+    /// <param name="foregroundInput"> The foreground image to composite. </param>
+    /// <param name="uniforms"> A constant buffer that can be used to modify the compositing parameters between runs. </param>
+    /// <param name="initialUniforms"> The initial compositing parameters. </param>
+    /// <param name="blend"> The blend function to use. </param>
+    /// <param name="foregroundResampling"> The resampling function to use for the foreground image. </param>
+    /// <param name="generateMips"> Whether to generate mipmaps for the composited image. </param>
+    /// <param name="format"> The pixel format of the composited image. </param>
+    /// <returns> The newly-created compositing effect. </returns>
+    public static IEffect Composite(TextureStandIn backgroundInput, TextureStandIn foregroundInput,
+        out ConstantBuffer<LunaShaders.CompositeUniforms> uniforms, in LunaShaders.CompositeUniforms initialUniforms = default,
+        ResampleMethod foregroundResampling = ResampleMethod.Bilinear, bool generateMips = false,
+        DXGI_FORMAT format = FullScreenQuad.DefaultOutputFormat)
+    {
+        uniforms = new ConstantBuffer<LunaShaders.CompositeUniforms>(in initialUniforms);
+        var shader = LunaShaders.Composite;
+        var effect = new ShaderFilterEffect(shader, uniforms, [format], "RGB Composite");
+        effect.DimensionsStrategy = ShaderFilterEffect.ScaleInput(0, 1.0f);
+        effect.GenerateMips       = generateMips;
+        effect.ExtraBuffers.Add(FilterLinkage(foregroundResampling.ToFilter()));
+        effect.Textures.Add(backgroundInput);
+        effect.Textures.Add(foregroundInput);
+        effect.Samplers.Add(Sampler.ClampBilinear);
+        effect.Samplers.Add(GetBorderTransparentSampler(foregroundResampling));
+        return effect;
+    }
+
+    /// <summary>
+    ///   Creates an effect that composites a foreground texture onto a background texture.
+    ///   Alpha is not treated as opacity. Instead, auxiliary control masks have to be provided.
+    ///   This effect has two outputs: the composited texture, and the composited control mask.
+    /// </summary>
+    /// <param name="backgroundInput"> The background texture to composite onto. </param>
+    /// <param name="backgroundControlInput"> The background control mask. </param>
+    /// <param name="foregroundInput"> The foreground texture to composite. </param>
+    /// <param name="foregroundControlInput"> The foreground control mask. </param>
+    /// <param name="uniforms"> A constant buffer that can be used to modify the compositing parameters between runs. </param>
+    /// <param name="initialUniforms"> The initial compositing parameters. </param>
+    /// <param name="blend"> The blend function to use. </param>
+    /// <param name="foregroundResampling"> The resampling function to use for the foreground texture. </param>
+    /// <param name="generateMips"> Whether to generate mipmaps for the composited texture. </param>
+    /// <param name="format"> The pixel format of the composited texture. </param>
+    /// <param name="controlFormat"> The pixel format of the composited control mask. </param>
+    /// <returns> The newly-created compositing effect. </returns>
+    public static IEffect CompositeControlled(TextureStandIn backgroundInput, TextureStandIn backgroundControlInput,
+        TextureStandIn foregroundInput, TextureStandIn foregroundControlInput,
+        out ConstantBuffer<LunaShaders.CompositeControlledUniforms> uniforms,
+        in LunaShaders.CompositeControlledUniforms initialUniforms = default, ResampleMethod foregroundResampling = ResampleMethod.Bilinear,
+        bool generateMips = false, DXGI_FORMAT format = FullScreenQuad.DefaultOutputFormat,
+        DXGI_FORMAT controlFormat = DXGI_FORMAT.DXGI_FORMAT_R8_UNORM)
+    {
+        uniforms = new ConstantBuffer<LunaShaders.CompositeControlledUniforms>(in initialUniforms);
+        var shader = LunaShaders.CompositeControlled;
+        var effect = new ShaderFilterEffect(shader, uniforms, [format, controlFormat], "RGBA Composite with Control Mask");
+        effect.DimensionsStrategy = ShaderFilterEffect.ScaleInput(0, 1.0f);
+        effect.GenerateMips       = generateMips;
+        effect.ExtraBuffers.Add(FilterLinkage(foregroundResampling.ToFilter()));
+        effect.Textures.Add(backgroundInput);
+        effect.Textures.Add(backgroundControlInput);
+        effect.Textures.Add(foregroundInput);
+        effect.Textures.Add(foregroundControlInput);
+        effect.Samplers.Add(Sampler.ClampBilinear);
+        effect.Samplers.Add(GetBorderTransparentSampler(foregroundResampling));
         return effect;
     }
 
@@ -121,7 +219,7 @@ public static class LunaEffects
         compositePass.GenerateMips       = generateMips;
         compositePass.Textures.Add(new TextureStandIn(upPass2, 0));
         compositePass.Textures.Add(input);
-        compositePass.Samplers.Add(Sampler.Default);
+        compositePass.Samplers.Add(Sampler.ClampBilinear);
         var graph = new EffectGraph([downPass1, downPass2, downPass3, upPass1, upPass2, compositePass]);
         graph.BeforeRun += _ =>
         {
@@ -137,19 +235,23 @@ public static class LunaEffects
         };
 
         var effect = new SubGraphEffect(graph);
-        effect.Outputs.Add(new TextureStandIn(compositePass, 0));
+        effect.InputBindings.Add((downPass1, 0));
+        effect.OutputBindings.Add(new TextureStandIn(compositePass, 0));
         return effect;
     }
 
-    /// <summary> Creates an effect that casts rays refracted according to a normal map and counts the hit frequency. </summary>or other object
+    /// <summary>
+    ///   Creates an effect that casts rays refracted according to a normal map and counts the hit frequency.
+    ///   This effect has two outputs: the hit frequency map, and a 1x1 UInt texture that contains the highest hit count before normalization.
+    /// </summary>
     /// <param name="input"> The normal map. </param>
     /// <param name="uniforms"> A constant buffer that can be used to modify the casting parameters between runs. </param>
     /// <param name="initialUniforms"> The initial casting parameters. </param>
-    /// <param name="generateMips"> Whether to generate mipmaps for the casting. </param>
-    /// <param name="format"> The pixel format of the casting. </param>
+    /// <param name="generateMips"> Whether to generate mipmaps for the hit frequency map. </param>
+    /// <param name="format"> The pixel format of the hit frequency map. </param>
     /// <returns> The newly-created ray casting effect. </returns>
     /// <remarks> This is implemented very naively and should only serve as a test/demo of Luna.DirectX. </remarks>
-    public static unsafe IEffect RefractionRaycast(TextureStandIn input, out ConstantBuffer<LunaShaders.RefractionRaycastUniforms> uniforms,
+    public static IEffect RefractionRaycast(TextureStandIn input, out ConstantBuffer<LunaShaders.RefractionRaycastUniforms> uniforms,
         in LunaShaders.RefractionRaycastUniforms initialUniforms = default, bool generateMips = false,
         DXGI_FORMAT format = DXGI_FORMAT.DXGI_FORMAT_R32_FLOAT)
     {
@@ -174,96 +276,34 @@ public static class LunaEffects
             lastHeight            = dimensions.Height;
         };
         cast.ClearStrategy = ITargetClearStrategy.Simple;
-        var max = Max(new TextureStandIn(cast, 0), "Refraction Raycast");
-        var divideByMax = DivideByMax(new TextureStandIn(cast, 0), new TextureStandIn(max, 0), format, generateMips,
-            "Refraction Raycast");
+        var max         = Max(new TextureStandIn(cast, 0), "Refraction Raycast");
+        var divideByMax = DivideByMax(max, format, generateMips, "Refraction Raycast");
 
         var effect = new SubGraphEffect([cast, max, divideByMax]);
-        effect.Outputs.Add(new TextureStandIn(divideByMax, 0));
-        effect.Outputs.Add(new TextureStandIn(max,         0));
+        effect.InputBindings.Add((cast, 0));
+        effect.OutputBindings.Add(new TextureStandIn(divideByMax, 0));
+        effect.OutputBindings.Add(new TextureStandIn(max,         0));
         return effect;
-    }
-
-    private static ShaderFilterEffect Resize(TextureStandIn input, ResizeMethod method, DXGI_FORMAT format, bool generateMips)
-    {
-        var effect = new ShaderFilterEffect(method switch
-            {
-                ResizeMethod.Lanczos3     => LunaShaders.Lanczos3,
-                ResizeMethod.SymbolFilter => LunaShaders.SymbolFilter,
-                _                         => LunaShaders.Identity,
-            }, null, [format], $"Resize ({method.ToName()})");
-        effect.GenerateMips = generateMips;
-        effect.Textures.Add(input);
-        effect.Samplers.Add(method switch
-        {
-            ResizeMethod.NearestNeighbor or ResizeMethod.SymbolFilter => Sampler.DefaultNearestNeighbor,
-            _                                                         => Sampler.Default,
-        });
-        return effect;
-    }
-
-    private static ShaderFilterEffect KawaseDownsample(int index, TextureStandIn input, Buffer uniforms, DXGI_FORMAT format)
-    {
-        var effect = new ShaderFilterEffect(LunaShaders.KawaseDownsample, uniforms, [format], $"Dual Kawase Blur - Downsample Pass {index}");
-        effect.DimensionsStrategy = inputDimensions =>
-        {
-            if (inputDimensions.Length is 0)
-                return null;
-
-            return (Math.Max(1, inputDimensions[0].Width >> 1), Math.Max(1, inputDimensions[0].Height >> 1));
-        };
-        effect.Textures.Add(input);
-        effect.Samplers.Add(Sampler.Default);
-        return effect;
-    }
-
-    private static ShaderFilterEffect KawaseUpsample(int index, TextureStandIn input, Buffer uniforms, DXGI_FORMAT format)
-    {
-        var effect = new ShaderFilterEffect(LunaShaders.KawaseUpsample, uniforms, [format], $"Dual Kawase Blur - Upsample Pass {index}");
-        effect.DimensionsStrategy = null;
-        effect.Textures.Add(input);
-        effect.Samplers.Add(Sampler.Default);
-        return effect;
-    }
-
-    private static unsafe ComputeFilterEffect Max(TextureStandIn input, string parentDescription)
-    {
-        var maxOut = new RwImage(1, 1, DXGI_FORMAT.DXGI_FORMAT_R32_UINT);
-        var max    = new ComputeFilterEffect(LunaShaders.Max, null, $"{parentDescription} - Max");
-        max.Textures.Add(input);
-        max.Outputs.Add(maxOut);
-        max.BeforeRun += _ =>
-        {
-            var dimensions = input.Id.Dimensions;
-            max.ThreadGroupCount = ((int)dimensions.Width, (int)dimensions.Height, 1);
-        };
-        max.ClearStrategy = ITargetClearStrategy.Simple;
-        return max;
-    }
-
-    private static ShaderFilterEffect DivideByMax(TextureStandIn input, TextureStandIn max, DXGI_FORMAT format, bool generateMips, string parentDescription)
-    {
-        var divideByMax = new ShaderFilterEffect(LunaShaders.DivideByMax, null, [format], $"{parentDescription} - Divide by Max");
-        divideByMax.GenerateMips = generateMips;
-        divideByMax.Textures.Add(input);
-        divideByMax.Textures.Add(max);
-        return divideByMax;
     }
 
     /// <summary> A resampling filter/algorithm. </summary>
     [NamedEnum]
-    public enum ResizeMethod
+    [AssociatedEnum<LunaShaders.Filter>(ForwardDefaultValue: LunaShaders.Filter.Simple)]
+    public enum ResampleMethod
     {
         /// <summary> Bilinear filtering. </summary>
         [Name("Bilinear")]
+        [Associate<LunaShaders.Filter>(LunaShaders.Filter.Simple)]
         Bilinear,
 
         /// <summary> Nearest-neighbor filtering. </summary>
         [Name("Nearest-neighbor")]
+        [Associate<LunaShaders.Filter>(LunaShaders.Filter.Simple)]
         NearestNeighbor,
 
         /// <summary> Lanczos filtering. </summary>
         [Name("Lanczos")]
+        [Associate<LunaShaders.Filter>(LunaShaders.Filter.Lanczos3)]
         Lanczos3,
 
         /// <summary>
@@ -271,6 +311,7 @@ public static class LunaEffects
         ///   marching squares, or a blend thereof, depending on these symbols' equality. Designed around index map semantics.
         /// </summary>
         [Name("Symbol Filter")]
+        [Associate<LunaShaders.Filter>(LunaShaders.Filter.SymbolFilter)]
         SymbolFilter,
     }
 }

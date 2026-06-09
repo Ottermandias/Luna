@@ -15,6 +15,9 @@ public class LoadEffect(Task<IDalamudTextureWrap> loader, bool leaveWrapOpen = f
     public ImTextureId this[int index]
         => GetTextureWrap(index).Id;
 
+    IList<TextureStandIn> IEffect.Inputs
+        => Array.Empty<TextureStandIn>();
+
     ~LoadEffect()
         => Dispose(false);
 
