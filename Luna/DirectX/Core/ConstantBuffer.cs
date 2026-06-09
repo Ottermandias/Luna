@@ -18,8 +18,8 @@ public class ConstantBuffer<TContents>(in TContents contents = default) : Buffer
         => D3D11_BIND_FLAG.D3D11_BIND_CONSTANT_BUFFER;
 
     /// <inheritdoc/>
-    public override ReadOnlySpan<byte> ContentsAsBytes
-        => MemoryMarshal.AsBytes(new ReadOnlySpan<TContents>(in Contents));
+    public override Span<byte> ContentsAsBytes
+        => MemoryMarshal.AsBytes(new Span<TContents>(ref Contents));
 }
 
 /// <summary> A Direct3D constant buffer. </summary>
@@ -55,7 +55,7 @@ public class ConstantBuffer(byte[] contents) : Buffer
         => D3D11_BIND_FLAG.D3D11_BIND_CONSTANT_BUFFER;
 
     /// <inheritdoc/>
-    public override ReadOnlySpan<byte> ContentsAsBytes
+    public override Span<byte> ContentsAsBytes
         => _contents.AsSpan();
 
     /// <summary> Gets a typed view of the contents of this constant buffer. </summary>

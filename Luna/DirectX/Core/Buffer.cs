@@ -15,7 +15,7 @@ public abstract class Buffer : IDisposable
     public abstract D3D11_BIND_FLAG BindFlags { get; }
 
     /// <summary> A raw view of the contents of this buffer. </summary>
-    public abstract ReadOnlySpan<byte> ContentsAsBytes { get; }
+    public abstract Span<byte> ContentsAsBytes { get; }
 
     ~Buffer()
         => Dispose(false);
