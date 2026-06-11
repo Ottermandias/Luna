@@ -11,14 +11,17 @@ public static class ImageExtensions
     /// <returns> The container GUID associated with the given path's extension. </returns>
     public static Guid? GetContainerGuid(this ITextureReadbackProvider readbackProvider, string path)
     {
-        path = Path.GetExtension(path);
-        if (string.IsNullOrEmpty(path))
+        var extension = Path.GetExtension(path.AsSpan());
+        if (extension.IsEmpty)
             return null;
 
         foreach (var encoder in readbackProvider.GetSupportedImageEncoderInfos())
         {
-            if (encoder.Extensions.Any(ext => string.Equals(path, ext, StringComparison.OrdinalIgnoreCase)))
-                return encoder.ContainerGuid;
+            foreach (var ext in encoder.Extensions)
+            {
+                if (extension.Equals(ext, StringComparison.OrdinalIgnoreCase))
+                    return encoder.ContainerGuid;
+            }
         }
 
         return null;

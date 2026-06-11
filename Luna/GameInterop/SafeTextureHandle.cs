@@ -11,11 +11,12 @@ public unsafe class SafeTextureHandle : SafeHandle, ICloneable, IDalamudTextureW
 {
     /// <summary> Gets the wrapped texture. </summary>
     public Texture* Texture
+        // ReSharper disable once InconsistentlySynchronizedField
         => (Texture*)handle;
 
     /// <inheritdoc/>
     public override bool IsInvalid
-        => handle == 0;
+        => handle == nint.Zero;
 
     /// <summary> Gets the dimensions (width and height) of this texture. </summary>
     public (int Width, int Height) Dimensions
@@ -27,6 +28,7 @@ public unsafe class SafeTextureHandle : SafeHandle, ICloneable, IDalamudTextureW
 
     #region IDalamudTextureWrap implementation
 
+    /// <inheritdoc/>
     ImTextureID IDalamudTextureWrap.Handle
         => new(Texture switch
         {
@@ -34,6 +36,7 @@ public unsafe class SafeTextureHandle : SafeHandle, ICloneable, IDalamudTextureW
             var texture => (nint)texture->D3D11ShaderResourceView,
         });
 
+    /// <inheritdoc/>
     int IDalamudTextureWrap.Width
         => Texture switch
         {
@@ -41,6 +44,7 @@ public unsafe class SafeTextureHandle : SafeHandle, ICloneable, IDalamudTextureW
             var texture => (int)texture->AllocatedWidth,
         };
 
+    /// <inheritdoc/>
     int IDalamudTextureWrap.Height
         => Texture switch
         {
@@ -48,6 +52,7 @@ public unsafe class SafeTextureHandle : SafeHandle, ICloneable, IDalamudTextureW
             var texture => (int)texture->AllocatedHeight,
         };
 
+    /// <inheritdoc/>
     Vector2 IDalamudTextureWrap.Size
         => Texture switch
         {
@@ -78,6 +83,7 @@ public unsafe class SafeTextureHandle : SafeHandle, ICloneable, IDalamudTextureW
     public SafeTextureHandle Clone()
         => new(Texture);
 
+    /// <inheritdoc/>
     object ICloneable.Clone()
         => Clone();
 
@@ -109,15 +115,15 @@ public unsafe class SafeTextureHandle : SafeHandle, ICloneable, IDalamudTextureW
     /// <inheritdoc/>
     protected override bool ReleaseHandle()
     {
-        nint handle;
+        nint localHandle;
         lock (this)
         {
-            handle      = this.handle;
-            this.handle = 0;
+            localHandle = handle;
+            handle      = nint.Zero;
         }
 
-        if (handle != 0)
-            ((Texture*)handle)->DecRef();
+        if (localHandle != nint.Zero)
+            ((Texture*)localHandle)->DecRef();
 
         return true;
     }

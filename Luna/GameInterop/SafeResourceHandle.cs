@@ -7,11 +7,12 @@ public unsafe class SafeResourceHandle : SafeHandle, ICloneable
 {
     /// <summary> Gets the wrapped resource handle. </summary>
     public ResourceHandle* ResourceHandle
+        // ReSharper disable once InconsistentlySynchronizedField
         => (ResourceHandle*)handle;
 
     /// <inheritdoc/>
     public override bool IsInvalid
-        => handle == 0;
+        => handle == nint.Zero;
 
     /// <summary> Constructs a new <see cref="SafeResourceHandle"/> wrapping the given resource handle. </summary>
     /// <param name="handle"> The game resource handle to wrap. </param>
@@ -24,7 +25,7 @@ public unsafe class SafeResourceHandle : SafeHandle, ICloneable
         if (incRef && !ownsHandle)
             throw new ArgumentException("Non-owning SafeResourceHandle with IncRef is unsupported");
 
-        if (incRef && handle != null)
+        if (incRef && handle is not null)
             handle->IncRef();
         SetHandle((nint)handle);
     }
@@ -34,6 +35,7 @@ public unsafe class SafeResourceHandle : SafeHandle, ICloneable
     public SafeResourceHandle Clone()
         => new(ResourceHandle);
 
+    /// <inheritdoc/>
     object ICloneable.Clone()
         => Clone();
 
@@ -55,9 +57,9 @@ public unsafe class SafeResourceHandle : SafeHandle, ICloneable
     /// <inheritdoc/>
     protected override bool ReleaseHandle()
     {
-        var handle = Interlocked.Exchange(ref this.handle, 0);
-        if (handle != 0)
-            ((ResourceHandle*)handle)->DecRef();
+        var localHandle = Interlocked.Exchange(ref handle, 0);
+        if (localHandle != nint.Zero)
+            ((ResourceHandle*)localHandle)->DecRef();
 
         return true;
     }
