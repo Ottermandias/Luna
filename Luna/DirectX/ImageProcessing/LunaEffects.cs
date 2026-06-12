@@ -271,7 +271,8 @@ public static partial class LunaEffects
                 return;
 
             castOut.Recreate(dimensions.Width, dimensions.Height, DXGI_FORMAT.DXGI_FORMAT_R32_UINT);
-            cast.ThreadGroupCount = ((int)dimensions.Width, (int)dimensions.Height, 1);
+            // That shader has [numthreads(8, 8, 1)], therefore the XY group count is 1/8th of the dimensions, rounded up.
+            cast.ThreadGroupCount = (((int)dimensions.Width + 7) >> 3, ((int)dimensions.Height + 7) >> 3, 1);
             lastWidth             = dimensions.Width;
             lastHeight            = dimensions.Height;
         };

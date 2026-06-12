@@ -168,10 +168,10 @@ partial class LunaShaders
     [StructLayout(LayoutKind.Sequential, Size = 0x10)]
     public struct RefractionRaycastUniforms
     {
-        /// <summary></summary>
+        /// <summary> The index of refraction of the surface represented by the input normal map. </summary>
         public float IndexOfRefraction;
 
-        /// <summary> </summary>
+        /// <summary> The depth beyond the surface. </summary>
         public float Depth;
     }
 
