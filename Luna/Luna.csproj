@@ -64,8 +64,4 @@
 
         <ProjectReference Include="..\Luna.Generators\Luna.Generators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
     </ItemGroup>
-
-    <ItemGroup>
-      <ClCompile Include="Resources\Max_cs.hlsl" />
-    </ItemGroup>
 </Project>
