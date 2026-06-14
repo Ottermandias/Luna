@@ -209,12 +209,13 @@ public class FullScreenQuad(PixelShader pixelShader, Buffer? uniforms, Immutable
             return;
 
         var count = _textures.Count;
-        if (count <= 0)
-            return;
-
-        if (count > D3D11.D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT)
-            throw new InvalidOperationException(
-                $"FullScreenQuad texture count exceeds DirectX resource limit ({D3D11.D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT})");
+        switch (count)
+        {
+            case <= 0: return;
+            case > D3D11.D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT:
+                throw new InvalidOperationException(
+                    $"FullScreenQuad texture count exceeds DirectX resource limit ({D3D11.D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT})");
+        }
 
         var views = stackalloc ID3D11ShaderResourceView*[count];
         for (var i = 0; i < count; ++i)
@@ -229,12 +230,13 @@ public class FullScreenQuad(PixelShader pixelShader, Buffer? uniforms, Immutable
             return;
 
         var count = _samplers.Count;
-        if (count <= 0)
-            return;
-
-        if (count > D3D11.D3D11_COMMONSHADER_SAMPLER_SLOT_COUNT)
-            throw new InvalidOperationException(
-                $"FullScreenQuad sampler count exceeds DirectX resource limit ({D3D11.D3D11_COMMONSHADER_SAMPLER_SLOT_COUNT})");
+        switch (count)
+        {
+            case <= 0: return;
+            case > D3D11.D3D11_COMMONSHADER_SAMPLER_SLOT_COUNT:
+                throw new InvalidOperationException(
+                    $"FullScreenQuad sampler count exceeds DirectX resource limit ({D3D11.D3D11_COMMONSHADER_SAMPLER_SLOT_COUNT})");
+        }
 
         var samplers = stackalloc ID3D11SamplerState*[count];
         for (var i = 0; i < count; ++i)

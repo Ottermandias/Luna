@@ -156,8 +156,7 @@ public unsafe class RwImage : IDalamudTextureWrap, IUnorderedAccessViewWrap
     }
 
     private RwImage()
-    {
-    }
+    { }
 
     ~RwImage()
         => Dispose(false);

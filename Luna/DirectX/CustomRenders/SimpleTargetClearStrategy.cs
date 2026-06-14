@@ -12,12 +12,12 @@ public sealed class SimpleTargetClearStrategy(float depth, byte stencil, Vector4
 {
     private readonly Vector4 _color = color;
 
-    private readonly UintClearValue _intValue = new UintClearValue
+    private readonly UintClearValue _intValue = new()
     {
         X = intValue.X,
         Y = intValue.Y,
         Z = intValue.Z,
-        W = intValue.W
+        W = intValue.W,
     };
 
     /// <inheritdoc/>
@@ -29,7 +29,9 @@ public sealed class SimpleTargetClearStrategy(float depth, byte stencil, Vector4
     public unsafe void ClearRenderTarget(ID3D11DeviceContext* deviceContext, int outputIndex, ID3D11RenderTargetView* renderTargetView)
     {
         fixed (Vector4* pColor = &_color)
+        {
             deviceContext->ClearRenderTargetView(renderTargetView, (float*)pColor);
+        }
     }
 
     /// <inheritdoc/>
@@ -42,11 +44,17 @@ public sealed class SimpleTargetClearStrategy(float depth, byte stencil, Vector4
         {
             case DxgiFormatComponentType.Float or DxgiFormatComponentType.UNorm or DxgiFormatComponentType.SNorm:
                 fixed (Vector4* pColor = &_color)
+                {
                     deviceContext->ClearUnorderedAccessViewFloat(unorderedAccessView, (float*)pColor);
+                }
+
                 break;
             case DxgiFormatComponentType.UInt or DxgiFormatComponentType.SInt:
                 fixed (UintClearValue* pIntValue = &_intValue)
+                {
                     deviceContext->ClearUnorderedAccessViewUint(unorderedAccessView, (uint*)pIntValue);
+                }
+
                 break;
         }
     }

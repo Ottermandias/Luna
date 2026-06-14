@@ -15,7 +15,7 @@ public sealed class CustomRenderManager : IDisposable
     /// <summary> A custom logger to set when the manager should not use the global logger. </summary>
     public ILogger? CustomLogger
     {
-        get => field;
+        get;
         set
         {
             field = value;

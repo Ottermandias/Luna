@@ -77,7 +77,7 @@ public abstract class Buffer : IDisposable
     /// <returns> The buffer object. </returns>
     public static unsafe ID3D11Buffer* Create(void* initialContents, int size, D3D11_BIND_FLAG bind)
     {
-        if (bind.HasFlag(D3D11_BIND_FLAG.D3D11_BIND_CONSTANT_BUFFER) && (size & 15) != 0)
+        if (bind.HasFlag(D3D11_BIND_FLAG.D3D11_BIND_CONSTANT_BUFFER) && (size & 15) is not 0)
             throw new ArgumentException("Constant buffer must be a multiple of 16 bytes in size.");
 
         var bufferDesc = new D3D11_BUFFER_DESC

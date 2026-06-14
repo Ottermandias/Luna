@@ -14,7 +14,7 @@ public static unsafe class DxUtility
         /// <summary> Whether the current pointer is valid (i.e. not <c>null</c>). </summary>
         public bool Valid
         {
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            [MethodImpl(ImSharpConfiguration.Inl)]
             get => ptr.Get() is not null;
         }
     }
@@ -114,7 +114,8 @@ public static unsafe class DxUtility
     /// <typeparam name="T"> The object's type. </typeparam>
     /// <returns> The wrapped pointer. </returns>
     /// <seealso cref="ComPtr{T}.Attach"/>
-    public static ComPtr<T> NonOwningComPtr<T>(T* ptr) where T : unmanaged, IUnknown.Interface
+    public static ComPtr<T> NonOwningComPtr<T>(T* ptr) 
+        where T : unmanaged, IUnknown.Interface
     {
         var comPtr = new ComPtr<T>();
         comPtr.Attach(ptr);

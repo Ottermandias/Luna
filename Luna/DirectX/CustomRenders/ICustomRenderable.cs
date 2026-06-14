@@ -23,7 +23,7 @@ public interface ICustomRenderable
 
     /// <summary> A default depth-stencil state. </summary>
     public static D3D11_DEPTH_STENCIL_DESC DefaultDepthStencilState
-        => new D3D11_DEPTH_STENCIL_DESC
+        => new()
         {
             DepthEnable      = BOOL.TRUE,
             DepthWriteMask   = D3D11_DEPTH_WRITE_MASK.D3D11_DEPTH_WRITE_MASK_ALL,
@@ -52,7 +52,7 @@ public interface ICustomRenderable
 
     /// <summary> A default rasterizer state. </summary>
     public static D3D11_RASTERIZER_DESC DefaultRasterizerState
-        => new D3D11_RASTERIZER_DESC
+        => new()
         {
             FillMode              = D3D11_FILL_MODE.D3D11_FILL_SOLID,
             CullMode              = D3D11_CULL_MODE.D3D11_CULL_BACK,

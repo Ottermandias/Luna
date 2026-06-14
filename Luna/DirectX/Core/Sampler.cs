@@ -113,7 +113,8 @@ public class Sampler(in D3D11_SAMPLER_DESC description) : IDisposable
     /// <summary> Creates a <see cref="Sampler"/> from an existing Direct3D object. </summary>
     /// <param name="sampler"> The existing object. </param>
     /// <param name="addRef"> Whether to increment the reference count of <paramref name="sampler"/>. </param>
-    public unsafe Sampler(ID3D11SamplerState* sampler, bool addRef = true) : this(GetDescription(sampler))
+    public unsafe Sampler(ID3D11SamplerState* sampler, bool addRef = true)
+        : this(GetDescription(sampler))
     {
         if (addRef)
             sampler->AddRef();

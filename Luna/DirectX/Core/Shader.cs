@@ -54,7 +54,7 @@ public abstract class Shader<T>(byte[] blob, string description) : IDisposable w
     /// <summary> Invalidates the Direct3D shader object. </summary>
     /// <remarks>
     ///   If using the default implementations of <see cref="Shader{T}.CreateShader"/>,
-    ///   this should be called only after changing <see cref="Shader.Blob" />.
+    ///   this should be called only after changing <see cref="Blob" />.
     /// </remarks>
     protected void InvalidateShader()
     {

@@ -63,8 +63,7 @@ public readonly struct TextureStandIn : IEquatable<TextureStandIn>
             case ITextureWrapProvider wrapProvider:
                 wrap = wrapProvider.GetTextureWrap(_index);
                 return wrap is not null;
-            case IReadOnlyList<TextureStandIn> indirect:
-                return indirect[_index].TryGetWrap(out wrap);
+            case IReadOnlyList<TextureStandIn> indirect: return indirect[_index].TryGetWrap(out wrap);
             default:
                 wrap = null;
                 return false;

@@ -6,6 +6,7 @@ namespace Luna.DirectX;
 ///   This class supports Luna's infrastructure and should not be used directly.
 ///   Please use its subclass <see cref="RenderOutputs"/> instead.
 /// </summary>
+[EditorBrowsable(EditorBrowsableState.Never)]
 public abstract class RenderOutputsBase : IDisposable, IReadOnlyList<ImTextureId>, IRenderTargetProvider
 {
     /// <summary> This output collection's depth-stencil buffer. </summary>
