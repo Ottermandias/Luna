@@ -104,7 +104,6 @@ public static partial class LunaEffects
     /// </summary>
     /// <param name="backgroundInput"> The background texture to blend onto. </param>
     /// <param name="foregroundInput"> The foreground texture to blend. </param>
-    /// <param name="blend"> The blend function to use. </param>
     /// <param name="uniforms"> A constant buffer that can be used to modify the blend parameters between runs. </param>
     /// <param name="initialUniforms"> The initial blend parameters. </param>
     /// <param name="foregroundResampling"> The resampling function to use for the foreground texture. </param>
@@ -134,7 +133,6 @@ public static partial class LunaEffects
     /// <param name="foregroundInput"> The foreground image to composite. </param>
     /// <param name="uniforms"> A constant buffer that can be used to modify the compositing parameters between runs. </param>
     /// <param name="initialUniforms"> The initial compositing parameters. </param>
-    /// <param name="blend"> The blend function to use. </param>
     /// <param name="foregroundResampling"> The resampling function to use for the foreground image. </param>
     /// <param name="generateMips"> Whether to generate mipmaps for the composited image. </param>
     /// <param name="format"> The pixel format of the composited image. </param>
@@ -168,7 +166,6 @@ public static partial class LunaEffects
     /// <param name="foregroundControlInput"> The foreground control mask. </param>
     /// <param name="uniforms"> A constant buffer that can be used to modify the compositing parameters between runs. </param>
     /// <param name="initialUniforms"> The initial compositing parameters. </param>
-    /// <param name="blend"> The blend function to use. </param>
     /// <param name="foregroundResampling"> The resampling function to use for the foreground texture. </param>
     /// <param name="generateMips"> Whether to generate mipmaps for the composited texture. </param>
     /// <param name="format"> The pixel format of the composited texture. </param>

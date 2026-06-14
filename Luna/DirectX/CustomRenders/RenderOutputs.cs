@@ -226,8 +226,4 @@ public unsafe class RenderOutputs : RenderOutputsBase
         for (var i = 0; i < Outputs.Length; ++i)
             deviceContext->GenerateMips(Outputs[i].Texture.ShaderResourceView);
     }
-
-    /// <summary> A function that gets called for each UAV output, to clear it before rendering. </summary>
-    public delegate void UavClearAction(RenderOutputs outputs, ID3D11DeviceContext* deviceContext, int outputIndex,
-        ID3D11UnorderedAccessView* unorderedAccessView);
 }
