@@ -128,8 +128,8 @@ public abstract class FilterComboColors : FilterComboBase<FilterComboColors.Item
             overlay.Update();
 
         Im.Window.DrawList.Image(
-            CustomRenderManager.Instance.RenderObject(overlay, (uint)Math.Ceiling(lowerRight.X - upperLeft.X),
-                (uint)Math.Ceiling(lowerRight.Y - upperLeft.Y)), upperLeft, lowerRight);
+            CustomRenderManager.Instance.RenderObject(overlay, ((uint)Math.Ceiling(lowerRight.X - upperLeft.X),
+                (uint)Math.Ceiling(lowerRight.Y - upperLeft.Y))), upperLeft, lowerRight);
     }
 
 

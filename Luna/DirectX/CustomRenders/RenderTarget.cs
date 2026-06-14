@@ -14,18 +14,17 @@ internal unsafe struct RenderTarget : IDisposable
 
     /// <summary> Creates a new render target. </summary>
     /// <param name="device"> The Direct3D device to create the texture on. </param>
-    /// <param name="width"> The width of the texture. </param>
-    /// <param name="height"> The height of the texture. </param>
+    /// <param name="dimensions"> The dimensions of the texture. </param>
     /// <param name="format"> The format of the texture. </param>
     /// <param name="generateMips"> Whether to automatically generate mipmaps after rendering to that target. </param>
-    public RenderTarget(ID3D11Device* device, uint width, uint height, DXGI_FORMAT format, bool generateMips = false)
+    public RenderTarget(ID3D11Device* device, Dimensions dimensions, DXGI_FORMAT format, bool generateMips = false)
     {
         var rtvDesc = new D3D11_RENDER_TARGET_VIEW_DESC
         {
             ViewDimension = D3D11_RTV_DIMENSION.D3D11_RTV_DIMENSION_TEXTURE2D,
             Format        = format,
         };
-        Texture = new Texture2D(device, width, height, format, D3D11_BIND_FLAG.D3D11_BIND_RENDER_TARGET,
+        Texture = new Texture2D(device, dimensions, format, D3D11_BIND_FLAG.D3D11_BIND_RENDER_TARGET,
             generateMips ? D3D11_RESOURCE_MISC_FLAG.D3D11_RESOURCE_MISC_GENERATE_MIPS : 0, generateMips);
         try
         {

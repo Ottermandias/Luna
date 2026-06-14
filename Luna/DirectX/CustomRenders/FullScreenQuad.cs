@@ -23,9 +23,8 @@ public class FullScreenQuad(PixelShader pixelShader, Buffer? uniforms, Immutable
     /// <summary> A description of this object, for debugging and logging purposes. </summary>
     protected string? Description = description;
 
-    private uint _savedWidth;
-    private uint _savedHeight;
-    private long _version = 0;
+    private Dimensions _savedDimensions;
+    private long       _version;
 
     private ConstantBuffer<Vector4>? _resolutionBuffer;
     private List<Buffer?>?           _extraBuffers;
@@ -119,36 +118,32 @@ public class FullScreenQuad(PixelShader pixelShader, Buffer? uniforms, Immutable
         => outputFormats[outputIndex];
 
     /// <summary> Gets the constant buffer for the output resolution, creating or updating it if necessary. </summary>
-    /// <param name="width"> The output width. </param>
-    /// <param name="height"> The output height. </param>
+    /// <param name="dimensions"> The output dimensions. </param>
     /// <returns> The constant buffer. </returns>
-    protected ConstantBuffer<Vector4> GetOrCreateResolutionBuffer(uint width, uint height)
+    protected ConstantBuffer<Vector4> GetOrCreateResolutionBuffer(Dimensions dimensions)
     {
         if (_resolutionBuffer is not null)
         {
-            if (width != _savedWidth || height != _savedHeight)
+            if (dimensions != _savedDimensions)
             {
-                _resolutionBuffer.Contents = CalculateResolutionVector(width, height);
+                _resolutionBuffer.Contents = CalculateResolutionVector(dimensions);
                 _resolutionBuffer.SetDirty();
-                _savedWidth  = width;
-                _savedHeight = height;
+                _savedDimensions = dimensions;
             }
 
             return _resolutionBuffer;
         }
 
-        _resolutionBuffer = new ConstantBuffer<Vector4>(CalculateResolutionVector(width, height));
-
-        _savedWidth  = width;
-        _savedHeight = height;
+        _resolutionBuffer = new ConstantBuffer<Vector4>(CalculateResolutionVector(dimensions));
+        _savedDimensions  = dimensions;
         return _resolutionBuffer;
     }
 
-    private static Vector4 CalculateResolutionVector(uint width, uint height)
-        => new(width, height, 1.0f / width, 1.0f / height);
+    private static Vector4 CalculateResolutionVector(Dimensions dimensions)
+        => new(dimensions.Width, dimensions.Height, 1.0f / dimensions.Width, 1.0f / dimensions.Height);
 
     /// <inheritdoc/>
-    public virtual unsafe void Render(uint width, uint height, ID3D11DeviceContext* deviceContext)
+    public virtual unsafe void Render(Dimensions dimensions, ID3D11DeviceContext* deviceContext)
     {
         // Bind the vertex shader (see FsQuad_vs.hlsl), no geometry/hull/domain shaders, and the pixel shader supplied by inheritors or callers.
         // The vertex shader takes no cbuffers, resources or samplers.
@@ -156,7 +151,7 @@ public class FullScreenQuad(PixelShader pixelShader, Buffer? uniforms, Immutable
         deviceContext->HSSetShader(null, null, 0);
         deviceContext->DSSetShader(null, null, 0);
         deviceContext->GSSetShader(null, null, 0);
-        BindPixelShader(width, height, deviceContext);
+        BindPixelShader(dimensions, deviceContext);
 
         // The vertex shader takes no inputs except the vertex ID, which is managed by the system.
         // We are drawing a triangle strip of 4 vertices starting at 0:
@@ -171,23 +166,22 @@ public class FullScreenQuad(PixelShader pixelShader, Buffer? uniforms, Immutable
     }
 
     /// <summary> Binds the pixel shader and its inputs to the given device context. </summary>
-    /// <param name="width"> The output width. </param>
-    /// <param name="height"> The output height. </param>
+    /// <param name="dimensions"> The output dimensions. </param>
     /// <param name="deviceContext"> The device context to run commands on. </param>
-    protected virtual unsafe void BindPixelShader(uint width, uint height, ID3D11DeviceContext* deviceContext)
+    protected virtual unsafe void BindPixelShader(Dimensions dimensions, ID3D11DeviceContext* deviceContext)
     {
         // This default implementation binds the pixel shader, with the resolution cbuffer at slot 0 (see FsQuad.hlsli)
         // and the uniforms cbuffer at slot 1.
         deviceContext->PSSetShader(PixelShader.GetOrCreateShader(), null, 0);
         // This is split in three separate functions so the stackallocs don't add up
         // (on top of each function being kinda logically independent).
-        BindConstantBuffers(width, height, deviceContext);
+        BindConstantBuffers(dimensions, deviceContext);
         BindTextures(deviceContext);
         BindSamplers(deviceContext);
     }
 
     [SkipLocalsInit]
-    private unsafe void BindConstantBuffers(uint width, uint height, ID3D11DeviceContext* deviceContext)
+    private unsafe void BindConstantBuffers(Dimensions dimensions, ID3D11DeviceContext* deviceContext)
     {
         var count = _extraBuffers?.Count ?? 0;
         if (2 + count > D3D11.D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT)
@@ -195,7 +189,7 @@ public class FullScreenQuad(PixelShader pixelShader, Buffer? uniforms, Immutable
                 $"FullScreenQuad buffer count exceeds DirectX resource limit ({D3D11.D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT})");
 
         var buffers = stackalloc ID3D11Buffer*[2 + count];
-        buffers[0] = GetOrCreateResolutionBuffer(width, height).GetOrCreateBuffer(deviceContext);
+        buffers[0] = GetOrCreateResolutionBuffer(dimensions).GetOrCreateBuffer(deviceContext);
         buffers[1] = uniforms is not null ? uniforms.GetOrCreateBuffer(deviceContext) : null;
         for (var i = 0; i < count; ++i)
             buffers[2 + i] = _extraBuffers![i] is { } buffer ? buffer.GetOrCreateBuffer(deviceContext) : null;

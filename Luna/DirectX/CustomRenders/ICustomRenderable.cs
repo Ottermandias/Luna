@@ -72,8 +72,7 @@ public interface ICustomRenderable
     public DXGI_FORMAT GetOutputFormat(int outputIndex);
 
     /// <summary> Renders this object. </summary>
-    /// <param name="width"> The output width. </param>
-    /// <param name="height"> The output height. </param>
+    /// <param name="dimensions"> The output dimensions. </param>
     /// <param name="deviceContext"> The device context to run commands on. </param>
-    public unsafe void Render(uint width, uint height, ID3D11DeviceContext* deviceContext);
+    public unsafe void Render(Dimensions dimensions, ID3D11DeviceContext* deviceContext);
 }

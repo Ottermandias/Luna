@@ -27,12 +27,12 @@ public unsafe class RwImage : IDalamudTextureWrap, IUnorderedAccessViewWrap
     }
 
     /// <summary> Gets the dimensions (width and height) of this image. </summary>
-    public (int Width, int Height) Dimensions
+    public Dimensions Dimensions
     {
         get
         {
-            return ((int)desc.Width, (int)desc.Height);
             var desc = GetDescription();
+            return (desc.Width, desc.Height);
         }
     }
 
@@ -106,11 +106,10 @@ public unsafe class RwImage : IDalamudTextureWrap, IUnorderedAccessViewWrap
     #endregion
 
     /// <summary> Constructs a new read/write image of the given specifications. </summary>
-    /// <param name="width"> The width of the image. </param>
-    /// <param name="height"> The height of the image. </param>
+    /// <param name="dimensions"> The dimensions of the image. </param>
     /// <param name="format"> The format of the image. </param>
-    public RwImage(uint width, uint height, DXGI_FORMAT format)
-        => _texture = new RwTexture2D(CustomRenderManager.Instance.Device, width, height, format);
+    public RwImage(Dimensions dimensions, DXGI_FORMAT format)
+        => _texture = new RwTexture2D(CustomRenderManager.Instance.Device, dimensions, format);
 
     /// <summary> Constructs a new <see cref="RwImage"/> wrapping the given DirectX texture. </summary>
     /// <param name="texture"> The texture to wrap. </param>
@@ -173,9 +172,9 @@ public unsafe class RwImage : IDalamudTextureWrap, IUnorderedAccessViewWrap
     protected virtual void Dispose(bool disposing)
         => _texture.Dispose();
 
-    /// <summary> Creates an uninitialized <see cref="RwImage"/>. It must be initialized with <see cref="Recreate"/> before use. </summary>
+    /// <summary> Creates an uninitialized <see cref="RwImage"/>. It must be initialized with <see cref="Recreate(uint,uint,DXGI_FORMAT)"/> before use. </summary>
     /// <returns> An uninitialized read/write image. </returns>
-    /// <remarks> Any other use of the returned image before calling <see cref="Recreate"/> on it will cause undefined behavior. </remarks>
+    /// <remarks> Any other use of the returned image before calling <see cref="Recreate(uint,uint,DXGI_FORMAT)"/> on it will cause undefined behavior. </remarks>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static RwImage UnsafeCreateUninitialized()
         => new();
@@ -184,13 +183,12 @@ public unsafe class RwImage : IDalamudTextureWrap, IUnorderedAccessViewWrap
     ///   Recreates this read/write image with new specifications.
     ///   If other objects were created from this one, the link will be broken, and they will continue wrapping the old image.
     /// </summary>
-    /// <param name="width"> The new width of the image. </param>
-    /// <param name="height"> The new height of the image. </param>
+    /// <param name="dimensions"> The dimensions of the image. </param>
     /// <param name="format"> The new format of the image. </param>
-    public void Recreate(uint width, uint height, DXGI_FORMAT format)
+    public void Recreate(Dimensions dimensions, DXGI_FORMAT format)
     {
         _texture.Dispose();
-        _texture = new RwTexture2D(CustomRenderManager.Instance.Device, width, height, format);
+        _texture = new RwTexture2D(CustomRenderManager.Instance.Device, dimensions, format);
     }
 
     /// <summary> Creates an <see cref="Image"/> wrapping the same texture as this object. </summary>

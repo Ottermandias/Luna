@@ -48,7 +48,7 @@ partial class LunaEffects
 
     private static ComputeFilterEffect Max(TextureStandIn input, string parentDescription)
     {
-        var maxOut = new RwImage(1, 1, DXGI_FORMAT.DXGI_FORMAT_R32_UINT);
+        var maxOut = new RwImage(Dimensions.One, DXGI_FORMAT.DXGI_FORMAT_R32_UINT);
         var max    = new ComputeFilterEffect(LunaShaders.Max, null, $"{parentDescription} - Max");
         max.Textures.Add(input);
         max.Outputs.Add(maxOut);

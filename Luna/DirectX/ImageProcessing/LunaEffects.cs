@@ -8,19 +8,17 @@ public static partial class LunaEffects
 {
     /// <summary> Creates an effect that resamples its input to a fixed size. </summary>
     /// <param name="input"> The image to resample. </param>
-    /// <param name="width"> The desired width. </param>
-    /// <param name="height"> The desired height. </param>
+    /// <param name="dimensions"> The desired dimensions. </param>
     /// <param name="method"> The resampling filter/algorithm. </param>
     /// <param name="generateMips"> Whether to generate mipmaps for the resampled image. </param>
     /// <param name="format"> The pixel format of the resampled image. </param>
     /// <returns> The newly-created resample effect. </returns>
-    public static IEffect Resample(TextureStandIn input, int width, int height, ResampleMethod method, bool generateMips = false,
+    public static IEffect Resample(TextureStandIn input, Dimensions dimensions, ResampleMethod method, bool generateMips = false,
         DXGI_FORMAT format = FullScreenQuad.DefaultOutputFormat)
     {
         var effect = Resample(input, method, format, generateMips);
         effect.DimensionsStrategy = null;
-        effect.Width              = width;
-        effect.Height             = height;
+        effect.Dimensions         = dimensions;
         return effect;
     }
 
@@ -46,7 +44,7 @@ public static partial class LunaEffects
     /// <param name="generateMips"> Whether to generate mipmaps for the resampled image. </param>
     /// <param name="format"> The pixel format of the resampled image. </param>
     /// <returns> The newly-created resample effect. </returns>
-    public static IEffect Resample(TextureStandIn input, Func<int, int, (int Width, int Height)> dimensionsStrategy, ResampleMethod method,
+    public static IEffect Resample(TextureStandIn input, Func<Dimensions, Dimensions> dimensionsStrategy, ResampleMethod method,
         bool generateMips = false, DXGI_FORMAT format = FullScreenQuad.DefaultOutputFormat)
     {
         var effect = Resample(input, method, format, generateMips);
@@ -55,7 +53,7 @@ public static partial class LunaEffects
             if (inputDimensions.IsEmpty)
                 return null;
 
-            return dimensionsStrategy(inputDimensions[0].Width, inputDimensions[0].Height);
+            return dimensionsStrategy(inputDimensions[0]);
         };
         return effect;
     }
@@ -223,12 +221,9 @@ public static partial class LunaEffects
             // The upsample pass output dimensions cannot be calculated reliably from their own input dimensions.
             // It would only work if the original input dimensions are multiples of 8.
             var inputSize = input.Id.Dimensions;
-            upPass1.Width        = (int)Math.Max(1, inputSize.Width >> 2);
-            upPass1.Height       = (int)Math.Max(1, inputSize.Height >> 2);
-            upPass2.Width        = (int)Math.Max(1, inputSize.Width >> 1);
-            upPass2.Height       = (int)Math.Max(1, inputSize.Height >> 1);
-            compositePass.Width  = (int)inputSize.Width;
-            compositePass.Height = (int)inputSize.Height;
+            upPass1.Dimensions        = inputSize.Quarter();
+            upPass2.Dimensions        = inputSize.Half();
+            compositePass.Dimensions  = inputSize;
         };
 
         var effect = new SubGraphEffect(graph);
@@ -254,9 +249,8 @@ public static partial class LunaEffects
     {
         uniforms = new ConstantBuffer<LunaShaders.RefractionRaycastUniforms>(in initialUniforms);
 
-        var castOut    = RwImage.UnsafeCreateUninitialized();
-        var lastWidth  = uint.MaxValue;
-        var lastHeight = uint.MaxValue;
+        var castOut        = RwImage.UnsafeCreateUninitialized();
+        var lastDimensions = Dimensions.Invalid;
 
         var cast = new ComputeFilterEffect(LunaShaders.RefractionRaycast, uniforms, "Refraction Raycast");
         cast.Textures.Add(input);
@@ -264,14 +258,13 @@ public static partial class LunaEffects
         cast.BeforeRun += _ =>
         {
             var dimensions = input.Id.Dimensions;
-            if (dimensions.Width == lastWidth && dimensions.Height == lastHeight)
+            if (dimensions == lastDimensions)
                 return;
 
-            castOut.Recreate(dimensions.Width, dimensions.Height, DXGI_FORMAT.DXGI_FORMAT_R32_UINT);
+            castOut.Recreate(dimensions, DXGI_FORMAT.DXGI_FORMAT_R32_UINT);
             // That shader has [numthreads(8, 8, 1)], therefore the XY group count is 1/8th of the dimensions, rounded up.
             cast.ThreadGroupCount = (((int)dimensions.Width + 7) >> 3, ((int)dimensions.Height + 7) >> 3, 1);
-            lastWidth             = dimensions.Width;
-            lastHeight            = dimensions.Height;
+            lastDimensions        = dimensions;
         };
         cast.ClearStrategy = ITargetClearStrategy.Simple;
         var max         = Max(new TextureStandIn(cast, 0), "Refraction Raycast");

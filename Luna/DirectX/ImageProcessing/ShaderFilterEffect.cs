@@ -10,21 +10,18 @@ namespace Luna.DirectX;
 public class ShaderFilterEffect(FullScreenQuad quad, string? description)
     : IEffect, ITextureWrapProvider, IDisposable
 {
-    private const int DefaultWidth  = 32;
-    private const int DefaultHeight = 32;
+    private const uint DefaultWidth  = 32;
+    private const uint DefaultHeight = 32;
 
-    /// <summary> The output width of this effect. </summary>
-    public int Width = DefaultWidth;
-
-    /// <summary> The output height of this effect. </summary>
-    public int Height = DefaultHeight;
+    /// <summary> The output dimensions of this effect. </summary>
+    public Dimensions Dimensions = new(DefaultWidth, DefaultHeight);
 
     /// <summary>
     ///   A function that calculates the output dimensions of this effect, from the input dimensions.
-    ///   It will be called just before this effect runs, and shall return <c>null</c> to keep the currently set <see cref="Width"/> and <see cref="Height"/>.
+    ///   It will be called just before this effect runs, and shall return <c>null</c> to keep the currently set <see cref="Dimensions"/>.
     /// </summary>
-    /// <remarks> The effective output size can can be retrieved from <see cref="Width"/> and <see cref="Height"/> after this effect has run. </remarks>
-    public Func<ReadOnlySpan<(int Width, int Height)>, (int Width, int Height)?>? DimensionsStrategy = ScaleLargestInput(1.0f);
+    /// <remarks> The effective output size can can be retrieved from <see cref="Dimensions"/> after this effect has run. </remarks>
+    public Func<ReadOnlySpan<Dimensions>, Dimensions?>? DimensionsStrategy = ScaleLargestInput(1.0f);
 
     /// <summary> Whether to generate mipmaps for the outputs of this effect. </summary>
     public bool GenerateMips = false;
@@ -35,7 +32,7 @@ public class ShaderFilterEffect(FullScreenQuad quad, string? description)
     /// <summary> An event that gets triggered just after this effect has finished rendering. </summary>
     public event Action<ShaderFilterEffect>? AfterRun;
 
-    private readonly RenderOutputs _outputs = new(DefaultWidth, DefaultHeight, false, []);
+    private readonly RenderOutputs _outputs = new((DefaultWidth, DefaultHeight), false, []);
 
     /// <inheritdoc cref="FullScreenQuad.Uniforms"/>
     public Buffer? Uniforms
@@ -132,7 +129,7 @@ public class ShaderFilterEffect(FullScreenQuad quad, string? description)
 
         if (DimensionsStrategy is not null)
         {
-            var inputDimensions = new List<(int Width, int Height)>(quad.Textures.Count);
+            var inputDimensions = new List<Dimensions>(quad.Textures.Count);
             foreach (var input in quad.Textures)
             {
                 if (input.IsEmpty)
@@ -143,14 +140,11 @@ public class ShaderFilterEffect(FullScreenQuad quad, string? description)
             }
 
             if (DimensionsStrategy(CollectionsMarshal.AsSpan(inputDimensions)) is { } dimensions)
-            {
-                Width  = dimensions.Width;
-                Height = dimensions.Height;
-            }
+                Dimensions = dimensions;
         }
 
-        if (_outputs.Count is 0 || _outputs.Width != Width || _outputs.Height != Height)
-            _outputs.SetOutputs(Width, Height, GenerateMips, quad);
+        if (_outputs.Count is 0 || _outputs.Dimensions != Dimensions)
+            _outputs.SetOutputs(Dimensions, GenerateMips, quad);
 
         _outputs.RenderObject(quad);
 
@@ -171,7 +165,7 @@ public class ShaderFilterEffect(FullScreenQuad quad, string? description)
     /// <param name="index"> The index of the input to scale. </param>
     /// <param name="factor"> The scaling factor. </param>
     /// <returns> The function that calculates dimensions. </returns>
-    public static Func<ReadOnlySpan<(int Width, int Height)>, (int Width, int Height)?> ScaleInput(Index index, float factor)
+    public static Func<ReadOnlySpan<Dimensions>, Dimensions?> ScaleInput(Index index, float factor)
         => inputDimensions =>
         {
             var offset = index.GetOffset(inputDimensions.Length);
@@ -186,7 +180,7 @@ public class ShaderFilterEffect(FullScreenQuad quad, string? description)
     /// <summary> Returns a function suitable for <see cref="DimensionsStrategy"/> that applies a scaling factor to the effect's largest input. </summary>
     /// <param name="factor"> The scaling factor. </param>
     /// <returns> The function that calculates dimensions. </returns>
-    public static Func<ReadOnlySpan<(int Width, int Height)>, (int Width, int Height)?> ScaleLargestInput(float factor)
+    public static Func<ReadOnlySpan<Dimensions>, Dimensions?> ScaleLargestInput(float factor)
         => inputDimensions =>
         {
             if (inputDimensions.Length is 0)

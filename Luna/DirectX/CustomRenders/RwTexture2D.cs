@@ -14,18 +14,17 @@ internal unsafe struct RwTexture2D : IDisposable
 
     /// <summary> Creates a new <see cref="RwTexture2D"/>. </summary>
     /// <param name="device"> The Direct3D device to create the texture on. </param>
-    /// <param name="width"> The width of the texture. </param>
-    /// <param name="height"> The height of the texture. </param>
+    /// <param name="dimensions"> The dimensions of the texture. </param>
     /// <param name="format"> The format of the texture. </param>
     /// <param name="generateMips"> Whether to automatically generate mipmaps after writing to that texture. </param>
-    public RwTexture2D(ID3D11Device* device, uint width, uint height, DXGI_FORMAT format, bool generateMips = false)
+    public RwTexture2D(ID3D11Device* device, Dimensions dimensions, DXGI_FORMAT format, bool generateMips = false)
     {
         var uavDesc = new D3D11_UNORDERED_ACCESS_VIEW_DESC
         {
             ViewDimension = D3D11_UAV_DIMENSION.D3D11_UAV_DIMENSION_TEXTURE2D,
             Format        = format,
         };
-        Texture = new Texture2D(device, width, height, format, D3D11_BIND_FLAG.D3D11_BIND_UNORDERED_ACCESS,
+        Texture = new Texture2D(device, dimensions, format, D3D11_BIND_FLAG.D3D11_BIND_UNORDERED_ACCESS,
             generateMips ? D3D11_RESOURCE_MISC_FLAG.D3D11_RESOURCE_MISC_GENERATE_MIPS : 0, generateMips);
         try
         {

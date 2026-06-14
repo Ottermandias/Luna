@@ -25,7 +25,7 @@ public static unsafe class DxUtility
     {
         /// <summary> Gets the dimensions of a 2D texture. </summary>
         /// <returns> The dimensions of the texture. </returns>
-        public (uint Width, uint Height) Dimensions
+        public Dimensions Dimensions
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get => GetDimensionsFromView((ID3D11ShaderResourceView*)id.Value);
@@ -165,7 +165,8 @@ public static unsafe class DxUtility
     /// <typeparam name="T"> The type of view (shader resource, depth-stencil, render target, etc.). </typeparam>
     /// <returns> The dimensions of the texture. </returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static (uint Width, uint Height) GetDimensionsFromView<T>(T* view) where T : unmanaged, ID3D11View.Interface
+    public static Dimensions GetDimensionsFromView<T>(T* view)
+        where T : unmanaged, ID3D11View.Interface
     {
         var desc = GetDescriptionFromView(view);
         return (desc.Width, desc.Height);

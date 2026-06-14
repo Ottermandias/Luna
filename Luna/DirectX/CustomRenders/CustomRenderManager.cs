@@ -7,7 +7,7 @@ namespace Luna.DirectX;
 using static DxUtility;
 
 /// <summary> A manager to handle caches for custom renderable objects. </summary>
-public sealed class CustomRenderManager : IDisposable
+public sealed partial class CustomRenderManager : IDisposable
 {
     /// <summary> The custom render manager. </summary>
     public static readonly CustomRenderManager Instance = new(null);
@@ -26,7 +26,7 @@ public sealed class CustomRenderManager : IDisposable
     /// <summary> The logger the internal functions write to. </summary>
     public ILogger Logger { get; private set; }
 
-    private readonly ConditionalWeakTable<ICustomRenderable, Dictionary<(uint Width, uint Height), RenderCache>> _caches = [];
+    private readonly ConditionalWeakTable<ICustomRenderable, Dictionary<Dimensions, RenderCache>> _caches = [];
 
     private ComPtr<ID3D11Device> _device;
 
@@ -66,7 +66,7 @@ public sealed class CustomRenderManager : IDisposable
     private void UpdateLogger(ILogger obj)
         => Logger = CustomLogger ?? obj;
 
-    private static void Clear(Dictionary<(uint, uint), RenderCache> caches)
+    private static void Clear(Dictionary<Dimensions, RenderCache> caches)
     {
         foreach (var (_, cache) in caches)
             cache.Dispose();
@@ -88,24 +88,23 @@ public sealed class CustomRenderManager : IDisposable
 
     /// <summary> Renders an object, and returns the output in a form suitable for use as an ImGui image. </summary>
     /// <param name="renderable"> The object to render. </param>
-    /// <param name="width"> The width at which to render the object. </param>
-    /// <param name="height"> The height at which to render the object. </param>
+    /// <param name="dimensions"> The dimensions at which to render the object. </param>
     /// <param name="outputIndex"> If this object has multiple render outputs, the index, otherwise 0. Pass -1 to get the depth-stencil buffer. </param>
     /// <returns> An ImGui texture ID representing the rendered object. </returns>
-    public ImTextureId RenderObject(ICustomRenderable renderable, uint width, uint height, int outputIndex = 0)
+    [MethodImpl(ImSharpConfiguration.Inl)]
+    public ImTextureId RenderObject(ICustomRenderable renderable, Dimensions dimensions, int outputIndex = 0)
     {
         ImTextureId output = default;
-        RenderObject(renderable, width, height, outputIndex, new Span<ImTextureId>(ref output));
+        RenderObject(renderable, dimensions, outputIndex, new Span<ImTextureId>(ref output));
         return output;
     }
 
     /// <summary> Renders an object, and returns the outputs in a form suitable to use as ImGui images. </summary>
     /// <param name="renderable"> The object to render. </param>
-    /// <param name="width"> The width at which to render the object. </param>
-    /// <param name="height"> The height at which to render the object. </param>
+    /// <param name="dimensions"> The dimensions at which to render the object. </param>
     /// <param name="outputIndex"> The first render output index. Pass -1 to get the depth-stencil buffer. </param>
     /// <param name="outputs"> On return, ImGui texture IDs representing the rendered object. </param>
-    public unsafe void RenderObject(ICustomRenderable renderable, uint width, uint height, int outputIndex, Span<ImTextureId> outputs)
+    public unsafe void RenderObject(ICustomRenderable renderable, Dimensions dimensions, int outputIndex, Span<ImTextureId> outputs)
     {
         ArgumentOutOfRangeException.ThrowIfLessThan(outputIndex, -1);
         if (outputs.Length > D3D11.D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT)
@@ -113,13 +112,13 @@ public sealed class CustomRenderManager : IDisposable
 
         var version = renderable.Version;
         var caches  = _caches.GetOrCreateValue(renderable);
-        if (!caches.TryGetValue((width, height), out var cache))
+        if (!caches.TryGetValue(dimensions, out var cache))
         {
-            Logger.LogDebug("[CustomRenderManager] Creating new cache for {Renderable:l} at size {Width}x{Height}.", renderable, width, height);
+            LogCreatingCache(Logger, renderable, dimensions.Width, dimensions.Height);
             // Cause a version mismatch on purpose to simplify the paths below.
             cache              = new RenderCache(unchecked(version - 1));
-            cache.DepthStencil = new DepthStencil(_device, width, height);
-            caches.Add((width, height), cache);
+            cache.DepthStencil = new DepthStencil(_device, dimensions);
+            caches.Add(dimensions, cache);
         }
 
         if (cache.Version == version)
@@ -129,11 +128,10 @@ public sealed class CustomRenderManager : IDisposable
             return;
         }
 
-        Logger.LogDebug("[CustomRenderManager] Rendering {Renderable:l} (version {OldVersion} -> {NewVersion}) at size {Width}x{Height}.",
-            renderable, cache.Version, version, width, height);
-        cache.SetOutputCount(renderable.OutputCount, _device, width, height, renderable.GetOutputFormat);
+        LogVersionUpdate(Logger, renderable, cache.Version, version, dimensions.Width, dimensions.Height);
+        cache.SetOutputCount(renderable.OutputCount, _device, dimensions, renderable.GetOutputFormat);
 
-        RenderObject(renderable, width, height, in cache);
+        RenderObject(renderable, dimensions, in cache);
 
         cache.ExpiresAtFrame = Im.Context.FrameCount + renderable.KeepAliveDuration;
         cache.Version        = version;
@@ -154,7 +152,7 @@ public sealed class CustomRenderManager : IDisposable
             throw new ArgumentException("The render target count does not match the renderable's output count");
 
         var valid      = false;
-        var dimensions = (Width: uint.MaxValue, Height: uint.MaxValue);
+        var dimensions = Dimensions.Invalid;
         foreach (var rtView in rtViews)
         {
             if (rtView.Value is not null)
@@ -173,15 +171,14 @@ public sealed class CustomRenderManager : IDisposable
             dimensions = GetDimensionsFromView(dsView);
         }
 
-        RenderObject(renderable, dimensions.Width, dimensions.Height, new CustomRenderOutputs(dsView, rtViews));
+        RenderObject(renderable, dimensions, new CustomRenderOutputs(dsView, rtViews));
     }
 
     /// <summary> Renders an object onto caller-supplied outputs. </summary>
     /// <param name="renderable"> The object to render. </param>
-    /// <param name="width"> The width at which to render the object. </param>
-    /// <param name="height"> The height at which to render the object. </param>
+    /// <param name="dimensions"> The dimensions at which to render the object. </param>
     /// <param name="outputs"> The outputs to render the object onto. </param>
-    public unsafe void RenderObject<T>(ICustomRenderable renderable, uint width, uint height, in T outputs)
+    public unsafe void RenderObject<T>(ICustomRenderable renderable, Dimensions dimensions, in T outputs)
         where T : IRenderTargetProvider, allows ref struct
     {
         using var deviceContext = new ComPtr<ID3D11DeviceContext>();
@@ -198,13 +195,13 @@ public sealed class CustomRenderManager : IDisposable
             outputs.Clear(clearStrategy, deviceContext);
 
         // Install our own output configuration (RS Viewports + our version of the stuff we saved earlier).
-        SetSimpleViewport(deviceContext, width, height);
+        SetSimpleViewport(deviceContext, dimensions.Width, dimensions.Height);
         SetRasterizerState(deviceContext, renderable.RasterizerState);
         SetDepthStencilState(deviceContext, renderable.DepthStencilState, 0);
         outputs.Bind(deviceContext);
 
         // Our output configuration and render targets are installed, now the renderable may run its own draw calls.
-        renderable.Render(width, height, deviceContext);
+        renderable.Render(dimensions, deviceContext);
 
         outputs.PostProcess(deviceContext);
     }
@@ -215,7 +212,7 @@ public sealed class CustomRenderManager : IDisposable
     {
         var frame              = Im.Context.FrameCount;
         var discardRenderables = new HashSet<ICustomRenderable>(32);
-        var discardSizes       = new HashSet<(uint, uint)>(16);
+        var discardSizes       = new HashSet<Dimensions>(16);
         foreach (var (renderable, caches) in _caches)
         {
             discardSizes.Clear();
@@ -224,9 +221,7 @@ public sealed class CustomRenderManager : IDisposable
                 // We are called at the beginning of a frame, therefore stuff that "expires at this frame" is given one more frame of grace.
                 if (cache.ExpiresAtFrame < frame)
                 {
-                    Logger.LogDebug("[CustomRenderManager] Discarding cache for {Renderable:l} at size {Width}x{Height}.", renderable,
-                        size.Width,
-                        size.Height);
+                    LogDiscardedCache(Logger, renderable, size.Width, size.Height);
                     cache.Dispose();
                     discardSizes.Add(size);
                 }
@@ -264,8 +259,7 @@ public sealed class CustomRenderManager : IDisposable
         }
 
         void IRenderTargetProvider.PostProcess(ID3D11DeviceContext* deviceContext)
-        {
-        }
+        { }
     }
 
     private sealed class RenderCache(long version) : RenderOutputsBase
@@ -276,7 +270,7 @@ public sealed class CustomRenderManager : IDisposable
         ~RenderCache()
             => Dispose();
 
-        public unsafe void SetOutputCount(int count, ID3D11Device* device, uint width, uint height, Func<int, DXGI_FORMAT> format)
+        public unsafe void SetOutputCount(int count, ID3D11Device* device, Dimensions dimensions, Func<int, DXGI_FORMAT> format)
         {
             var previousCount = Outputs.Length;
             if (count == previousCount)
@@ -289,7 +283,22 @@ public sealed class CustomRenderManager : IDisposable
 
             Array.Resize(ref Outputs, count);
             for (var i = previousCount; i < count; ++i)
-                Outputs[i] = new RenderTarget(device, width, height, format(i));
+                Outputs[i] = new RenderTarget(device, dimensions, format(i));
         }
     }
+
+    // ReSharper disable InconsistentNaming
+    [LoggerMessage(Microsoft.Extensions.Logging.LogLevel.Debug,
+        "[CustomRenderManager] Creating new cache for {Renderable:l} at size {Width}x{Height}.")]
+    static partial void LogCreatingCache(ILogger logger, ICustomRenderable Renderable, uint Width, uint Height);
+
+    [LoggerMessage(Microsoft.Extensions.Logging.LogLevel.Debug,
+        "[CustomRenderManager] Rendering {Renderable:l} (version {OldVersion} -> {NewVersion}) at size {Width}x{Height}.")]
+    static partial void LogVersionUpdate(ILogger logger, ICustomRenderable Renderable, long OldVersion, long NewVersion, uint Width,
+        uint Height);
+
+    [LoggerMessage(Microsoft.Extensions.Logging.LogLevel.Debug,
+        "[CustomRenderManager] Discarding cache for {Renderable:l} at size {Width}x{Height}.")]
+    static partial void LogDiscardedCache(ILogger logger, ICustomRenderable Renderable, uint Width, uint Height);
+    // ReSharper restore InconsistentNaming
 }
