@@ -39,13 +39,7 @@ public unsafe class Image : IDalamudTextureWrap
 
     /// <summary> Gets the format of this image. </summary>
     public DXGI_FORMAT Format
-    {
-        get
-        {
-            var desc = GetDescription();
-            return desc.Format;
-        }
-    }
+        => GetDescription().Format;
 
     /// <summary> Gets the underlying Direct3D texture object. </summary>
     public ID3D11Texture2D* Texture
@@ -61,22 +55,10 @@ public unsafe class Image : IDalamudTextureWrap
         => new(_texture.ShaderResourceView);
 
     int IDalamudTextureWrap.Width
-    {
-        get
-        {
-            var desc = GetDescription();
-            return (int)desc.Width;
-        }
-    }
+        => (int)GetDescription().Width;
 
     int IDalamudTextureWrap.Height
-    {
-        get
-        {
-            var desc = GetDescription();
-            return (int)desc.Height;
-        }
-    }
+        => (int)GetDescription().Height;
 
     Vector2 IDalamudTextureWrap.Size
     {
