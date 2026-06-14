@@ -56,7 +56,7 @@ public abstract class Buffer : IDisposable
             {
                 fixed (byte* pContents = contents)
                 {
-                    Update(deviceContext, _buffer, pContents);
+                    UnsafeUpdate(deviceContext, _buffer, pContents);
                 }
             }
             else
@@ -72,7 +72,7 @@ public abstract class Buffer : IDisposable
 
     /// <summary> Creates a Direct3D buffer object. </summary>
     /// <param name="initialContents"> The initial contents of the buffer. May be null. </param>
-    /// <param name="size"> The size of the buffer. Will be rounded up to a multiple of 16 bytes. </param>
+    /// <param name="size"> The size of the buffer. Some types of buffers require it to be a multiple of 16 bytes. </param>
     /// <param name="bind"> How the buffer will be bound. </param>
     /// <returns> The buffer object. </returns>
     public static unsafe ID3D11Buffer* Create(void* initialContents, int size, D3D11_BIND_FLAG bind)
@@ -119,22 +119,36 @@ public abstract class Buffer : IDisposable
     /// <summary> Updates a Direct3D buffer object. </summary>
     /// <param name="deviceContext"> The device context to use to perform the update. </param>
     /// <param name="buffer"> The buffer object. </param>
-    /// <param name="newContents"> The new contents of the buffer. </param>
-    public static unsafe void Update(ID3D11DeviceContext* deviceContext, ID3D11Buffer* buffer, void* newContents)
+    /// <param name="newContents"> The new contents of the buffer. This must point at a region of memory of the same size as the buffer. </param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static unsafe void UnsafeUpdate(ID3D11DeviceContext* deviceContext, ID3D11Buffer* buffer, void* newContents)
         => deviceContext->UpdateSubresource((ID3D11Resource*)buffer, 0, null, newContents, 0, 0);
 
     /// <summary> Updates a Direct3D buffer object. </summary>
     /// <param name="deviceContext"> The device context to use to perform the update. </param>
     /// <param name="buffer"> The buffer object. </param>
     /// <param name="newContents"> The new contents of the buffer. </param>
-    public unsafe void Update(ID3D11DeviceContext* deviceContext, ID3D11Buffer* buffer, ReadOnlySpan<byte> newContents)
+    /// <param name="length"> The size of the region of memory <paramref name="newContents"/> points at. Must be the same as the buffer's size. </param>
+    public static unsafe void Update(ID3D11DeviceContext* deviceContext, ID3D11Buffer* buffer, void* newContents, int length)
+    {
+        GetDescription(buffer, out var desc);
+        if (length != desc.ByteWidth)
+            throw new ArgumentException("The new contents must be of the same size as the buffer itself.");
+        UnsafeUpdate(deviceContext, buffer, newContents);
+    }
+
+    /// <summary> Updates a Direct3D buffer object. </summary>
+    /// <param name="deviceContext"> The device context to use to perform the update. </param>
+    /// <param name="buffer"> The buffer object. </param>
+    /// <param name="newContents"> The new contents of the buffer. </param>
+    public static unsafe void Update(ID3D11DeviceContext* deviceContext, ID3D11Buffer* buffer, ReadOnlySpan<byte> newContents)
     {
         GetDescription(buffer, out var desc);
         if (newContents.Length != desc.ByteWidth)
             throw new ArgumentException("The new contents must be of the same size as the buffer itself.");
         fixed (byte* pContents = newContents)
         {
-            Update(deviceContext, buffer, pContents);
+            UnsafeUpdate(deviceContext, buffer, pContents);
         }
     }
 }
