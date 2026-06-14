@@ -1,0 +1,203 @@
+using System.Collections.Immutable;
+using Dalamud.Interface.Textures.TextureWraps;
+using TerraFX.Interop.DirectX;
+
+namespace Luna.DirectX;
+
+/// <summary> An image filter effect implemented using a pixel shader. </summary>
+/// <param name="quad"> The full-screen quad that implements this filter effect. </param>
+/// <param name="description"> A description of this object, for debugging and logging purposes. </param>
+public class ShaderFilterEffect(FullScreenQuad quad, string? description)
+    : IEffect, ITextureWrapProvider, IDisposable
+{
+    private const uint DefaultWidth  = 32;
+    private const uint DefaultHeight = 32;
+
+    /// <summary> The output dimensions of this effect. </summary>
+    public Dimensions Dimensions = new(DefaultWidth, DefaultHeight);
+
+    /// <summary>
+    ///   A function that calculates the output dimensions of this effect, from the input dimensions.
+    ///   It will be called just before this effect runs, and shall return <c>null</c> to keep the currently set <see cref="Dimensions"/>.
+    /// </summary>
+    /// <remarks> The effective output size can can be retrieved from <see cref="Dimensions"/> after this effect has run. </remarks>
+    public Func<ReadOnlySpan<Dimensions>, Dimensions?>? DimensionsStrategy = ScaleLargestInput(1.0f);
+
+    /// <summary> Whether to generate mipmaps for the outputs of this effect. </summary>
+    public bool GenerateMips = false;
+
+    /// <summary> An event that gets triggered just before this effect begins rendering. </summary>
+    public event Action<ShaderFilterEffect>? BeforeRun;
+
+    /// <summary> An event that gets triggered just after this effect has finished rendering. </summary>
+    public event Action<ShaderFilterEffect>? AfterRun;
+
+    private readonly RenderOutputs _outputs = new((DefaultWidth, DefaultHeight), false, []);
+
+    /// <inheritdoc cref="FullScreenQuad.Uniforms"/>
+    public Buffer? Uniforms
+        => quad.Uniforms;
+
+    /// <inheritdoc cref="FullScreenQuad.ExtraBuffers"/>
+    public List<Buffer?> ExtraBuffers
+        => quad.ExtraBuffers;
+
+    /// <inheritdoc cref="FullScreenQuad.Textures"/>
+    public List<TextureStandIn> Textures
+        => quad.Textures;
+
+    /// <inheritdoc cref="FullScreenQuad.Samplers"/>
+    public List<Sampler?> Samplers
+        => quad.Samplers;
+
+    /// <inheritdoc cref="RenderOutputs.UavOutputs"/>
+    public List<IUnorderedAccessViewWrap> UavOutputs
+        => _outputs.UavOutputs;
+
+    /// <inheritdoc/>
+    public int Count
+        => _outputs.Count;
+
+    /// <inheritdoc/>
+    public ImTextureId this[int index]
+        => _outputs[index];
+
+    IList<TextureStandIn> IEffect.Inputs
+        => quad.Textures;
+
+    /// <summary> Creates a new <see cref="ShaderFilterEffect"/>. </summary>
+    /// <param name="pixelShader"> The pixel shader that implements this filter effect. </param>
+    /// <param name="uniforms"> The uniforms constant buffer. </param>
+    /// <param name="outputFormats"> The effect's output formats. </param>
+    /// <param name="description"> A description of this object, for debugging and logging purposes. </param>
+    /// <remarks> This uses <see cref="FullScreenQuad"/>. The pixel shader has to accept the same inputs. </remarks>
+    public ShaderFilterEffect(PixelShader pixelShader, Buffer? uniforms, ImmutableArray<DXGI_FORMAT> outputFormats, string? description)
+        : this(new FullScreenQuad(pixelShader, uniforms, outputFormats, string.Empty), description)
+    { }
+
+    /// <summary> Creates a new <see cref="ShaderFilterEffect"/>. </summary>
+    /// <param name="pixelShader"> The pixel shader that implements this filter effect. </param>
+    /// <param name="uniforms"> The uniforms constant buffer. </param>
+    /// <param name="description"> A description of this object, for debugging and logging purposes. </param>
+    /// <remarks> This uses <see cref="FullScreenQuad"/>. The pixel shader has to accept the same inputs. </remarks>
+    public ShaderFilterEffect(PixelShader pixelShader, Buffer? uniforms, string? description)
+        : this(new FullScreenQuad(pixelShader, uniforms, string.Empty), description)
+    { }
+
+    ~ShaderFilterEffect()
+        => Dispose(false);
+
+    /// <inheritdoc/>
+    public void Dispose()
+    {
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
+
+    /// <summary> Releases the resources used by this object. </summary>
+    /// <param name="disposing"> True if called explicitly, false if garbage collected. </param>
+    protected virtual void Dispose(bool disposing)
+    {
+        if (!disposing)
+            return;
+
+        quad.Dispose();
+        _outputs.Dispose();
+    }
+
+    /// <inheritdoc/>
+    public override string? ToString()
+        => description ?? base.ToString();
+
+    /// <inheritdoc/>
+    public IEnumerable<IEffect> GetDependencies()
+    {
+        foreach (var input in quad.Textures)
+        {
+            if (input.TryGetListAndIndex(out var list, out _) && list is IEffect effect)
+                yield return effect;
+        }
+    }
+
+    IDalamudTextureWrap ITextureWrapProvider.GetTextureWrap(int index)
+        => _outputs.GetOutputAsImage(index);
+
+    /// <inheritdoc/>
+    public Task Run(CancellationToken cancellationToken)
+    {
+        BeforeRun?.Invoke(this);
+
+        if (DimensionsStrategy is not null)
+        {
+            var inputDimensions = new List<Dimensions>(quad.Textures.Count);
+            foreach (var input in quad.Textures)
+            {
+                if (input.IsEmpty)
+                    continue;
+
+                var (width, height) = input.Id.Dimensions;
+                inputDimensions.Add(((int)width, (int)height));
+            }
+
+            if (DimensionsStrategy(CollectionsMarshal.AsSpan(inputDimensions)) is { } dimensions)
+                Dimensions = dimensions;
+        }
+
+        if (_outputs.Count is 0 || _outputs.Dimensions != Dimensions)
+            _outputs.SetOutputs(Dimensions, GenerateMips, quad);
+
+        _outputs.RenderObject(quad);
+
+        AfterRun?.Invoke(this);
+
+        return Task.CompletedTask;
+    }
+
+    /// <inheritdoc cref="RenderOutputs.ExportOutputs"/>
+    public void ExportOutputs(int index, Span<ImTextureId> outputs)
+        => _outputs.ExportOutputs(index, outputs);
+
+    /// <inheritdoc cref="RenderOutputs.GetOutputAsImage"/>
+    public Image GetOutputAsImage(int index)
+        => _outputs.GetOutputAsImage(index);
+
+    /// <summary> Returns a function suitable for <see cref="DimensionsStrategy"/> that applies a scaling factor to one of this effect's inputs. </summary>
+    /// <param name="index"> The index of the input to scale. </param>
+    /// <param name="factor"> The scaling factor. </param>
+    /// <returns> The function that calculates dimensions. </returns>
+    public static Func<ReadOnlySpan<Dimensions>, Dimensions?> ScaleInput(Index index, float factor)
+        => inputDimensions =>
+        {
+            var offset = index.GetOffset(inputDimensions.Length);
+            if (offset < 0 || offset >= inputDimensions.Length)
+                return null;
+
+            var input = inputDimensions[offset];
+
+            return ((int)MathF.Ceiling(input.Width * factor), (int)MathF.Ceiling(input.Height * factor));
+        };
+
+    /// <summary> Returns a function suitable for <see cref="DimensionsStrategy"/> that applies a scaling factor to the effect's largest input. </summary>
+    /// <param name="factor"> The scaling factor. </param>
+    /// <returns> The function that calculates dimensions. </returns>
+    public static Func<ReadOnlySpan<Dimensions>, Dimensions?> ScaleLargestInput(float factor)
+        => inputDimensions =>
+        {
+            if (inputDimensions.Length is 0)
+                return null;
+
+            var largest     = inputDimensions[0];
+            var largestArea = (long)largest.Width * largest.Height;
+            for (var i = 1; i < inputDimensions.Length; ++i)
+            {
+                var area = (long)inputDimensions[i].Width * inputDimensions[i].Height;
+                if (area > largestArea)
+                {
+                    largest     = inputDimensions[i];
+                    largestArea = area;
+                }
+            }
+
+            return ((int)MathF.Ceiling(largest.Width * factor), (int)MathF.Ceiling(largest.Height * factor));
+        };
+}
