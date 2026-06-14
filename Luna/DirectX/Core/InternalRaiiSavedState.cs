@@ -28,18 +28,10 @@ internal unsafe ref struct SavedRasterizerState
 /// <summary> A saved render target state, that will be restored on disposal. </summary>
 internal unsafe ref struct SavedRenderTargetViews
 {
-    // Poor man's static_assert. Ensures at compile time that we have the right number of saved render targets.
-    private const uint _0 = D3D11.D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT == 8 ? 0 : -666;
-
     private readonly ID3D11DeviceContext*           _deviceContext;
-    private          ComPtr<ID3D11RenderTargetView> _rtView0;
-    private          ComPtr<ID3D11RenderTargetView> _rtView1;
-    private          ComPtr<ID3D11RenderTargetView> _rtView2;
-    private          ComPtr<ID3D11RenderTargetView> _rtView3;
-    private          ComPtr<ID3D11RenderTargetView> _rtView4;
-    private          ComPtr<ID3D11RenderTargetView> _rtView5;
-    private          ComPtr<ID3D11RenderTargetView> _rtView6;
-    private          ComPtr<ID3D11RenderTargetView> _rtView7;
+#pragma warning disable CS0649 
+    private          RenderTargetList               _renderTargetViews;
+#pragma warning restore CS0649
     private          ComPtr<ID3D11DepthStencilView> _dsView;
 
     /// <summary> Saves the current render target state of the given device context, for restoration on disposal. </summary>
@@ -47,23 +39,23 @@ internal unsafe ref struct SavedRenderTargetViews
     public SavedRenderTargetViews(ID3D11DeviceContext* deviceContext)
     {
         _deviceContext = deviceContext;
-        deviceContext->OMGetRenderTargets(8, _rtView0.GetAddressOf(), _dsView.GetAddressOf());
+        deviceContext->OMGetRenderTargets(D3D11.D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT, _renderTargetViews[0].GetAddressOf(), _dsView.GetAddressOf());
     }
 
     /// <summary> Restores the saved render target state. </summary>
     public void Dispose()
     {
-        _deviceContext->OMSetRenderTargets(8, _rtView0.GetAddressOf(), _dsView);
+        _deviceContext->OMSetRenderTargets(D3D11.D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT, _renderTargetViews[0].GetAddressOf(), _dsView);
 
-        _rtView0.Dispose();
-        _rtView1.Dispose();
-        _rtView2.Dispose();
-        _rtView3.Dispose();
-        _rtView4.Dispose();
-        _rtView5.Dispose();
-        _rtView6.Dispose();
-        _rtView7.Dispose();
+        foreach (var view in _renderTargetViews)
+            view.Dispose();
         _dsView.Dispose();
+    }
+
+    [InlineArray(D3D11.D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT)]
+    private struct RenderTargetList
+    {
+        private ComPtr<ID3D11RenderTargetView> _0;
     }
 }
 
