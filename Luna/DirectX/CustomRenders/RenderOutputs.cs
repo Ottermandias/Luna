@@ -195,6 +195,7 @@ public unsafe class RenderOutputs : RenderOutputsBase
     }
 
     /// <inheritdoc/>
+    [SkipLocalsInit]
     public override void Bind(ID3D11DeviceContext* deviceContext)
     {
         var rtvCount = Outputs.Length;

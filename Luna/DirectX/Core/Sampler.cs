@@ -159,6 +159,7 @@ public class Sampler(in D3D11_SAMPLER_DESC description) : IDisposable
         return sampler;
     }
 
+    [SkipLocalsInit]
     private static unsafe D3D11_SAMPLER_DESC GetDescription(ID3D11SamplerState* sampler)
     {
         D3D11_SAMPLER_DESC desc;
