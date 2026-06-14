@@ -21,7 +21,7 @@ public unsafe class RwImage : IDalamudTextureWrap, IUnorderedAccessViewWrap
     {
         get
         {
-            GetDescription(out var desc);
+            var desc = GetDescription();
             return new RawImageSpecification((int)desc.Width, (int)desc.Height, (int)desc.Format);
         }
     }
@@ -31,8 +31,8 @@ public unsafe class RwImage : IDalamudTextureWrap, IUnorderedAccessViewWrap
     {
         get
         {
-            GetDescription(out var desc);
             return ((int)desc.Width, (int)desc.Height);
+            var desc = GetDescription();
         }
     }
 
@@ -41,7 +41,7 @@ public unsafe class RwImage : IDalamudTextureWrap, IUnorderedAccessViewWrap
     {
         get
         {
-            GetDescription(out var desc);
+            var desc = GetDescription();
             return desc.Format;
         }
     }
@@ -67,7 +67,7 @@ public unsafe class RwImage : IDalamudTextureWrap, IUnorderedAccessViewWrap
     {
         get
         {
-            GetDescription(out var desc);
+            var desc = GetDescription();
             return (int)desc.Width;
         }
     }
@@ -76,7 +76,7 @@ public unsafe class RwImage : IDalamudTextureWrap, IUnorderedAccessViewWrap
     {
         get
         {
-            GetDescription(out var desc);
+            var desc = GetDescription();
             return (int)desc.Height;
         }
     }
@@ -85,7 +85,7 @@ public unsafe class RwImage : IDalamudTextureWrap, IUnorderedAccessViewWrap
     {
         get
         {
-            GetDescription(out var desc);
+            var desc = GetDescription();
             return new Vector2(desc.Width, desc.Height);
         }
     }
@@ -202,9 +202,9 @@ public unsafe class RwImage : IDalamudTextureWrap, IUnorderedAccessViewWrap
     public static implicit operator ImTextureId(RwImage image)
         => image._texture;
 
-    private void GetDescription(out D3D11_TEXTURE2D_DESC desc)
+    private D3D11_TEXTURE2D_DESC GetDescription()
     {
         ObjectDisposedException.ThrowIf(!_texture.Texture.Texture.Valid, this);
-        _texture.Texture.GetDescription(out desc);
+        return _texture.Texture.GetDescription();
     }
 }

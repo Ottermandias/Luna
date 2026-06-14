@@ -32,10 +32,10 @@ public static unsafe class DxUtility
         }
 
         /// <summary> Gets the specifications of a 2D texture. </summary>
-        /// <param name="desc"> The specifications of the texture. </param>
+        /// <returns> The specifications of the texture. </returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void GetDescription(out D3D11_TEXTURE2D_DESC desc)
-            => GetDescriptionFromView((ID3D11ShaderResourceView*)id.Value, out desc);
+        public D3D11_TEXTURE2D_DESC GetDescription()
+            => GetDescriptionFromView((ID3D11ShaderResourceView*)id.Value);
     }
 
     /// <summary> Extensions for DXGI formats. </summary>
@@ -123,39 +123,40 @@ public static unsafe class DxUtility
 
     /// <summary> Gets the specifications of a buffer. </summary>
     /// <param name="buffer"> The buffer. </param>
-    /// <param name="desc"> The specifications. </param>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void GetDescription(ID3D11Buffer* buffer, out D3D11_BUFFER_DESC desc)
+    /// <returns> The specifications. </returns>
+    [MethodImpl(ImSharpConfiguration.Inl)]
+    [SkipLocalsInit]
+    public static D3D11_BUFFER_DESC GetDescription(ID3D11Buffer* buffer)
     {
-        fixed (D3D11_BUFFER_DESC* pDesc = &desc)
-        {
-            buffer->GetDesc(pDesc);
-        }
+        D3D11_BUFFER_DESC ret;
+        buffer->GetDesc(&ret);
+        return ret;
     }
 
     /// <summary> Gets the specifications of a 2D texture. </summary>
     /// <param name="texture"> The texture. </param>
-    /// <param name="desc"> The specifications. </param>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void GetDescription(ID3D11Texture2D* texture, out D3D11_TEXTURE2D_DESC desc)
+    /// <returns> The specifications. </returns>
+    [MethodImpl(ImSharpConfiguration.Inl)]
+    [SkipLocalsInit]
+    public static D3D11_TEXTURE2D_DESC GetDescription(ID3D11Texture2D* texture)
     {
-        fixed (D3D11_TEXTURE2D_DESC* pDesc = &desc)
-        {
-            texture->GetDesc(pDesc);
-        }
+        D3D11_TEXTURE2D_DESC ret;
+        texture->GetDesc(&ret);
+        return ret;
     }
 
     /// <summary> Gets the specifications of a 2D texture from a view (shader resource, depth-stencil, render target, etc.) of it. </summary>
-    /// <param name="view"> The view. </param>
-    /// <param name="desc"> The specifications of the texture. </param>
     /// <typeparam name="T"> The type of view (shader resource, depth-stencil, render target, etc.). </typeparam>
-    public static void GetDescriptionFromView<T>(T* view, out D3D11_TEXTURE2D_DESC desc) where T : unmanaged, ID3D11View.Interface
+    /// <param name="view"> The view. </param>
+    /// <returns> The specifications of the texture. </returns>
+    public static D3D11_TEXTURE2D_DESC GetDescriptionFromView<T>(T* view)
+        where T : unmanaged, ID3D11View.Interface
     {
         using var resource = new ComPtr<ID3D11Resource>();
         view->GetResource(resource.GetAddressOf());
         using var texture2D = new ComPtr<ID3D11Texture2D>();
         Marshal.ThrowExceptionForHR(resource.As(&texture2D));
-        GetDescription(texture2D, out desc);
+        return GetDescription(texture2D);
     }
 
     /// <summary> Gets the dimensions of a 2D texture from a view (shader resource, depth-stencil, render target, etc.) of it. </summary>
@@ -165,7 +166,7 @@ public static unsafe class DxUtility
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static (uint Width, uint Height) GetDimensionsFromView<T>(T* view) where T : unmanaged, ID3D11View.Interface
     {
-        GetDescriptionFromView(view, out var desc);
+        var desc = GetDescriptionFromView(view);
         return (desc.Width, desc.Height);
     }
 

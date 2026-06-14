@@ -91,9 +91,9 @@ internal unsafe struct Texture2D : IDisposable
     }
 
     /// <summary> Gets the specifications of this texture. </summary>
-    /// <param name="desc"> The specifications. </param>
-    public void GetDescription(out D3D11_TEXTURE2D_DESC desc)
-        => DxUtility.GetDescription(Texture.Get(), out desc);
+    /// <returns> The specifications. </returns>
+    public D3D11_TEXTURE2D_DESC GetDescription()
+        => DxUtility.GetDescription(Texture.Get());
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static implicit operator ImTextureId(in Texture2D texture)

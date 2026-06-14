@@ -51,7 +51,7 @@ public abstract class Buffer : IDisposable
             var contents = ContentsAsBytes;
             var bind     = BindFlags;
 
-            GetDescription(_buffer, out var desc);
+            var desc = GetDescription(_buffer);
             if (contents.Length == desc.ByteWidth && (bind & (D3D11_BIND_FLAG)desc.BindFlags) == bind)
             {
                 fixed (byte* pContents = contents)
@@ -131,7 +131,7 @@ public abstract class Buffer : IDisposable
     /// <param name="length"> The size of the region of memory <paramref name="newContents"/> points at. Must be the same as the buffer's size. </param>
     public static unsafe void Update(ID3D11DeviceContext* deviceContext, ID3D11Buffer* buffer, void* newContents, int length)
     {
-        GetDescription(buffer, out var desc);
+        var desc = GetDescription(buffer);
         if (length != desc.ByteWidth)
             throw new ArgumentException("The new contents must be of the same size as the buffer itself.");
         UnsafeUpdate(deviceContext, buffer, newContents);
@@ -143,7 +143,7 @@ public abstract class Buffer : IDisposable
     /// <param name="newContents"> The new contents of the buffer. </param>
     public static unsafe void Update(ID3D11DeviceContext* deviceContext, ID3D11Buffer* buffer, ReadOnlySpan<byte> newContents)
     {
-        GetDescription(buffer, out var desc);
+        var desc = GetDescription(buffer);
         if (newContents.Length != desc.ByteWidth)
             throw new ArgumentException("The new contents must be of the same size as the buffer itself.");
         fixed (byte* pContents = newContents)

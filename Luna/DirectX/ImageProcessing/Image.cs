@@ -22,7 +22,7 @@ public unsafe class Image : IDalamudTextureWrap
     {
         get
         {
-            GetDescription(out var desc);
+            var desc = GetDescription();
             return new RawImageSpecification((int)desc.Width, (int)desc.Height, (int)desc.Format);
         }
     }
@@ -32,7 +32,7 @@ public unsafe class Image : IDalamudTextureWrap
     {
         get
         {
-            GetDescription(out var desc);
+            var desc = GetDescription();
             return ((int)desc.Width, (int)desc.Height);
         }
     }
@@ -42,7 +42,7 @@ public unsafe class Image : IDalamudTextureWrap
     {
         get
         {
-            GetDescription(out var desc);
+            var desc = GetDescription();
             return desc.Format;
         }
     }
@@ -64,7 +64,7 @@ public unsafe class Image : IDalamudTextureWrap
     {
         get
         {
-            GetDescription(out var desc);
+            var desc = GetDescription();
             return (int)desc.Width;
         }
     }
@@ -73,7 +73,7 @@ public unsafe class Image : IDalamudTextureWrap
     {
         get
         {
-            GetDescription(out var desc);
+            var desc = GetDescription();
             return (int)desc.Height;
         }
     }
@@ -82,7 +82,7 @@ public unsafe class Image : IDalamudTextureWrap
     {
         get
         {
-            GetDescription(out var desc);
+            var desc = GetDescription();
             return new Vector2(desc.Width, desc.Height);
         }
     }
@@ -165,15 +165,15 @@ public unsafe class Image : IDalamudTextureWrap
     public static implicit operator ImTextureId(Image image)
         => image._texture;
 
-    private void GetDescription(out D3D11_TEXTURE2D_DESC desc)
+    private D3D11_TEXTURE2D_DESC GetDescription()
     {
         ObjectDisposedException.ThrowIf(!_texture.Texture.Valid, this);
-        _texture.GetDescription(out desc);
+        return _texture.GetDescription();
     }
 
     private static ID3D11ShaderResourceView* CreateView(ID3D11Texture2D* texture)
     {
-        DxUtility.GetDescription(texture, out var texDesc);
+        var texDesc = DxUtility.GetDescription(texture);
         var srvDesc = new D3D11_SHADER_RESOURCE_VIEW_DESC
         {
             ViewDimension = D3D_SRV_DIMENSION.D3D11_SRV_DIMENSION_TEXTURE2D,
