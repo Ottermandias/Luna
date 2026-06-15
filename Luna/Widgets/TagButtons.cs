@@ -1,3 +1,5 @@
+using Dalamud.Bindings.ImGui;
+
 namespace Luna;
 
 /// <summary> Class to draw and edit a list of tags. </summary>
@@ -17,7 +19,6 @@ public static class TagButtons
     {
         using var id  = Im.Id.Push(ref label);
         var       ret = -1;
-
         using var group      = Im.Group();
         var       helpMarker = description.GetSpan(out var d) && d.Length > 0;
         if (helpMarker)

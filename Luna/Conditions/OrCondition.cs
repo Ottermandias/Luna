@@ -40,7 +40,11 @@ public sealed class OrCondition<TContext>() : ListCondition<TContext>
             {
                 case TrueCondition<TContext>:  return TrueCondition<TContext>.Instance;
                 case FalseCondition<TContext>: RemoveAt(i); break;
-                default:                       this[i] = condition; break;
+                case OrCondition<TContext> subOr:
+                    RemoveAt(i);
+                    InsertRange(i, subOr);
+                    break;
+                default: this[i] = condition; break;
             }
         }
 

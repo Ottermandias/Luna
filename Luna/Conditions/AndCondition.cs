@@ -40,7 +40,11 @@ public sealed class AndCondition<TContext>() : ListCondition<TContext>
             {
                 case TrueCondition<TContext>:  RemoveAt(i); break;
                 case FalseCondition<TContext>: return FalseCondition<TContext>.Instance;
-                default:                       this[i] = condition; break;
+                case AndCondition<TContext> subAnd:
+                    RemoveAt(i);
+                    InsertRange(i, subAnd);
+                    break;
+                default: this[i] = condition; break;
             }
         }
 

@@ -8,9 +8,30 @@ public class ConditionDrawer<TContext>
     /// <summary> A stack that lists AND/OR/NOT notes as parents. </summary>
     protected readonly Stack<ICondition<TContext>> ParentStack = [];
 
-    /// <summary> Draw a condition. </summary>
+    /// <summary> A selected new condition to add. </summary>
+    protected ICondition<TContext>? NewCondition;
+
+    /// <summary> The current width required for an And button. </summary>
+    protected Vector2 AndButtonSize;
+
+    /// <summary> The current width required for a No button. </summary>
+    protected Vector2 NotButtonSize;
+
+    /// <summary> The color of the line. </summary>
+    protected Rgba32 LineColor;
+
+    /// <summary> The width of the connector line. </summary>
+    protected float LineWidth = 3;
+
+    /// <summary> When the sizes were updated last. </summary>
+    private int _frameUpdate = -1;
+
+    /// <summary> Draw a condition. If this returns true and <paramref name="replace"/> is null, it should be removed. </summary>
     public bool Draw(ICondition<TContext>? condition, TContext? context, out ICondition<TContext>? replace)
-        => condition switch
+    {
+        UpdateSizes();
+        using var id = Im.Id.Push(ParentStack.Count);
+        var ret = condition switch
         {
             TrueCondition<TContext>  => DrawConstantCondition(true,  out replace),
             FalseCondition<TContext> => DrawConstantCondition(false, out replace),
@@ -19,17 +40,60 @@ public class ConditionDrawer<TContext>
             OrCondition<TContext> o  => DrawSetCondition(o, "Or"u8,  context, out replace),
             _                        => DrawCustom(condition, context, out replace),
         };
+        if (condition is null or ListCondition<TContext> || ParentStack.TryPeek(out var c) && c is AndCondition<TContext>)
+            return ret;
+
+        id.Push(-1);
+        if (ParentStack.Count > 0)
+        {
+            var size = Im.Font.CalculateButtonSize("And"u8).X;
+            Im.Cursor.X += (size + Im.Style.ItemInnerSpacing.X) * ParentStack.Count;
+        }
+
+        if (Draw(null, context, out var newCondition) && newCondition is not null)
+        {
+            ret     = true;
+            replace = new AndCondition<TContext>(condition, newCondition);
+        }
+
+        return ret;
+    }
+
+    /// <summary> Draw the button to add new conditions. </summary>
+    /// <param name="replaced"> The newly added condition when the button is pressed. </param>
+    /// <returns> True on button click.</returns>
+    protected virtual bool DrawAddConditionButton(ref ICondition<TContext>? replaced)
+    {
+        if (!ImEx.Icon.Button(LunaStyle.AddObjectIcon, "Add a new condition."u8, NewCondition is null))
+            return false;
+
+        replaced     = NewCondition;
+        NewCondition = null;
+        return true;
+    }
+
+    /// <summary> Draw the button to delete a specific condition. </summary>
+    /// <param name="replaced"> The condition to delete. </param>
+    /// <returns> True on click, in which case <paramref name="replaced"/> is set to null. </returns>
+    protected virtual bool DrawDeleteConditionButton(ref ICondition<TContext>? replaced)
+    {
+        if (!ImEx.Icon.Button(LunaStyle.DeleteIcon, "Remove this condition."u8))
+            return false;
+
+        replaced = null;
+        return true;
+    }
 
     protected virtual bool DrawCustom(ICondition<TContext>? condition, TContext? context, out ICondition<TContext>? replace)
     {
-        replace = null;
+        replace = condition;
         return false;
     }
 
     protected virtual bool DrawNotCondition(NotCondition<TContext> condition, TContext? context, out ICondition<TContext>? replace)
     {
         using var group = Im.Group();
-        replace = null;
+        replace = condition;
         var ret = false;
         using (ImGuiColor.Button.Push(LunaStyle.WarningForeground))
         {
@@ -79,17 +143,27 @@ public class ConditionDrawer<TContext>
             return true;
         }
 
-        replace = null;
+        replace = value ? TrueCondition<TContext>.Instance : FalseCondition<TContext>.Instance;
         return false;
+    }
+
+    protected void DrawTopLine(Im.DrawList.DrawListPath drawList, Vector2 screenPos)
+    {
+        var center = screenPos + new Vector2((AndButtonSize.X - LineWidth) / 2, Im.Style.FrameHeight / 2);
+        drawList.LineTo(center with { Y = screenPos.Y + Im.Style.FrameHeight + Im.Style.ItemInnerSpacing.Y })
+            .LineTo(center)
+            .LineTo(center with { X = screenPos.X + AndButtonSize.X + Im.Style.ItemInnerSpacing.X })
+            .FinishStroke(LineColor, ImDrawFlagsPath.None, LineWidth);
     }
 
     /// <summary> Draw a set of conditions grouped by And or Or. </summary>
     protected virtual bool DrawSetCondition(IList<ICondition<TContext>> conditions, ReadOnlySpan<byte> type, TContext? context,
         out ICondition<TContext>? replace)
     {
-        using var group = Im.Group();
-        var       size  = Im.Font.CalculateButtonSize("And"u8);
-        Im.Cursor.X += size.X + Im.Style.ItemInnerSpacing.X;
+        using var id        = new Im.IdDisposable();
+        using var group     = Im.Group();
+        var       screenPos = Im.Cursor.ScreenPosition;
+        Im.Cursor.X += AndButtonSize.X + Im.Style.ItemInnerSpacing.X;
         var i   = 1;
         var ret = false;
         ParentStack.Push((ICondition<TContext>)conditions);
@@ -111,9 +185,9 @@ public class ConditionDrawer<TContext>
 
         for (; i < conditions.Count; ++i)
         {
-            using var id = Im.Id.Push(i);
+            id.Push(i);
             // Draw each additional condition with a set button.
-            if (Im.Button(type, size))
+            if (Im.Button(type, AndButtonSize))
             {
                 // Split this entry and the prior one off into a subgroup.
                 var prior   = conditions[i - 1];
@@ -126,14 +200,30 @@ public class ConditionDrawer<TContext>
                 ret           = true;
             }
 
-            if (!Draw(conditions[i], context, out subReplace))
-                continue;
+            var start = Im.Item.LowerRightCorner;
+            start.X -= (Im.Item.Size.X + LineWidth) / 2;
 
+            Im.Line.SameInner();
+            if (Draw(conditions[i], context, out subReplace))
+            {
+                ret = true;
+                if (subReplace is null)
+                    conditions.RemoveAt(i--);
+                else
+                    conditions[i] = subReplace.Reduce();
+            }
+
+            var color = i == conditions.Count - 1 ? LineColor : LineColor.WithAlpha(Im.Style.DisabledAlpha);
+            Im.Window.DrawList.Shape.Line(start, start with { Y = Im.Cursor.ScreenY }, color, LineWidth);
+        }
+
+        id.Push(-1);
+        ImEx.Button(type, AndButtonSize, true);
+        Im.Line.SameInner();
+        if (Draw(null, context, out var newCondition) && newCondition is not null)
+        {
             ret = true;
-            if (subReplace is null)
-                conditions.RemoveAt(i--);
-            else
-                conditions[i] = subReplace.Reduce();
+            conditions.Add(newCondition);
         }
 
         ParentStack.Pop();
@@ -144,19 +234,22 @@ public class ConditionDrawer<TContext>
             return false;
         }
 
-        if (conditions.Count is 0)
-        {
-            replace = null;
-            return true;
-        }
-
-        if (conditions.Count is 1)
-        {
-            replace = conditions[0].Reduce();
-            return true;
-        }
-
         replace = ((ICondition<TContext>)conditions).Reduce();
+        return true;
+    }
+
+    /// <summary> Update the sizes only once per frame. </summary>
+    /// <returns> True if an update took place. </returns>
+    protected virtual bool UpdateSizes()
+    {
+        if (_frameUpdate == Im.State.FrameCount)
+            return false;
+
+        _frameUpdate  = Im.State.FrameCount;
+        AndButtonSize = Im.Font.CalculateButtonSize("And"u8);
+        NotButtonSize = Im.Font.CalculateButtonSize("Not"u8);
+        LineColor     = ImGuiColor.Button.Get();
+        LineWidth     = 3 * Im.Style.GlobalScale;
         return true;
     }
 }
