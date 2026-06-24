@@ -1,8 +1,9 @@
 using Dalamud.Interface;
 using Dalamud.Plugin;
 using Dalamud.Plugin.Services;
-using Microsoft.Extensions.Logging;
+using ImSharp.ImNodes;
 using Luna.DirectX;
+using Microsoft.Extensions.Logging;
 
 namespace Luna;
 
@@ -171,8 +172,23 @@ public sealed unsafe class ImSharpDalamudContext : IRequiredService, IDisposable
         {
             uiBuilder.WaitForUi().ContinueWith(_ => framework.RunOnFrameworkThread(() =>
             {
-                ((ImSharpContext*)_context)->MonoFont    = uiBuilder.FontMono.Handle;
-                ((ImSharpContext*)_context)->DefaultFont = uiBuilder.FontDefault.Handle;
+                var sharp = (ImSharpContext*)_context;
+                if (sharp is null)
+                    return;
+
+                sharp->MonoFont    = uiBuilder.FontMono.Handle;
+                sharp->DefaultFont = uiBuilder.FontDefault.Handle;
+
+                if (sharp->ImGuiContext is null)
+                    sharp->ImGuiContext = Im.ImGuiContext.Get().Pointer;
+
+                var gui = (Im.Native.Internal.Context*)sharp->ImGuiContext;
+                if (gui is null)
+                    return;
+
+                var nodes = (Internal.NodesContext*)sharp->ImNodesContext;
+                if (nodes is not null)
+                    nodes->Io.LinkDetachWithModifierClick = &gui->Io.KeyAlt;
             }).Wait());
         }
 
