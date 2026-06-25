@@ -53,7 +53,7 @@ public interface IJsonParsable
 
                 // If replacement is enabled, try to replace the file with the recovered data.
                 if (replace)
-                    saveService.WriteWithBackup(filePath, f => File.WriteAllBytes(f, recovered));
+                    saveService.AtomicWriteWithBackup(filePath, f => File.WriteAllBytes(f, recovered));
                 return ret;
             }
             // If any step here fails, ignore it and re-throw the original JSON exception.
