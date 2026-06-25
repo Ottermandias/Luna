@@ -7,6 +7,7 @@ public interface ISavable<in T> where T : BaseFilePathProvider
     public string ToFilePath(T fileNames);
 
     /// <summary> Write the objects data to the given stream. </summary>
+    /// <remarks> This should NOT close the stream. </remarks>
     public void Save(Stream stream);
 
     /// <summary> An arbitrary message printed to Debug before saving. </summary>
