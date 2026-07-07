@@ -57,6 +57,15 @@ public static partial class LunaStyle
     /// <summary> The icon that should be used to show reloading or refreshing. </summary>
     public static readonly AwesomeIcon RefreshIcon = FontAwesomeIcon.Recycle;
 
+    /// <summary> The icon that should be used to show switching something from one to another value and back. </summary>
+    public static readonly AwesomeIcon SwitchIcon = FontAwesomeIcon.Repeat;
+
+    /// <summary> The icon that should be used to show negation of something. </summary>
+    public static readonly AwesomeIcon NegateIcon = FontAwesomeIcon.ToggleOff;
+
+    /// <summary> The icon that should be used to remove negation of something negated. </summary>
+    public static readonly AwesomeIcon RemoveNegateIcon = FontAwesomeIcon.ToggleOn;
+
     /// <summary> The icon that should be used to show reloading or refreshing. </summary>
     public static readonly AwesomeIcon TestIcon = FontAwesomeIcon.Flask;
 

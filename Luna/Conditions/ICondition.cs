@@ -45,4 +45,12 @@ public interface IConditionContext<TSelf> where TSelf : IConditionContext<TSelf>
     /// <param name="type"> The value of the 'Type'-property. </param>
     /// <returns> A non-null object when a custom condition could be parsed and created successfully, null otherwise. </returns>
     public abstract static ICondition<TSelf>? ParseCustomType(ref Utf8JsonReader reader, Utf8JsonObjectLimit obj, StringU8 type);
+
+    /// <summary> Obtain the root condition for this context. </summary>
+    /// <returns> The root condition, which can be null for no condition. </returns>
+    public ICondition<TSelf>? GetRoot();
+
+    /// <summary> Set a new root condition for this context. </summary>
+    /// <param name="condition"> The new condition, which can be null for no condition. </param>
+    public void SetRoot(ICondition<TSelf>? condition);
 }

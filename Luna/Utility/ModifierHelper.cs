@@ -64,7 +64,7 @@ public sealed class ModifierHelper
 
         /// <summary> Draw a default tooltip with two line breaks at the start only if the modifier is not currently active when the last item was hovered. </summary>
         /// <param name="action"> The action suffix to write. </param>
-        /// <remarks> The tooltip will have the form <c>'\n\nHold {Name} while clicking to {action}.'</c> </remarks>
+        /// <remarks> The tooltip will have the form <c>'\nHold {Name} while clicking to {action}.'</c> </remarks>
         public void TooltipLineBreak(ReadOnlySpan<byte> action)
         {
             if (!Active)
