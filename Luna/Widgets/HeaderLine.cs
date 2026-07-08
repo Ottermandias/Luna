@@ -43,9 +43,8 @@ public struct HeaderLine
 
         // Button Size
         var textWidth = Im.Font.CalculateSize(visible, false).X + 2 * Im.Style.FramePadding.X;
-        var caretSize = 0f;
         if (Collapsible)
-            textWidth += (caretSize = Im.Style.TextHeight) + Im.Style.ItemSpacing.X;
+            textWidth += Im.Style.TextHeight + Im.Style.ItemInnerSpacing.X;
         if (FixedButtonWidth is not 0 && FixedButtonWidth > textWidth)
             textWidth = FixedButtonWidth;
 
@@ -65,14 +64,14 @@ public struct HeaderLine
         endPos.X   = startPos.X + centerDistance;
         shapes.Line(startPos, endPos, separatorColor, lineThickness);
         startPos.X = endPos.X + comboWidth;
-        endPos.X   = available.X;
+        endPos.X   = Im.Cursor.ScreenPosition.X + available.X;
         shapes.Line(startPos, endPos, separatorColor, lineThickness);
 
         ImGuiId   popupId;
         Rectangle boundingBox;
         using (var style = ImStyleBorder.Frame.Push(separatorColor, lineThickness)
                    .Push(ImGuiColor.Text, textColor)
-                   .PushX(ImStyleDouble.ButtonTextAlign, 0)
+                   .PushX(ImStyleDouble.ButtonTextAlign, 1)
                    .Push(ImGuiColor.Button,        buttonBackground)
                    .Push(ImGuiColor.ButtonHovered, ButtonHovered.CheckDefault(ImGuiColor.FrameBackgroundHovered))
                    .Push(ImGuiColor.ButtonActive,  ButtonActive.CheckDefault(ImGuiColor.FrameBackgroundActive)))
@@ -84,8 +83,7 @@ public struct HeaderLine
 
             if (Collapsible)
             {
-                var caretPosition = Im.Item.LowerRightCorner
-                  - new Vector2(caretSize + Im.Style.FramePadding.X, frameHeight - Im.Style.FramePadding.Y);
+                var caretPosition = Im.Item.UpperLeftCorner + Im.Style.FramePadding;
                 Im.Window.DrawList.Render.Arrow(caretPosition, textColor, icon, 1f);
             }
 
@@ -117,30 +115,29 @@ public struct HeaderLine
         var buttonBackground = ButtonBackground.CheckDefault(ImGuiColor.FrameBackground);
 
         // Frame
-        var available       = Im.ContentRegion.Available;
         var frameHeight     = Im.Style.FrameHeight;
         var frameHeightEven = float.IsEvenInteger(frameHeight);
         var (lineThickness, linePosition) = frameHeightEven ? (2, frameHeight / 2) : (1, (frameHeight - 1) / 2);
 
         // Button Size
         var textWidth = Im.Font.CalculateSize(visible, false).X + 2 * Im.Style.FramePadding.X;
-        var caretSize = 0f;
         if (Collapsible)
-            textWidth += (caretSize = Im.Style.TextHeight) + Im.Style.ItemSpacing.X;
+            textWidth += Im.Style.TextHeight + Im.Style.ItemInnerSpacing.X;
         if (FixedButtonWidth is not 0 && FixedButtonWidth > textWidth)
             textWidth = FixedButtonWidth;
 
         // Draw Lines.
-        var startPos = Im.Cursor.ScreenPosition;
+        var startPos  = Im.Cursor.ScreenPosition;
+        var fullEnd = startPos.X + Im.ContentRegion.Available.X;
         startPos.Y += linePosition;
         var endPos = startPos with { X = startPos.X + LeftDistance };
         shapes.Line(startPos, endPos, separatorColor, lineThickness);
         startPos.X = endPos.X + textWidth;
-        endPos.X   = available.X;
+        endPos.X   = fullEnd;
         shapes.Line(startPos, endPos, separatorColor, lineThickness);
 
         using (ImStyleBorder.Frame.Push(separatorColor, lineThickness)
-                   .PushX(ImStyleDouble.ButtonTextAlign, 0)
+                   .PushX(ImStyleDouble.ButtonTextAlign, 1)
                    .Push(ImGuiColor.Button,        buttonBackground)
                    .Push(ImGuiColor.ButtonHovered, ButtonHovered.CheckDefault(ImGuiColor.FrameBackgroundHovered))
                    .Push(ImGuiColor.ButtonActive,  ButtonActive.CheckDefault(ImGuiColor.FrameBackgroundActive))
@@ -152,8 +149,7 @@ public struct HeaderLine
 
             if (Collapsible)
             {
-                var caretPosition = Im.Item.LowerRightCorner
-                  - new Vector2(caretSize + Im.Style.FramePadding.X, frameHeight - Im.Style.FramePadding.Y);
+                var caretPosition = Im.Item.UpperLeftCorner + Im.Style.FramePadding;
                 Im.Window.DrawList.Render.Arrow(caretPosition, textColor, icon, 1f);
             }
         }
