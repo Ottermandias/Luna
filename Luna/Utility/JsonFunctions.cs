@@ -23,8 +23,8 @@ public static class JsonFunctions
     public static readonly JsonWriterOptions WriterOptions = new()
     {
         Indented        = true,
-        IndentCharacter = ' ',
-        IndentSize      = 4,
+        IndentCharacter = '\t',
+        IndentSize      = 1,
         NewLine         = "\n",
         Encoder         = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
     };
