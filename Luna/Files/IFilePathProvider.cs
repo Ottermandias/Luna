@@ -12,5 +12,5 @@ public abstract class BaseFilePathProvider(IDalamudPluginInterface pluginInterfa
     public readonly string ConfigurationDirectory = pluginInterface.ConfigDirectory.FullName;
 
     /// <summary> Get all backup files for this plugin. </summary>
-    public abstract List<FileInfo> GetBackupFiles();
+    public abstract List<IBackupFile> GetBackupFiles();
 }
