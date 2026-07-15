@@ -16,6 +16,7 @@ public struct HeaderLine
     public float          RightDistance;
     public bool           DefaultClosed;
     public bool           Collapsible;
+    public bool           ComboDisabled;
 
     public (bool Expanded, ImGuiId ComboId, Rectangle ComboBoundingBox) Combo(Utf8LabelHandler label, Utf8TextHandler tooltip,
         Utf8HintHandler preview)
@@ -90,6 +91,7 @@ public struct HeaderLine
             Im.Line.Same(0, centerDistance);
             Im.Item.SetNextWidth(comboWidth);
             style.PopColor(3).PopStyle();
+            using var disabled = Im.Disabled(ComboDisabled);
             Im.Combo.DrawPreview("##combo"u8, preview, out popupId, out boundingBox);
         }
 
