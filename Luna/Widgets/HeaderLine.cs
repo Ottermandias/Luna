@@ -27,16 +27,16 @@ public struct HeaderLine
         return (expanded, changed, selection);
     }
 
-    public bool Combo(Action drawer, float width, Utf8LabelHandler label, Utf8TextHandler tooltip)
+    public bool Combo(Action<float> drawer, float width, Utf8LabelHandler label, Utf8TextHandler tooltip)
     {
         Utf8HintHandler hint = StringU8.Empty;
         var (expanded, _, _, _, _) = ComboInternal<object>(Drawer, width, ref label, ref tooltip, ref hint);
         return expanded;
 
-        bool Drawer(Utf8HintHandler _1, float _2, out object? selection)
+        bool Drawer(Utf8HintHandler _, float comboWidth, out object? selection)
         {
             selection = null;
-            drawer();
+            drawer(comboWidth);
             return false;
         }
     }
@@ -84,20 +84,19 @@ public struct HeaderLine
         // Combo Size
         var comboWidth = width > 0 ? width : Im.Font.CalculateSize(ref preview, false).X + 2 * Im.Style.FramePadding.X + Im.Style.FrameHeight;
         if (FixedComboWidth is not 0 && FixedComboWidth > comboWidth)
-            comboWidth = FixedButtonWidth;
-        var totalWidth     = textWidth + comboWidth + LeftDistance + RightDistance + ComboDistance;
-        var centerDistance = totalWidth >= available.X ? ComboDistance : ComboDistance + available.X - totalWidth;
+            comboWidth = FixedComboWidth;
+        var totalWidth     = textWidth + comboWidth + LeftDistance + Math.Max(RightDistance, 0) + ComboDistance;
+        var centerDistance = totalWidth >= available.X ? ComboDistance : RightDistance >= 0 ? ComboDistance + available.X - totalWidth : ComboDistance;
 
         // Draw Lines.
-        var startPos = Im.Cursor.ScreenPosition;
-        startPos.Y += linePosition;
-        var endPos = startPos with { X = startPos.X + LeftDistance };
+        var startPos = Im.Window.Position with { Y = Im.Cursor.ScreenY + linePosition };
+        var endPos   = startPos with { X = Im.Cursor.ScreenX + LeftDistance };
         shapes.Line(startPos, endPos, separatorColor, lineThickness);
         startPos.X = endPos.X + textWidth;
         endPos.X   = startPos.X + centerDistance;
         shapes.Line(startPos, endPos, separatorColor, lineThickness);
         startPos.X = endPos.X + comboWidth;
-        endPos.X   = Im.Cursor.ScreenPosition.X + available.X;
+        endPos.X   = Im.Cursor.ScreenX + available.X;
         shapes.Line(startPos, endPos, separatorColor, lineThickness);
 
         ImGuiId     popupId;
@@ -175,10 +174,9 @@ public struct HeaderLine
             textWidth = FixedButtonWidth;
 
         // Draw Lines.
-        var startPos = Im.Cursor.ScreenPosition;
-        var fullEnd  = startPos.X + Im.ContentRegion.Available.X;
-        startPos.Y += linePosition;
-        var endPos = startPos with { X = startPos.X + LeftDistance };
+        var startPos = Im.Window.Position with { Y = Im.Cursor.ScreenY + linePosition };
+        var fullEnd  = Im.Cursor.ScreenX + Im.ContentRegion.Available.X;
+        var endPos   = startPos with { X = Im.Cursor.ScreenX + LeftDistance };
         shapes.Line(startPos, endPos, separatorColor, lineThickness);
         startPos.X = endPos.X + textWidth;
         endPos.X   = fullEnd;
