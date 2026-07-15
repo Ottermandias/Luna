@@ -82,7 +82,7 @@ public static partial class Backup
             {
                 var (newestFile, oldestFile, numFiles) = CheckExistingBackups(directory, cancel);
                 var newBackupName = Path.Combine(directory.FullName, $"{DateTime.Now:yyyyMMddHHmmss}.zip");
-                if (newestFile is null || CheckNewestBackup(logger, newestFile, configDirectory, files.Count, cancel))
+                if (newestFile is null || CheckNewestBackup(logger, newestFile, configDirectory, files, cancel))
                 {
                     CreateBackupFile(logger, files, newBackupName, configDirectory);
                     if (numFiles > MaxNumBackups)
@@ -152,7 +152,7 @@ public static partial class Backup
     /// Compare the newest backup against the currently existing files.
     /// If there are any differences, return true, and if they are completely identical, return false.
     /// </summary>
-    private static bool CheckNewestBackup(LunaLogger logger, FileInfo newestFile, string configDirectory, int fileCount,
+    private static bool CheckNewestBackup(LunaLogger logger, FileInfo newestFile, string configDirectory, IReadOnlyCollection<IBackupFile> files,
         CancellationToken cancel)
     {
         try
@@ -160,22 +160,19 @@ public static partial class Backup
             using var oldFileStream = File.Open(newestFile.FullName, FileMode.Open);
             using var oldZip        = new ZipArchive(oldFileStream, ZipArchiveMode.Read);
             // Number of stored files is different.
-            if (fileCount != oldZip.Entries.Count)
+            if (files.Count != oldZip.Entries.Count)
                 return true;
 
-            // Since number of files is identical,
-            // the backups are identical if every file in the old backup
-            // still exists and is identical.
-            foreach (var entry in oldZip.Entries)
+            // Since number of files is identical, the backups are identical
+            // if every requested file exists in the old backup and is identical.
+            foreach (var file in files)
             {
-                var file = Path.Combine(configDirectory, entry.FullName);
-                if (!File.Exists(file))
+                var relativePath = Path.GetRelativePath(configDirectory, file.Path);
+                if (oldZip.GetEntry(relativePath) is not { } entry)
                     return true;
 
-                using var currentData = File.OpenRead(file);
-                using var oldData     = entry.Open();
-
-                if (!Equals(currentData, oldData))
+                using var oldData = entry.Open();
+                if (!file.Equals(oldData))
                     return true;
 
                 cancel.ThrowIfCancellationRequested();
@@ -203,10 +200,14 @@ public static partial class Backup
         {
             if(File.Exists(tmpName))
                 File.Delete(tmpName);
-            using var fileStream = File.Open(tmpName, FileMode.Create);
-            using var zip        = new ZipArchive(fileStream, ZipArchiveMode.Create);
-            foreach (var file in files.Where(f => f.Exists))
-                file.CreateEntry(zip, configDirectory);
+            using (var fileStream = File.Open(tmpName, FileMode.Create))
+            {
+                using var zip = new ZipArchive(fileStream, ZipArchiveMode.Create);
+                foreach (var file in files.Where(f => f.Exists))
+                    file.CreateEntry(zip, configDirectory);
+                fileStream.Flush(true);
+            }
+
             File.Move(tmpName, fileName, true);
         }
         catch
