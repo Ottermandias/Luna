@@ -2,6 +2,8 @@ namespace Luna;
 
 public struct HeaderLine
 {
+    public delegate bool DrawCombo<TCacheItem>(Utf8HintHandler preview, float comboWidth, out TCacheItem? selection);
+
     public ColorParameter LineColorCollapsed;
     public ColorParameter LineColorExpanded;
     public ColorParameter TextColorCollapsed;
@@ -18,11 +20,41 @@ public struct HeaderLine
     public bool           Collapsible;
     public bool           ComboDisabled;
 
+    public (bool Expanded, bool Changed, TCacheItem? Selection) Combo<TCacheItem>(DrawCombo<TCacheItem> drawer, Utf8LabelHandler label,
+        Utf8TextHandler tooltip, Utf8HintHandler preview)
+    {
+        var (expanded, changed, _, _, selection) = ComboInternal(drawer, 0, ref label, ref tooltip, ref preview);
+        return (expanded, changed, selection);
+    }
+
+    public bool Combo(Action drawer, float width, Utf8LabelHandler label, Utf8TextHandler tooltip)
+    {
+        Utf8HintHandler hint = StringU8.Empty;
+        var (expanded, _, _, _, _) = ComboInternal<object>(Drawer, width, ref label, ref tooltip, ref hint);
+        return expanded;
+
+        bool Drawer(Utf8HintHandler _1, float _2, out object? selection)
+        {
+            selection = null;
+            drawer();
+            return false;
+        }
+    }
+
     public (bool Expanded, ImGuiId ComboId, Rectangle ComboBoundingBox) Combo(Utf8LabelHandler label, Utf8TextHandler tooltip,
         Utf8HintHandler preview)
     {
+        var (expanded, _, comboId, comboBoundingBox, _) = ComboInternal<object>(null, 0, ref label, ref tooltip, ref preview);
+        return (expanded, comboId, comboBoundingBox);
+    }
+
+    [MethodImpl(ImSharpConfiguration.OptInl)]
+    private (bool Expanded, bool Changed, ImGuiId ComboId, Rectangle ComboBoundingBox, TCacheItem? Selection) ComboInternal<TCacheItem>(
+        DrawCombo<TCacheItem>? drawer, float width, ref Utf8LabelHandler label, ref Utf8TextHandler tooltip,
+        ref Utf8HintHandler preview)
+    {
         if (!ImEx.SplitLabel(ref label, out var visible, out var id))
-            return (false, 0, default);
+            return (false, false, 0, default, default);
 
         using var _        = Im.Id.Push(id);
         var       expanded = !Collapsible || Im.State.Storage.GetBool(id, !DefaultClosed);
@@ -50,7 +82,7 @@ public struct HeaderLine
             textWidth = FixedButtonWidth;
 
         // Combo Size
-        var comboWidth = Im.Font.CalculateSize(ref preview, false).X + 2 * Im.Style.FramePadding.X + Im.Style.FrameHeight;
+        var comboWidth = width > 0 ? width : Im.Font.CalculateSize(ref preview, false).X + 2 * Im.Style.FramePadding.X + Im.Style.FrameHeight;
         if (FixedComboWidth is not 0 && FixedComboWidth > comboWidth)
             comboWidth = FixedButtonWidth;
         var totalWidth     = textWidth + comboWidth + LeftDistance + RightDistance + ComboDistance;
@@ -68,8 +100,10 @@ public struct HeaderLine
         endPos.X   = Im.Cursor.ScreenPosition.X + available.X;
         shapes.Line(startPos, endPos, separatorColor, lineThickness);
 
-        ImGuiId   popupId;
-        Rectangle boundingBox;
+        ImGuiId     popupId;
+        Rectangle   boundingBox;
+        bool        change;
+        TCacheItem? selection;
         using (var style = ImStyleBorder.Frame.Push(separatorColor, lineThickness)
                    .Push(ImGuiColor.Text, textColor)
                    .PushX(ImStyleDouble.ButtonTextAlign, 1)
@@ -89,15 +123,27 @@ public struct HeaderLine
             }
 
             Im.Line.Same(0, centerDistance);
-            Im.Item.SetNextWidth(comboWidth);
+
             style.PopColor(3).PopStyle();
             using var disabled = Im.Disabled(ComboDisabled);
-            Im.Combo.DrawPreview("##combo"u8, preview, out popupId, out boundingBox);
+            if (drawer is null)
+            {
+                Im.Item.SetNextWidth(comboWidth);
+                Im.Combo.DrawPreview("##combo"u8, preview, out popupId, out boundingBox);
+                change    = false;
+                selection = default;
+            }
+            else
+            {
+                change      = drawer(preview, comboWidth, out selection);
+                popupId     = ImGuiId.Invalid;
+                boundingBox = Rectangle.Zero;
+            }
         }
 
         Im.Tooltip.OnHover(tooltip);
 
-        return (expanded, popupId, boundingBox);
+        return (expanded, change, popupId, boundingBox, selection);
     }
 
     public bool Basic(Utf8LabelHandler label, Utf8TextHandler tooltip)
@@ -129,8 +175,8 @@ public struct HeaderLine
             textWidth = FixedButtonWidth;
 
         // Draw Lines.
-        var startPos  = Im.Cursor.ScreenPosition;
-        var fullEnd = startPos.X + Im.ContentRegion.Available.X;
+        var startPos = Im.Cursor.ScreenPosition;
+        var fullEnd  = startPos.X + Im.ContentRegion.Available.X;
         startPos.Y += linePosition;
         var endPos = startPos with { X = startPos.X + LeftDistance };
         shapes.Line(startPos, endPos, separatorColor, lineThickness);
