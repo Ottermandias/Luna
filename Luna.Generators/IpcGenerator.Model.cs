@@ -109,13 +109,14 @@ internal readonly record struct EventInfo
 
 internal readonly record struct ParameterInfo
 {
-    public static readonly ParameterInfo Void = new(string.Empty, "void");
+    public static readonly ParameterInfo Void = new(string.Empty, "void", ParameterKind.Return);
 
-    public readonly string Name;
-    public readonly string Type;
-    public readonly string IpcType;
-    public readonly string Marshal;
-    public readonly string MarshalBack;
+    public readonly string        Name;
+    public readonly string        Type;
+    public readonly string        IpcType;
+    public readonly string        Marshal;
+    public readonly string        MarshalBack;
+    public readonly ParameterKind Kind;
 
     public bool IsVoid
         => Type is "void";
@@ -123,36 +124,46 @@ internal readonly record struct ParameterInfo
     public bool IsTypeErased
         => !IpcType.Equals(Type, StringComparison.Ordinal);
 
-    private ParameterInfo(string name, string type)
+    private ParameterInfo(string name, string type, ParameterKind kind)
     {
         Name        = name;
         Type        = type;
         IpcType     = type;
         Marshal     = string.Empty;
         MarshalBack = string.Empty;
+        Kind        = kind;
     }
 
-    public ParameterInfo(string name, ITypeSymbol type, ITypeSymbol ipcType, string marshal, string marshalBack)
+    public ParameterInfo(string name, ITypeSymbol type, ITypeSymbol ipcType, string marshal, string marshalBack, ParameterKind kind)
     {
         Name        = name;
         Type        = type.ToString();
         IpcType     = ipcType.ToString();
         Marshal     = marshal;
         MarshalBack = marshalBack;
+        Kind        = kind;
     }
 
-    public ParameterInfo(string name, ITypeSymbol type, string ipcType, string marshal, string marshalBack)
+    public ParameterInfo(string name, ITypeSymbol type, string ipcType, string marshal, string marshalBack, ParameterKind kind)
     {
         Name        = name;
         Type        = type.ToString();
         IpcType     = ipcType;
         Marshal     = marshal;
         MarshalBack = marshalBack;
+        Kind        = kind;
     }
 
-    public ParameterInfo(string name, ITypeSymbol type) : this(name, type, type, string.Empty, string.Empty)
-    {
-    }
+    public ParameterInfo(string name, ITypeSymbol type, ParameterKind kind)
+        : this(name, type, type, string.Empty, string.Empty, kind)
+    { }
+
+    public string GetValueExpression(string providerExpression)
+        => Kind switch
+        {
+            ParameterKind.IpcContext => providerExpression + ".GetContext()",
+            _                        => Name,
+        };
 
     public string GetMarshalExpression(string valueExpression)
     {
@@ -190,4 +201,15 @@ internal readonly record struct ParameterInfo
 
         return $"{type}.{marshal}({valueExpression})";
     }
+}
+
+internal enum ParameterKind : uint
+{
+    Regular = 0,
+
+    Return,
+    PropertyValue,
+    Implementation,
+
+    IpcContext,
 }
