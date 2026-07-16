@@ -46,7 +46,7 @@ public abstract partial class ConditionDrawerCache<TContext>(TContext context)
     {
         var oldModifier = ImNodes.Io.SetLinkDetachWithModifier(Im.Io, ModFlags.None);
         var oldPan      = ImNodes.Io.AltMouseButton;
-        ImNodes.Io.AltMouseButton = MouseButton.Left;
+        ImNodes.Io.AltMouseButton = MouseButton.Right;
         using var style = ImNodesStyleDouble.NodePadding.Push(Vector2.Zero)
             .Push(ImNodesStyleSingle.GridSpacing, Im.Style.FrameHeight);
         using var colors = ImNodes.Color.Empty();

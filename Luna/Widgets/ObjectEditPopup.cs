@@ -38,7 +38,7 @@ public abstract class ObjectEditPopup
 
 
         PrePopup();
-        using (var popup = Im.Popup.Begin(PopupId))
+        using (var popup = Begin())
         {
             if (popup)
                 DrawInternal();
@@ -46,6 +46,11 @@ public abstract class ObjectEditPopup
 
         PostPopup();
     }
+
+    /// <summary> Begin the popup. </summary>
+    /// <returns> The popup disposable. </returns>
+    protected virtual Im.PopupDisposable Begin()
+        => Im.Popup.Begin(PopupId);
 
     /// <summary> Draw the actual content of the popup. </summary>
     protected abstract void DrawInternal();
