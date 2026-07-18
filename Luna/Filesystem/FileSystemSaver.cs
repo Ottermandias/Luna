@@ -198,6 +198,7 @@ public abstract class FileSystemSaver<TSaveService, TProvider> : FileSystemSaver
     /// <summary> Load the file system data from its files. </summary>
     public virtual void Load()
     {
+        FileSystem.Changed.Invoke(new FileSystemChanged.Arguments(FileSystemChangeType.ReloadStarting, FileSystem.Root, null, null));
         FileSystem.Changed.Unsubscribe(OnFileSystemChange);
         FileSystem.Clear();
         MigrateOldFileSystem();
@@ -208,6 +209,7 @@ public abstract class FileSystemSaver<TSaveService, TProvider> : FileSystemSaver
         HandleExpandedFolders();
         HandleSelectedNodes();
         FileSystem.Selection.SetData();
+        FileSystem.Changed.Invoke(new FileSystemChanged.Arguments(FileSystemChangeType.Reload, FileSystem.Root, null, null));
         FileSystem.Changed.Subscribe(OnFileSystemChange, uint.MinValue);
     }
 

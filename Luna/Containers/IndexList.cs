@@ -161,11 +161,11 @@ public sealed class IndexList<T> : IAdvancedList<T>
         if (_size == _items.Length)
             InsertGrow(index, 1);
         else if (index < _size)
-            for (var i = index; i < _size; ++i)
+            for (var i = _size - 1; i >= index; --i)
             {
                 var shiftedItem = _items[i];
                 shiftedItem.SetIndex(i + 1);
-                _items[item.Index] = shiftedItem;
+                _items[shiftedItem.Index] = shiftedItem;
             }
 
         item.SetIndex(index);
