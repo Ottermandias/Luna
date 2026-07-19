@@ -401,7 +401,8 @@ public abstract class BaseSaveService<T>(LunaLogger log, FrameworkManager framew
             case SaveType.ImmediateSync:
                 ImmediateSaveSync(value);
                 return;
-            default: throw new ArgumentOutOfRangeException(nameof(type), type, null);
+            case SaveType.None: return;
+            default:            throw new ArgumentOutOfRangeException(nameof(type), type, null);
         }
     }
 
