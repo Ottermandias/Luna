@@ -62,6 +62,10 @@ public struct HeaderLine
     /// <summary> Whether the combo preview should be drawn disabled. </summary>
     public bool ComboDisabled;
 
+    /// <summary> When this is true, no header, label or collapse button will be drawn at all. The distances will be computed using FixedButtonWidth. </summary>
+    /// <remarks> This is not respected for <see cref="Basic"/>, as that would just be a separator. </remarks>
+    public bool NoLabel;
+
     /// <summary> Draw a header line with a label and expansion button as well as a custom combo. </summary>
     /// <typeparam name="TCacheItem"> The combo item type. </typeparam>
     /// <param name="drawer"> The method to draw the combo preview. </param>
@@ -133,11 +137,7 @@ public struct HeaderLine
         var (lineThickness, linePosition) = frameHeightEven ? (2, frameHeight / 2) : (1, (frameHeight - 1) / 2);
 
         // Button Size
-        var textWidth = Im.Font.CalculateSize(visible, false).X + 2 * Im.Style.FramePadding.X;
-        if (Collapsible)
-            textWidth += Im.Style.TextHeight + Im.Style.ItemInnerSpacing.X;
-        if (FixedButtonWidth is not 0 && FixedButtonWidth > textWidth)
-            textWidth = FixedButtonWidth;
+        var textWidth = GetButtonWidth(visible);
 
         // Draw Lines.
         var startPos = Im.Window.Position with { Y = Im.Cursor.ScreenY + linePosition };
@@ -200,11 +200,7 @@ public struct HeaderLine
         var (lineThickness, linePosition) = frameHeightEven ? (2, frameHeight / 2) : (1, (frameHeight - 1) / 2);
 
         // Button Size
-        var textWidth = Im.Font.CalculateSize(visible, false).X + 2 * Im.Style.FramePadding.X;
-        if (Collapsible)
-            textWidth += Im.Style.TextHeight + Im.Style.ItemInnerSpacing.X;
-        if (FixedButtonWidth is not 0 && FixedButtonWidth > textWidth)
-            textWidth = FixedButtonWidth;
+        var textWidth = NoLabel ? FixedButtonWidth : GetButtonWidth(visible);
 
         // Combo Size
         var comboWidth = width > 0 ? width : Im.Font.CalculateSize(ref preview, false).X + 2 * Im.Style.FramePadding.X + Im.Style.FrameHeight;
@@ -217,9 +213,17 @@ public struct HeaderLine
         // Draw Lines.
         var startPos = Im.Window.Position with { Y = Im.Cursor.ScreenY + linePosition };
         var endPos   = startPos with { X = Im.Cursor.ScreenX + LeftDistance };
-        shapes.Line(startPos, endPos, separatorColor, lineThickness);
-        startPos.X = endPos.X + textWidth;
-        endPos.X   = startPos.X + centerDistance;
+        if (NoLabel)
+        {
+            endPos.X = endPos.X + textWidth + centerDistance;
+        }
+        else
+        {
+            shapes.Line(startPos, endPos, separatorColor, lineThickness);
+            startPos.X = endPos.X + textWidth;
+            endPos.X   = startPos.X + centerDistance;
+        }
+
         shapes.Line(startPos, endPos, separatorColor, lineThickness);
         startPos.X = endPos.X + comboWidth;
         endPos.X   = Im.Cursor.ScreenX + available.X;
@@ -238,19 +242,26 @@ public struct HeaderLine
         {
             using var group = Im.Group();
             Im.Cursor.X += LeftDistance;
-            if (Collapsible)
+            if (!NoLabel)
             {
-                if (Im.Button(visible, new Vector2(textWidth, frameHeight)))
-                    Im.State.Storage.SetBool(id, !expanded);
-                var caretPosition = Im.Item.UpperLeftCorner + Im.Style.FramePadding;
-                Im.Window.DrawList.Render.Arrow(caretPosition, textColor, icon, 1f);
+                if (Collapsible)
+                {
+                    if (Im.Button(visible, new Vector2(textWidth, frameHeight)))
+                        Im.State.Storage.SetBool(id, !expanded);
+                    var caretPosition = Im.Item.UpperLeftCorner + Im.Style.FramePadding;
+                    Im.Window.DrawList.Render.Arrow(caretPosition, textColor, icon, 1f);
+                }
+                else
+                {
+                    ImEx.TextFramed(visible, new Vector2(textWidth, frameHeight), buttonBackground);
+                }
+
+                Im.Line.Same(0, centerDistance);
             }
             else
             {
-                ImEx.TextFramed(visible, new Vector2(textWidth, frameHeight), buttonBackground);
+                Im.Cursor.X += centerDistance + textWidth;
             }
-
-            Im.Line.Same(0, centerDistance);
 
             style.PopColor(3).PopStyle();
             using var disabled = Im.Disabled(ComboDisabled);
@@ -272,5 +283,15 @@ public struct HeaderLine
         Im.Tooltip.OnHover(tooltip);
 
         return (expanded, change, popupId, boundingBox, selection);
+    }
+
+    private float GetButtonWidth(ReadOnlySpan<byte> text)
+    {
+        var textWidth = Im.Font.CalculateSize(text, false).X + 2 * Im.Style.FramePadding.X;
+        if (Collapsible)
+            textWidth += Im.Style.TextHeight + Im.Style.ItemInnerSpacing.X;
+        if (FixedButtonWidth is not 0 && FixedButtonWidth > textWidth)
+            textWidth = FixedButtonWidth;
+        return textWidth;
     }
 }
