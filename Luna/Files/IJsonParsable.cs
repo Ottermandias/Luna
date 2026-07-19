@@ -41,24 +41,33 @@ public interface IJsonParsable
         // Catch only JSON exceptions to try and recover.
         catch (JsonException ex)
         {
+            JsonRecoveryFlags usedRecoveries = default;
             try
             {
                 // Try to recover valid JSON from the read data.
-                var (recovered, _, recoveries) = JsonFunctions.RecoverBytes(originalData, true, JsonRecoveryFlags.Safe);
+                (var recovered, _, usedRecoveries) = JsonFunctions.RecoverBytes(originalData, true, JsonRecoveryFlags.Safe);
                 // Try to parse the recovered JSON.
                 var reader = new Utf8JsonReader(recovered, JsonFunctions.ReaderOptions);
                 var ret    = TRet.Read(ref reader, filePath, userInput);
                 // Log the recovery of the file.
-                TRet.OnRecovery(saveService.Log, filePath, recoveries, userInput);
+                TRet.OnRecovery(saveService.Log, filePath, usedRecoveries, userInput);
 
                 // If replacement is enabled, try to replace the file with the recovered data.
                 if (replace)
                     saveService.AtomicWriteWithBackup(filePath, f => File.WriteAllBytes(f, recovered));
                 return ret;
             }
-            // If any step here fails, ignore it and re-throw the original JSON exception.
-            catch
+            // If recovery is not possible, re-throw the original JSON exception.
+            catch (InvalidDataException)
             {
+                throw ex;
+            }
+            // If any other step here fails, throw both exceptions if we used recoveries, and the original if we did not.
+            catch (Exception ex2)
+            {
+                if (usedRecoveries is not 0)
+                    throw new AggregateException(ex2, ex);
+
                 throw ex;
             }
         }
