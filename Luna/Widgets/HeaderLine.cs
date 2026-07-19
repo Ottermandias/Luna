@@ -23,8 +23,11 @@ public struct HeaderLine
     /// <summary> The color of the label text when the header is expanded. </summary>
     public ColorParameter TextColorExpanded;
 
-    /// <summary> The background color of the label and expansion button. </summary>
-    public ColorParameter ButtonBackground;
+    /// <summary> The background color of the label and expansion button when expanded. </summary>
+    public ColorParameter ButtonBackgroundExpanded;
+
+    /// <summary> The background color of the label and expansion button when collapsed. </summary>
+    public ColorParameter ButtonBackgroundCollapsed;
 
     /// <summary> The background color of the label and expansion button when it is hovered. </summary>
     public ColorParameter ButtonHovered;
@@ -118,12 +121,11 @@ public struct HeaderLine
         var shapes   = Im.Window.DrawList.Shape;
 
         // Colors
-        var (separatorColor, textColor, icon) = expanded
+        var (separatorColor, textColor, icon, buttonBackground) = expanded
             ? (LineColorExpanded.CheckDefault(ImGuiColor.Separator), TextColorExpanded.CheckDefault(ImGuiColor.Text),
-                Direction.Down)
+                Direction.Down, ButtonBackgroundExpanded.CheckDefault(ImGuiColor.FrameBackground))
             : (LineColorCollapsed.CheckDefault(ImGuiColor.Separator), TextColorCollapsed.CheckDefault(ImGuiColor.Text),
-                Direction.Right);
-        var buttonBackground = ButtonBackground.CheckDefault(ImGuiColor.FrameBackground);
+                Direction.Right, ButtonBackgroundCollapsed.CheckDefault(ImGuiColor.FrameBackground));
 
         // Frame
         var frameHeight     = Im.Style.FrameHeight;
@@ -154,13 +156,16 @@ public struct HeaderLine
                    .Push(ImGuiColor.Text,          textColor))
         {
             Im.Cursor.X += LeftDistance;
-            if (Im.Button(visible, new Vector2(textWidth, frameHeight)) && Collapsible)
-                Im.State.Storage.SetBool(id, !expanded);
-
             if (Collapsible)
             {
+                if (Im.Button(visible, new Vector2(textWidth, frameHeight)))
+                    Im.State.Storage.SetBool(id, !expanded);
                 var caretPosition = Im.Item.UpperLeftCorner + Im.Style.FramePadding;
                 Im.Window.DrawList.Render.Arrow(caretPosition, textColor, icon, 1f);
+            }
+            else
+            {
+                ImEx.TextFramed(visible, new Vector2(textWidth, frameHeight), buttonBackground);
             }
         }
 
@@ -182,12 +187,11 @@ public struct HeaderLine
         var       shapes   = Im.Window.DrawList.Shape;
 
         // Colors
-        var (separatorColor, textColor, icon) = expanded
+        var (separatorColor, textColor, icon, buttonBackground) = expanded
             ? (LineColorExpanded.CheckDefault(ImGuiColor.Separator), TextColorExpanded.CheckDefault(ImGuiColor.Text),
-                Direction.Down)
+                Direction.Down, ButtonBackgroundExpanded.CheckDefault(ImGuiColor.FrameBackground))
             : (LineColorCollapsed.CheckDefault(ImGuiColor.Separator), TextColorCollapsed.CheckDefault(ImGuiColor.Text),
-                Direction.Right);
-        var buttonBackground = ButtonBackground.CheckDefault(ImGuiColor.FrameBackground);
+                Direction.Right, ButtonBackgroundCollapsed.CheckDefault(ImGuiColor.FrameBackground));
 
         // Frame
         var available       = Im.ContentRegion.Available;
@@ -234,13 +238,16 @@ public struct HeaderLine
         {
             using var group = Im.Group();
             Im.Cursor.X += LeftDistance;
-            if (Im.Button(visible, new Vector2(textWidth, frameHeight)) && Collapsible)
-                Im.State.Storage.SetBool(id, !expanded);
-
             if (Collapsible)
             {
+                if (Im.Button(visible, new Vector2(textWidth, frameHeight)))
+                    Im.State.Storage.SetBool(id, !expanded);
                 var caretPosition = Im.Item.UpperLeftCorner + Im.Style.FramePadding;
                 Im.Window.DrawList.Render.Arrow(caretPosition, textColor, icon, 1f);
+            }
+            else
+            {
+                ImEx.TextFramed(visible, new Vector2(textWidth, frameHeight), buttonBackground);
             }
 
             Im.Line.Same(0, centerDistance);
