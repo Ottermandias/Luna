@@ -768,62 +768,93 @@ public static class JsonFunctions
             // Read the actual number according to type.
             if (reader.TokenType is JsonTokenType.Number)
             {
-                if (typeof(TNumber) == typeof(byte) && reader.TryGetByte(out var b))
+                number = @default;
+                if (typeof(TNumber) == typeof(byte))
                 {
+                    if (!reader.TryGetByte(out var b))
+                        return false;
+
                     number = Unsafe.As<byte, TNumber>(ref b);
                     return true;
                 }
 
-                if (typeof(TNumber) == typeof(sbyte) && reader.TryGetSByte(out var sb))
+                if (typeof(TNumber) == typeof(sbyte))
                 {
+                    if (!reader.TryGetSByte(out var sb))
+                        return false;
+
                     number = Unsafe.As<sbyte, TNumber>(ref sb);
                     return true;
                 }
 
-                if (typeof(TNumber) == typeof(ushort) && reader.TryGetUInt16(out var us))
+                if (typeof(TNumber) == typeof(ushort))
                 {
+                    if (!reader.TryGetUInt16(out var us))
+                        return false;
+
                     number = Unsafe.As<ushort, TNumber>(ref us);
                     return true;
                 }
 
-                if (typeof(TNumber) == typeof(short) && reader.TryGetInt16(out var s))
+                if (typeof(TNumber) == typeof(short))
                 {
+                    if (!reader.TryGetInt16(out var s))
+                        return false;
+
                     number = Unsafe.As<short, TNumber>(ref s);
                     return true;
                 }
 
-                if (typeof(TNumber) == typeof(uint) && reader.TryGetUInt32(out var ui))
+                if (typeof(TNumber) == typeof(uint))
                 {
+                    if (!reader.TryGetUInt32(out var ui))
+                        return false;
+
                     number = Unsafe.As<uint, TNumber>(ref ui);
                     return true;
                 }
 
-                if (typeof(TNumber) == typeof(int) && reader.TryGetInt32(out var i))
+                if (typeof(TNumber) == typeof(int))
                 {
+                    if (!reader.TryGetInt32(out var i))
+                        return false;
+
                     number = Unsafe.As<int, TNumber>(ref i);
                     return true;
                 }
 
-                if (typeof(TNumber) == typeof(ulong) && reader.TryGetUInt64(out var ul))
+                if (typeof(TNumber) == typeof(ulong))
                 {
+                    if (!reader.TryGetUInt64(out var ul))
+                        return false;
+
                     number = Unsafe.As<ulong, TNumber>(ref ul);
                     return true;
                 }
 
-                if (typeof(TNumber) == typeof(long) && reader.TryGetInt64(out var l))
+                if (typeof(TNumber) == typeof(long))
                 {
+                    if (!reader.TryGetInt64(out var l))
+                        return false;
+
                     number = Unsafe.As<long, TNumber>(ref l);
                     return true;
                 }
 
-                if (typeof(TNumber) == typeof(float) && reader.TryGetSingle(out var f))
+                if (typeof(TNumber) == typeof(float))
                 {
+                    if (!reader.TryGetSingle(out var f))
+                        return false;
+
                     number = Unsafe.As<float, TNumber>(ref f);
                     return true;
                 }
 
-                if (typeof(TNumber) == typeof(double) && reader.TryGetDouble(out var d))
+                if (typeof(TNumber) == typeof(double))
                 {
+                    if (!reader.TryGetDouble(out var d))
+                        return false;
+
                     number = Unsafe.As<double, TNumber>(ref d);
                     return true;
                 }
