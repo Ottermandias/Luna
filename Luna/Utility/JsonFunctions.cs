@@ -294,10 +294,11 @@ public static class JsonFunctions
         /// <summary> Check whether the current property name token corresponds to the given property and has numerical value. </summary>
         /// <param name="propertyName"> The property name to check for. </param>
         /// <param name="value"> The parsed number on success. </param>
+        /// <param name="allowUnsignedNegative"> Whether to allow reading a negative number for unsigned values. </param>
         /// <returns> True if the property names correspond, false otherwise. </returns>
         /// <exception cref="JsonException"> If the property matches but has no following value token to read, or if the value token is not a number. </exception>
         [MethodImpl(ImSharpConfiguration.OptInl)]
-        public bool NumberProperty<TNumber>(ReadOnlySpan<byte> propertyName, out TNumber value)
+        public bool NumberProperty<TNumber>(ReadOnlySpan<byte> propertyName, out TNumber value, bool allowUnsignedNegative = false)
             where TNumber : unmanaged, INumber<TNumber>
         {
             Debug.Assert(reader.TokenType is JsonTokenType.PropertyName);
@@ -310,7 +311,7 @@ public static class JsonFunctions
             if (!reader.Read())
                 throw new JsonException($"Unexpected end after numeric property {Encoding.UTF8.GetString(propertyName)}.");
 
-            return reader.TryReadNumber(out value)
+            return reader.TryReadNumber(out value, allowUnsignedNegative)
                 ? true
                 : throw new JsonException(
                     $"Unexpected {reader.TokenType} value for numeric property {Encoding.UTF8.GetString(propertyName)}.");
@@ -319,10 +320,11 @@ public static class JsonFunctions
         /// <summary> Check whether the current property name token corresponds to the given property and has numerical value. </summary>
         /// <param name="propertyName"> The property name to check for. </param>
         /// <param name="value"> The parsed number on success. </param>
+        /// <param name="allowUnsignedNegative"> Whether to allow reading a negative number for unsigned values. </param>
         /// <returns> True if the property names correspond, false otherwise. </returns>
         /// <exception cref="JsonException"> If the property matches but has no following value token to read, or if the value token is not a number. </exception>
         [MethodImpl(ImSharpConfiguration.OptInl)]
-        public bool NumberProperty<TNumber>(ReadOnlySpan<byte> propertyName, out TNumber? value)
+        public bool NumberProperty<TNumber>(ReadOnlySpan<byte> propertyName, out TNumber? value, bool allowUnsignedNegative = false)
             where TNumber : unmanaged, INumber<TNumber>
         {
             Debug.Assert(reader.TokenType is JsonTokenType.PropertyName);
@@ -341,7 +343,7 @@ public static class JsonFunctions
                 return true;
             }
 
-            if (reader.TryReadNumber(out TNumber number))
+            if (reader.TryReadNumber(out TNumber number, allowUnsignedNegative))
             {
                 value = number;
                 return true;
@@ -761,9 +763,10 @@ public static class JsonFunctions
         /// <typeparam name="TNumber"> The type of number to read. </typeparam>
         /// <param name="number"> The return value on success, <paramref name="default"/> on failure. </param>
         /// <param name="default"> The default value to return if the number can not be read. </param>
+        /// <param name="allowUnsignedNegative"> Whether to allow reading a negative number for unsigned values. </param>
         /// <returns> True if the number was successfully read, false otherwise. </returns>
         /// <exception cref="ArgumentException"> If <typeparamref name="TNumber"/> is not one of the built-in integers or floats. </exception>
-        public bool TryReadNumber<TNumber>(out TNumber number, TNumber @default = default) where TNumber : unmanaged, INumber<TNumber>
+        public bool TryReadNumber<TNumber>(out TNumber number, TNumber @default = default, bool allowUnsignedNegative = false) where TNumber : unmanaged, INumber<TNumber>
         {
             // Read the actual number according to type.
             if (reader.TokenType is JsonTokenType.Number)
@@ -771,11 +774,18 @@ public static class JsonFunctions
                 number = @default;
                 if (typeof(TNumber) == typeof(byte))
                 {
-                    if (!reader.TryGetByte(out var b))
+                    if (reader.TryGetByte(out var b))
+                    {
+                        number = Unsafe.As<byte, TNumber>(ref b);
+                        return true;
+                    }
+
+                    if (!allowUnsignedNegative || !reader.TryGetSByte(out var sb))
                         return false;
 
-                    number = Unsafe.As<byte, TNumber>(ref b);
+                    number = Unsafe.As<sbyte, TNumber>(ref sb);
                     return true;
+
                 }
 
                 if (typeof(TNumber) == typeof(sbyte))
@@ -789,11 +799,18 @@ public static class JsonFunctions
 
                 if (typeof(TNumber) == typeof(ushort))
                 {
-                    if (!reader.TryGetUInt16(out var us))
+                    if (reader.TryGetUInt16(out var b))
+                    {
+                        number = Unsafe.As<ushort, TNumber>(ref b);
+                        return true;
+                    }
+
+                    if (!allowUnsignedNegative || !reader.TryGetInt16(out var sb))
                         return false;
 
-                    number = Unsafe.As<ushort, TNumber>(ref us);
+                    number = Unsafe.As<short, TNumber>(ref sb);
                     return true;
+
                 }
 
                 if (typeof(TNumber) == typeof(short))
@@ -807,11 +824,18 @@ public static class JsonFunctions
 
                 if (typeof(TNumber) == typeof(uint))
                 {
-                    if (!reader.TryGetUInt32(out var ui))
+                    if (reader.TryGetUInt32(out var b))
+                    {
+                        number = Unsafe.As<uint, TNumber>(ref b);
+                        return true;
+                    }
+
+                    if (!allowUnsignedNegative || !reader.TryGetInt32(out var sb))
                         return false;
 
-                    number = Unsafe.As<uint, TNumber>(ref ui);
+                    number = Unsafe.As<int, TNumber>(ref sb);
                     return true;
+
                 }
 
                 if (typeof(TNumber) == typeof(int))
@@ -825,11 +849,18 @@ public static class JsonFunctions
 
                 if (typeof(TNumber) == typeof(ulong))
                 {
-                    if (!reader.TryGetUInt64(out var ul))
+                    if (reader.TryGetUInt64(out var b))
+                    {
+                        number = Unsafe.As<ulong, TNumber>(ref b);
+                        return true;
+                    }
+
+                    if (!allowUnsignedNegative || !reader.TryGetInt64(out var sb))
                         return false;
 
-                    number = Unsafe.As<ulong, TNumber>(ref ul);
+                    number = Unsafe.As<long, TNumber>(ref sb);
                     return true;
+
                 }
 
                 if (typeof(TNumber) == typeof(long))
