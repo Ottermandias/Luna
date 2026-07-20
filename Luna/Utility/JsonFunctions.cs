@@ -311,7 +311,7 @@ public static class JsonFunctions
             if (!reader.Read())
                 throw new JsonException($"Unexpected end after numeric property {Encoding.UTF8.GetString(propertyName)}.");
 
-            return reader.TryReadNumber(out value, allowUnsignedNegative)
+            return reader.TryReadNumber(out value, default, allowUnsignedNegative)
                 ? true
                 : throw new JsonException(
                     $"Unexpected {reader.TokenType} value for numeric property {Encoding.UTF8.GetString(propertyName)}.");
@@ -343,7 +343,7 @@ public static class JsonFunctions
                 return true;
             }
 
-            if (reader.TryReadNumber(out TNumber number, allowUnsignedNegative))
+            if (reader.TryReadNumber(out TNumber number, default, allowUnsignedNegative))
             {
                 value = number;
                 return true;
