@@ -184,9 +184,9 @@ public sealed class IndexList<T> : IAdvancedList<T>
         if (index < _size)
             for (var i = index; i < _size; ++i)
             {
-                var shiftedItem = _items[index + 1];
-                shiftedItem.SetIndex(index);
-                _items[index]     = shiftedItem;
+                var shiftedItem = _items[i + 1];
+                shiftedItem.SetIndex(i);
+                _items[i]     = shiftedItem;
             }
 
         _items[_size] = null!;
