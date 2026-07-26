@@ -75,6 +75,9 @@ public struct HeaderLine
     /// <summary> Whether the rightmost part of the line is to be drawn or not. </summary>
     public bool HideRightLine;
 
+    /// <summary> Whether to draw the left line from the window start position or from the current cursor position. </summary>
+    public bool FromStart;
+
     /// <summary> Draw a header line with a label and expansion button as well as a custom combo. </summary>
     /// <typeparam name="TCacheItem"> The combo item type. </typeparam>
     /// <param name="drawer"> The method to draw the combo preview. </param>
@@ -254,7 +257,8 @@ public struct HeaderLine
     private void DrawTwoLines(Rgba32 separatorColor, float lineThickness, float linePosition, float buttonWidth)
     {
         var drawList = Im.Window.DrawList.Shape;
-        var startPos = Im.Window.Position with { Y = Im.Cursor.ScreenY + linePosition };
+        var screen   = Im.Cursor.ScreenPosition;
+        var startPos = FromStart ? Im.Window.Position with { Y = screen.Y + linePosition } : screen with { Y = screen.Y + linePosition };
         var fullEnd  = Im.Cursor.ScreenX + Im.ContentRegion.Available.X;
         var endPos   = startPos with { X = Im.Cursor.ScreenX + LeftDistance };
         drawList.Line(startPos, endPos, separatorColor, lineThickness);
@@ -272,7 +276,8 @@ public struct HeaderLine
     {
         var drawList  = Im.Window.DrawList.Shape;
         var available = Im.ContentRegion.Available;
-        var startPos  = Im.Window.Position with { Y = Im.Cursor.ScreenY + linePosition };
+        var screen    = Im.Cursor.ScreenPosition;
+        var startPos  = FromStart ? Im.Window.Position with { Y = screen.Y + linePosition } : screen with { Y = screen.Y + linePosition };
         var endPos    = startPos with { X = Im.Cursor.ScreenX + LeftDistance };
         if (NoLabel)
         {
@@ -288,6 +293,7 @@ public struct HeaderLine
         drawList.Line(startPos, endPos, separatorColor, lineThickness);
         if (HideRightLine)
             return;
+
         startPos.X = endPos.X + comboWidth;
         endPos.X   = Im.Cursor.ScreenX + available.X;
         drawList.Line(startPos, endPos, separatorColor, lineThickness);

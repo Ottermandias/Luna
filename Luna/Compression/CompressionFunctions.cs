@@ -1,4 +1,4 @@
-using Newtonsoft.Json;
+using System.Text.Json;
 
 namespace Luna;
 
@@ -9,7 +9,7 @@ public static class CompressionFunctions
     /// <param name="version"> The version byte to prepend to the UTF8 JSON data. </param>
     /// <returns> An empty string on failure, otherwise the compressed, versioned data converted to Base64. </returns>
     /// <remarks> See <see cref="FromCompressedBase64{T}"/> for the decompression steps. </remarks>
-    public static unsafe string ToCompressedBase64(ReadOnlySpan<byte> data, byte version)
+    public static unsafe byte[] ToCompressedBase64(ReadOnlySpan<byte> data, byte version)
     {
         try
         {
@@ -20,11 +20,17 @@ public static class CompressionFunctions
                 zipStream.Write(data);
             }
 
-            return Convert.ToBase64String(compressedStream.ToArray());
+            var ret    = new byte[System.Buffers.Text.Base64.GetMaxEncodedToUtf8Length((int)compressedStream.Length)];
+            var length = compressedStream.Read(ret);
+            if (System.Buffers.Text.Base64.EncodeToUtf8InPlace(ret, length, out var newLength) is not OperationStatus.Done)
+                return [];
+
+            Array.Resize(ref ret, newLength);
+            return ret;
         }
         catch
         {
-            return string.Empty;
+            return [];
         }
     }
 
@@ -34,25 +40,50 @@ public static class CompressionFunctions
     /// <param name="version"> The version byte to prepend to the UTF8 JSON data. </param>
     /// <returns> An empty string on failure, otherwise the compressed, versioned data converted to Base64. </returns>
     /// <remarks> See <see cref="FromCompressedBase64{T}"/> for the decompression steps. </remarks>
-    public static unsafe string ToCompressedBase64<T>(T data, byte version)
+    public static unsafe byte[] ToCompressedBase64<T>(T data, byte version)
     {
         try
         {
-            var       json             = JsonConvert.SerializeObject(data, Formatting.None);
-            var       bytes            = Encoding.UTF8.GetBytes(json);
-            using var compressedStream = new MemoryStream();
-            using (var zipStream = new GZipStream(compressedStream, CompressionMode.Compress))
-            {
-                zipStream.Write(new ReadOnlySpan<byte>(&version, 1));
-                zipStream.Write(bytes, 0, bytes.Length);
-            }
-
-            return Convert.ToBase64String(compressedStream.ToArray());
+            var json = JsonSerializer.SerializeToUtf8Bytes(data, JsonFunctions.UnformattedSerializerOptions);
+            return ToCompressedBase64(json, version);
         }
         catch
         {
-            return string.Empty;
+            return [];
         }
+    }
+
+    /// <summary> Decompress a Base64 encoded string to the uncompressed original data and a prepended version byte if possible. </summary>
+    /// <param name="base64"> The Base64-encoded compressed JSON serialization of data with a prepended version byte. </param>
+    /// <param name="data"> The decompressed data on success or empty data otherwise. </param>
+    /// <returns> The version byte that was prepended or <see cref="byte.MaxValue"/> on failure. </returns>
+    /// <remarks> See <see cref="ToCompressedBase64{T}"/> for the compression steps. </remarks>
+    public static byte FromCompressedBase64(ReadOnlySpan<byte> base64, out Memory<byte> data)
+    {
+        var version = byte.MaxValue;
+        try
+        {
+            var bytes = new byte[System.Buffers.Text.Base64.GetMaxDecodedFromUtf8Length(base64.Length)];
+            if (System.Buffers.Text.Base64.DecodeFromUtf8(base64, bytes, out _, out var length) is not OperationStatus.Done)
+            {
+                data = null;
+                return version;
+            }
+
+            using var compressedStream = new MemoryStream(bytes);
+            using var zipStream        = new GZipStream(compressedStream, CompressionMode.Decompress);
+            using var resultStream     = new MemoryStream();
+            zipStream.CopyTo(resultStream);
+            var result = resultStream.ToArray();
+            version = result[0];
+            data    = result.AsMemory(1);
+        }
+        catch
+        {
+            data = Memory<byte>.Empty;
+        }
+
+        return version;
     }
 
     /// <summary> Decompress a Base64 encoded string to the given type and a prepended version byte if possible. </summary>
@@ -61,20 +92,25 @@ public static class CompressionFunctions
     /// <param name="data"> The decompressed and parsed data on success or defaulted data otherwise. </param>
     /// <returns> The version byte that was prepended or <see cref="byte.MaxValue"/> on failure. </returns>
     /// <remarks> See <see cref="ToCompressedBase64{T}"/> for the compression steps. </remarks>
-    public static byte FromCompressedBase64<T>(string base64, out T? data)
+    public static byte FromCompressedBase64<T>(ReadOnlySpan<byte> base64, out T? data)
     {
         var version = byte.MaxValue;
         try
         {
-            var       bytes            = Convert.FromBase64String(base64);
+            var bytes = new byte[System.Buffers.Text.Base64.GetMaxDecodedFromUtf8Length(base64.Length)];
+            if (System.Buffers.Text.Base64.DecodeFromUtf8(base64, bytes, out _, out var length) is not OperationStatus.Done)
+            {
+                data = default;
+                return version;
+            }
+
             using var compressedStream = new MemoryStream(bytes);
             using var zipStream        = new GZipStream(compressedStream, CompressionMode.Decompress);
             using var resultStream     = new MemoryStream();
             zipStream.CopyTo(resultStream);
-            bytes   = resultStream.ToArray();
-            version = bytes[0];
-            var json = Encoding.UTF8.GetString(bytes, 1, bytes.Length - 1);
-            data = JsonConvert.DeserializeObject<T>(json);
+            resultStream.Position = 0;
+            version               = (byte)resultStream.ReadByte();
+            data                  = JsonSerializer.Deserialize<T>(resultStream, JsonFunctions.SerializerOptions);
         }
         catch
         {

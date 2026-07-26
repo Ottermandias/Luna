@@ -19,6 +19,14 @@ public static class JsonFunctions
         Encoder             = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
     };
 
+    /// <summary> The unformatted JSON serializer options we use for compressed data and similar. </summary>
+    public static readonly JsonSerializerOptions UnformattedSerializerOptions = new()
+    {
+        WriteIndented       = false,
+        AllowTrailingCommas = false,
+        Encoder             = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
+    };
+
     /// <summary> The default JSON Writer options we use. </summary>
     public static readonly JsonWriterOptions WriterOptions = new()
     {
@@ -29,7 +37,7 @@ public static class JsonFunctions
         Encoder         = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
     };
 
-    /// <summary> The default JSON Writer options we use. </summary>
+    /// <summary> The unformatted JSON Writer options we use for compressed data and similar. </summary>
     public static readonly JsonWriterOptions UnformattedOptions = new()
     {
         SkipValidation = true,
@@ -715,9 +723,10 @@ public static class JsonFunctions
         }
 
         /// <summary> Read an array of string values that represent flags of an enum. </summary>
+        /// <param name="ignoreUnknownValues"> Whether entries not matching any enum entries should be ignored or throw an error. </param>
         /// <returns> Null if the array is null, the bitwise OR'd flags otherwise. </returns>
         /// <exception cref="JsonException"> Throws if the JSON is not an array of strings that each represent a value of the flag enumeration. </exception>
-        public TEnum? ReadFlagEnumArray<TEnum>() where TEnum : unmanaged, Enum
+        public TEnum? ReadFlagEnumArray<TEnum>(bool ignoreUnknownValues = false) where TEnum : unmanaged, Enum
         {
             if (reader.TokenType is JsonTokenType.Null)
                 return null;
@@ -732,10 +741,10 @@ public static class JsonFunctions
                 if (reader.TokenType is JsonTokenType.EndArray)
                     return ret;
 
-                if (!reader.TryReadTextEnum(out TEnum value))
+                if (reader.TryReadTextEnum(out TEnum value))
+                    ret = ret.Or(value);
+                else if (!ignoreUnknownValues)
                     throw new Exception($"Expected string representing a flag of {typeof(TEnum).Name}.");
-
-                ret = ret.Or(value);
             }
 
             if (reader.TokenType is not JsonTokenType.EndArray)
@@ -766,7 +775,8 @@ public static class JsonFunctions
         /// <param name="allowUnsignedNegative"> Whether to allow reading a negative number for unsigned values. </param>
         /// <returns> True if the number was successfully read, false otherwise. </returns>
         /// <exception cref="ArgumentException"> If <typeparamref name="TNumber"/> is not one of the built-in integers or floats. </exception>
-        public bool TryReadNumber<TNumber>(out TNumber number, TNumber @default = default, bool allowUnsignedNegative = false) where TNumber : unmanaged, INumber<TNumber>
+        public bool TryReadNumber<TNumber>(out TNumber number, TNumber @default = default, bool allowUnsignedNegative = false)
+            where TNumber : unmanaged, INumber<TNumber>
         {
             // Read the actual number according to type.
             if (reader.TokenType is JsonTokenType.Number)
@@ -785,7 +795,6 @@ public static class JsonFunctions
 
                     number = Unsafe.As<sbyte, TNumber>(ref sb);
                     return true;
-
                 }
 
                 if (typeof(TNumber) == typeof(sbyte))
@@ -810,7 +819,6 @@ public static class JsonFunctions
 
                     number = Unsafe.As<short, TNumber>(ref sb);
                     return true;
-
                 }
 
                 if (typeof(TNumber) == typeof(short))
@@ -835,7 +843,6 @@ public static class JsonFunctions
 
                     number = Unsafe.As<int, TNumber>(ref sb);
                     return true;
-
                 }
 
                 if (typeof(TNumber) == typeof(int))
@@ -860,7 +867,6 @@ public static class JsonFunctions
 
                     number = Unsafe.As<long, TNumber>(ref sb);
                     return true;
-
                 }
 
                 if (typeof(TNumber) == typeof(long))

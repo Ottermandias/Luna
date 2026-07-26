@@ -28,6 +28,12 @@ public sealed unsafe class ImSharpDalamudContext : IRequiredService, IDisposable
     private readonly IUiBuilder              _uiBuilder;
     private readonly IDalamudPluginInterface _pluginInterface;
 
+    /// <summary> Invoked whenever the default style or colors change. </summary>
+    public static event Action? StyleChanged;
+
+    /// <summary> Invoked whenever the default font or scale changes. </summary>
+    public static event Action? FontChanged;
+
     /// <summary>
     ///   Creates an <see cref="ImSharpContext"/> and shares it through Dalamud's shared data store. <br/>
     ///   Sets up the logger for this instance of Luna. <br/>
@@ -224,15 +230,22 @@ public sealed unsafe class ImSharpDalamudContext : IRequiredService, IDisposable
     }
 
     private static void OnDefaultStyleChanged()
-        => CacheManager.Instance.SetFontDirty();
-
-    private static void OnDefaultGlobalScaleChanged()
-        => CacheManager.Instance.SetFontDirty();
-
-    private static void OnDefaultFontChanged()
     {
         CacheManager.Instance.SetStyleDirty();
         CacheManager.Instance.SetColorsDirty();
+        StyleChanged?.Invoke();
+    }
+
+    private static void OnDefaultGlobalScaleChanged()
+    {
+        CacheManager.Instance.SetFontDirty();
+        FontChanged?.Invoke();
+    }
+
+    private static void OnDefaultFontChanged()
+    {
+        CacheManager.Instance.SetFontDirty();
+        FontChanged?.Invoke();
     }
 
     private void OnFrameworkUpdate()
