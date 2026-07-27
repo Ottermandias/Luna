@@ -1,6 +1,4 @@
 using Dalamud.Interface.ImGuiNotification;
-using FFXIVClientStructs.STD.Helper;
-using ImSharp.Internal;
 
 namespace Luna;
 
