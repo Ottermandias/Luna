@@ -16,22 +16,24 @@ public class ColorTypeCombo<TColorId, TColorData>(ColorDictionary<TColorId, TCol
     /// <summary> Draw the combo for the current type and a specific parent ID. Custom Values are only available to select here when there are actual options for this. </summary>
     /// <param name="parentId"> The color ID for which this combo is drawn. </param>
     /// <param name="value"> The current type of the associated value for the color ID. </param>
+    /// <param name="currentColor"> The actual color this color ID currently resolves to, which is only used when moving from something else to Const. </param>
     /// <param name="newValue"> On selection, a new associated value for the color ID that may be a defaulted reference. </param>
     /// <param name="width"> The width of the selector. </param>
     /// <returns> True if a type was selected this frame. </returns>
-    public bool Draw(TColorId parentId, ColorDataUnion.TypeEnum value, out ColorDataUnion newValue, float width)
+    public bool Draw(TColorId parentId, ColorDataUnion.TypeEnum value, Rgba32 currentColor, out ColorDataUnion newValue, float width)
     {
         _parentId = parentId;
-        if (!Draw("##Type"u8, ref value, "Choose a reference to another color type."u8, width))
+        var newType = value;
+        if (!Draw("##Type"u8, ref newType, "Choose a reference to another color type."u8, width) || newType == value)
         {
             newValue = ColorDataUnion.Default;
             return false;
         }
 
-        newValue = value switch
+        newValue = newType switch
         {
             ColorDataUnion.TypeEnum.Default => ColorDataUnion.Default,
-            ColorDataUnion.TypeEnum.Const   => ColorDataUnion.Default,
+            ColorDataUnion.TypeEnum.Const   => new ColorDataUnion(currentColor),
             ColorDataUnion.TypeEnum.Self => ColorDataUnion.FromSelf(EnumExtensions.get_Values<TColorId>()
                 .First(i => !dictionary.CheckForCycles(_parentId, ColorDataUnion.FromSelf(i)))),
             ColorDataUnion.TypeEnum.ImGui   => new ColorDataUnion(ImGuiColor.Text),

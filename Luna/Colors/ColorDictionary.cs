@@ -46,11 +46,20 @@ public sealed class ColorDictionary<TColorId, TColorData> : IReadOnlyCollection<
         get => _colors.GetValueOrDefault(id, ColorDataUnion.Default);
         set
         {
-            if (value == _colors.GetValueOrDefault(id, ColorDataUnion.Default))
-                return;
+            if (_colors.TryGetValue(id, out var currentValue))
+            {
+                if (currentValue == value)
+                    return;
 
-            _colors[id] = value;
-            Change.Invoke();
+                _colors[id] = value;
+                Change.Invoke();
+            }
+            else
+            {
+                _colors[id] = value;
+                if (!value.IsDefault)
+                    Change.Invoke();
+            }
         }
     }
 
@@ -120,6 +129,7 @@ public sealed class ColorDictionary<TColorId, TColorData> : IReadOnlyCollection<
             Serialize(j, withDefaults);
         }
 
+        memory.Flush();
         var bytes = memory.GetBuffer().AsSpan(0, (int)memory.Length);
         return CompressionFunctions.ToCompressedBase64(bytes, 1);
     }
@@ -137,6 +147,9 @@ public sealed class ColorDictionary<TColorId, TColorData> : IReadOnlyCollection<
         var reader = new Utf8JsonReader(data.Span);
         try
         {
+            if (!reader.Read())
+                return null;
+
             return Deserialize(null, ref reader, withDefaults, false, true);
         }
         catch
@@ -239,11 +252,9 @@ public sealed class ColorDictionary<TColorId, TColorData> : IReadOnlyCollection<
     /// <returns> The parsed color dictionary. </returns>
     /// <exception cref="JsonException"> When the dictionary could not be parsed or an unknown ID was encountered while not being allowed. </exception>
     public static ColorDictionary<TColorId, TColorData> Deserialize(MessageService? messager, ref Utf8JsonReader j, bool withDefaults,
-        bool allDefaults,
-        bool ignoreUnknowns)
+        bool allDefaults, bool ignoreUnknowns)
     {
-        var ret = allDefaults ? InitializeWithDefaults() : new ColorDictionary<TColorId, TColorData>();
-
+        var ret         = allDefaults ? InitializeWithDefaults() : new ColorDictionary<TColorId, TColorData>();
         var failures    = new HashSet<(TColorId, string)>();
         var objectScope = j.CreateObjectLimit();
         while (objectScope.Read(ref j))

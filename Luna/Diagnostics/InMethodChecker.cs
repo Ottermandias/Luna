@@ -1,4 +1,4 @@
-﻿namespace Luna;
+namespace Luna;
 
 /// <summary> A utility struct to check whether a thread is within a specific method. </summary>
 public readonly struct InMethodChecker

@@ -75,7 +75,7 @@ public static class ColorSettingsDrawer
 
         Im.Line.SameInner();
 
-        if (drawCache.Draw(id, setValue, out var newValue))
+        if (drawCache.Draw(id, cache[id], setValue, out var newValue))
         {
             dict[id] = newValue;
             ret      = true;
@@ -190,13 +190,13 @@ public static class ColorSettingsDrawer
         private readonly LunaColorCombo                         _luna        = new();
         private readonly CustomColorCombo<TColorId, TColorData> _customCombo = new(dictionary);
 
-        public bool Draw(TColorId id, ColorDataUnion input, out ColorDataUnion output)
+        public bool Draw(TColorId id, Rgba32 currentColor, ColorDataUnion input, out ColorDataUnion output)
         {
             var totalWidth = 320 * Im.Style.GlobalScale;
             var (typeWidth, comboWidth) = input.Type is ColorDataUnion.TypeEnum.Default or ColorDataUnion.TypeEnum.Const
                 ? (totalWidth, 0)
                 : (100 * Im.Style.GlobalScale, totalWidth - 100 * Im.Style.GlobalScale - Im.Style.ItemInnerSpacing.X);
-            var ret = _type.Draw(id, input.Type, out output, typeWidth);
+            var ret = _type.Draw(id, input.Type, currentColor, out output, typeWidth);
             Im.Line.SameInner();
             switch (input.Type)
             {

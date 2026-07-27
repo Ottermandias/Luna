@@ -14,12 +14,14 @@ public static class CompressionFunctions
         try
         {
             using var compressedStream = new MemoryStream();
-            using (var zipStream = new GZipStream(compressedStream, CompressionMode.Compress))
+            using (var zipStream = new GZipStream(compressedStream, CompressionMode.Compress, true))
             {
                 zipStream.Write(new ReadOnlySpan<byte>(&version, 1));
                 zipStream.Write(data);
             }
 
+            compressedStream.Flush();
+            compressedStream.Position = 0;
             var ret    = new byte[System.Buffers.Text.Base64.GetMaxEncodedToUtf8Length((int)compressedStream.Length)];
             var length = compressedStream.Read(ret);
             if (System.Buffers.Text.Base64.EncodeToUtf8InPlace(ret, length, out var newLength) is not OperationStatus.Done)
@@ -70,7 +72,7 @@ public static class CompressionFunctions
                 return version;
             }
 
-            using var compressedStream = new MemoryStream(bytes);
+            using var compressedStream = new MemoryStream(bytes, 0, length);
             using var zipStream        = new GZipStream(compressedStream, CompressionMode.Decompress);
             using var resultStream     = new MemoryStream();
             zipStream.CopyTo(resultStream);
