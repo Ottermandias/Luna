@@ -48,6 +48,8 @@ public static class ColorSettingsDrawer
             using var clip = new Im.ListClipper(colors.Count, Im.Style.FrameHeightWithSpacing);
             foreach (var (colorId, colorData) in clip.Iterate(colors))
                 ret |= ColorPicker(drawCache, colorId, colorData, dict, cache);
+            if(index != drawCache.Sections.Count)
+                LunaStyle.DrawSeparator();
         }
 
         return ret;
