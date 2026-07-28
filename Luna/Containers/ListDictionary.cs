@@ -75,6 +75,40 @@ public class ListDictionary<TKey, TValue> : IReadOnlyCollection<KeyValuePair<TKe
         return true;
     }
 
+    /// <summary> Try to add a list of values for a given key. </summary>
+    /// <param name="key"> The key to add values for. </param>
+    /// <param name="values"> The values to add. </param>
+    /// <returns> True if the key did not exist before, false otherwise. </returns>
+    /// <remarks> This takes ownership of the list of values. </remarks>
+    public bool TryAddOwned(in TKey key, params List<TValue> values)
+    {
+        if (!_dict.TryAdd(key, values))
+            return false;
+
+        ValueCount += values.Count;
+        return true;
+    }
+
+    /// <summary> Try to add a list of values for a given key. </summary>
+    /// <param name="key"> The key to add values for. </param>
+    /// <param name="values"> The values to add. </param>
+    /// <remarks> This can not normally fail, since values are not unique inside their list. </remarks>
+    public bool TryAdd(in TKey key, params IEnumerable<TValue> values)
+    {
+        if (_dict.TryGetValue(key, out var list))
+        {
+            var oldCount = list.Count;
+            list.AddRange(values);
+            ValueCount += list.Count - oldCount;
+            return true;
+        }
+
+        list = [..values];
+        _dict.Add(key, list);
+        ValueCount += list.Count;
+        return true;
+    }
+
     /// <summary> Remove a given key and return the list of values associated with it, if it existed. </summary>
     /// <param name="key"> The key to remove. </param>
     /// <param name="values"> The values associated with the key, if the key was found. </param>
@@ -117,6 +151,24 @@ public class ListDictionary<TKey, TValue> : IReadOnlyCollection<KeyValuePair<TKe
     /// <returns> True if the value was found. </returns>
     public bool ContainsValue(TValue value)
         => _dict.Values.Any(l => l.Contains(value));
+
+    /// <summary> Check whether the other set dictionary contains the exact same keys and values. </summary>
+    public bool Equals(SetDictionary<TKey, TValue> other)
+    {
+        if (KeyCount != other.KeyCount || ValueCount != other.ValueCount)
+            return false;
+
+        foreach (var (key, values) in Grouped)
+        {
+            if (!other.TryGetValue(key, out var otherValues) || values.Count != otherValues.Count)
+                return false;
+
+            if (!values.SequenceEqual(otherValues))
+                return false;
+        }
+
+        return true;
+    }
 
     /// <summary> Get the number of distinct keys in the dictionary. </summary>
     public int KeyCount
