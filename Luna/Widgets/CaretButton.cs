@@ -40,6 +40,9 @@ public struct CaretButton
     /// <summary> The width of the button border. </summary>
     public float BorderWidth;
 
+    /// <summary> The alignment of the text. The caret is always left-aligned, and the tooltip button is always right-aligned. </summary>
+    public float TextAlignment;
+
     /// <summary> Draw the button. </summary>
     /// <param name="label"> The label to display, this follows usual ImGui conventions. </param>
     /// <param name="tooltip"> The tooltip to display when hovered. If this is not empty, the tooltip icon will be shown to the right of the label if it is set. </param>
@@ -82,18 +85,23 @@ public struct CaretButton
 
         var drawList = Im.Window.DrawList;
         var rect     = Rectangle.FromSize(startPos, Im.Item.Size);
-        using (Im.Drawing.PushClipRect(rect, true))
+        startPos += Im.Style.FramePadding;
+        drawList.Render.Arrow(startPos, colors.Caret, caret, Im.Style.GlobalScale);
+        var textEnd = tooltipIconWidth > 0
+            ? rect.Maximum.X - tooltipIconWidth - Im.Style.FramePadding.X - Im.Style.ItemInnerSpacing.X
+            : rect.Maximum.X - Im.Style.FramePadding.X;
+        var textRect = new Rectangle(startPos.AddX(Im.Style.TextHeight + Im.Style.ItemInnerSpacing.X),
+            new Vector2(textEnd, rect.Maximum.Y - Im.Style.FramePadding.Y));
+        using (ImGuiColor.Text.Push(colors.Text))
         {
-            startPos += Im.Style.FramePadding;
-            drawList.Render.Arrow(startPos, colors.Caret, caret, Im.Style.GlobalScale);
-            startPos.X += Im.Style.TextHeight + Im.Style.ItemInnerSpacing.X;
-            drawList.Text(startPos, colors.Text, visible);
-            if (tooltipIconWidth > 0)
-            {
-                startPos.X = rect.Maximum.X - tooltipIconWidth - Im.Style.FramePadding.X;
-                drawList.Text(AwesomeIcon.Font, AwesomeIcon.Font.Size, startPos, TooltipIconColor.CheckDefault(ImGuiColor.TextDisabled),
-                    TooltipIcon.Span);
-            }
+            drawList.TextClipped(textRect, visible, null, new Vector2(TextAlignment, 0.5f));
+        }
+
+        if (tooltipIconWidth > 0)
+        {
+            startPos.X = textRect.Maximum.X + Im.Style.ItemInnerSpacing.X;
+            drawList.Text(AwesomeIcon.Font, AwesomeIcon.Font.Size, startPos, TooltipIconColor.CheckDefault(ImGuiColor.TextDisabled),
+                TooltipIcon.Span);
         }
 
         return (clicked, clicked ? !open : open);
