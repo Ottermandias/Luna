@@ -32,6 +32,11 @@ public abstract class FastHook<T> : IHookService, IDisposable where T : Delegate
     /// <summary> Set the hook's state. </summary>
     /// <param name="value"> True toggles on, false toggles off. </param>
     public void Set(bool value)
+        => Set(value, true);
+
+    /// <inheritdoc cref="Set(bool)"/>
+    /// <remarks> Used for event subscriptions to ConfigProperties. </remarks>
+    protected void Set(bool value, bool _)
     {
         if (value)
             Enable();

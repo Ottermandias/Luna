@@ -1229,111 +1229,144 @@ public static class JsonFunctions
     }
 
 
-    /// <summary> Only write a string property if the string is neither null nor empty. </summary>
     /// <param name="j"> The JSON writer. </param>
-    /// <param name="property"> The property name. It gets omitted entirely if <paramref name="text"/> is null or empty. </param>
-    /// <param name="text"> The text value. </param>
-    [MethodImpl(ImSharpConfiguration.Inl)]
-    public static void WriteNonEmptyString(this Utf8JsonWriter j, ReadOnlySpan<byte> property, string? text)
+    extension(Utf8JsonWriter j)
     {
-        if (!string.IsNullOrEmpty(text))
-            j.WriteString(property, text);
-    }
-
-    /// <summary> Only write a boolean property if the value is not equal to the specified null value. </summary>
-    /// <param name="j"> The JSON writer. </param>
-    /// <param name="property"> The property name. It gets omitted entirely if <paramref name="value"/> equals <paramref name="nullValue"/>. </param>
-    /// <param name="value"> The value. </param>
-    /// <param name="nullValue"> The null value. </param>
-    [MethodImpl(ImSharpConfiguration.Inl)]
-    public static void WriteBoolIf(this Utf8JsonWriter j, ReadOnlySpan<byte> property, bool value, bool nullValue)
-    {
-        if (value != nullValue)
-            j.WriteBoolean(property, value);
-    }
-
-    /// <summary> Only write an unsigned number property if the value is not equal to the specified null value. </summary>
-    /// <param name="j"> The JSON writer. </param>
-    /// <param name="property"> The property name. It gets omitted entirely if <paramref name="value"/> equals <paramref name="nullValue"/>. </param>
-    /// <param name="value"> The value. </param>
-    /// <param name="nullValue"> The null value. </param>
-    [MethodImpl(ImSharpConfiguration.Inl)]
-    public static unsafe void WriteUnsignedIfNot<T>(this Utf8JsonWriter j, ReadOnlySpan<byte> property, T value, T nullValue)
-        where T : unmanaged
-    {
-        switch (sizeof(T))
+        /// <summary> Only write a string property if the string is neither null nor empty. </summary>
+        /// <param name="property"> The property name. It gets omitted entirely if <paramref name="text"/> is null or empty. </param>
+        /// <param name="text"> The text value. </param>
+        [MethodImpl(ImSharpConfiguration.Inl)]
+        public void WriteNonEmptyString(ReadOnlySpan<byte> property, string? text)
         {
-            case 1:
-            {
-                var v = Unsafe.As<T, byte>(ref value);
-                if (v != Unsafe.As<T, byte>(ref nullValue))
-                    j.WriteNumber(property, v);
-                break;
-            }
-            case 2:
-            {
-                var v = Unsafe.As<T, ushort>(ref value);
-                if (v != Unsafe.As<T, ushort>(ref nullValue))
-                    j.WriteNumber(property, v);
-                break;
-            }
-            case 4:
-            {
-                var v = Unsafe.As<T, uint>(ref value);
-                if (v != Unsafe.As<T, uint>(ref nullValue))
-                    j.WriteNumber(property, v);
-                break;
-            }
-            case 8:
-            {
-                var v = Unsafe.As<T, ulong>(ref value);
-                if (v != Unsafe.As<T, ulong>(ref nullValue))
-                    j.WriteNumber(property, v);
-                break;
-            }
-            default: throw new ArgumentException($"The type {typeof(T)} is not supported for {nameof(WriteUnsignedIfNot)}.");
+            if (!string.IsNullOrEmpty(text))
+                j.WriteString(property, text);
         }
-    }
 
-    /// <summary> Only write a signed number property if the value is not equal to the specified null value. </summary>
-    /// <param name="j"> The JSON writer. </param>
-    /// <param name="property"> The property name. It gets omitted entirely if <paramref name="value"/> equals <paramref name="nullValue"/>. </param>
-    /// <param name="value"> The value. </param>
-    /// <param name="nullValue"> The null value. </param>
-    [MethodImpl(ImSharpConfiguration.Inl)]
-    public static unsafe void WriteSignedIfNot<T>(this Utf8JsonWriter j, ReadOnlySpan<byte> property, T value, T nullValue) where T : unmanaged
-    {
-        switch (sizeof(T))
+        /// <summary> Only write a boolean property if the value is not equal to the specified null value. </summary>
+        /// <param name="property"> The property name. It gets omitted entirely if <paramref name="value"/> equals <paramref name="nullValue"/>. </param>
+        /// <param name="value"> The value. </param>
+        /// <param name="nullValue"> The null value. </param>
+        [MethodImpl(ImSharpConfiguration.Inl)]
+        [OverloadResolutionPriority(100)]
+        public void WriteIfNot(ReadOnlySpan<byte> property, bool value, bool nullValue)
         {
-            case 1:
+            if (value != nullValue)
+                j.WriteBoolean(property, value);
+        }
+
+        /// <summary> Only write a number property if the value is not equal to the specified null value. </summary>
+        /// <param name="property"> The property name. It gets omitted entirely if <paramref name="value"/> equals <paramref name="nullValue"/>. </param>
+        /// <param name="value"> The value. </param>
+        /// <param name="nullValue"> The null value. </param>
+        [MethodImpl(ImSharpConfiguration.Inl)]
+        [OverloadResolutionPriority(100)]
+        public void WriteIfNot(ReadOnlySpan<byte> property, float value, float nullValue)
+        {
+            if (nullValue != value)
+                j.WriteNumber(property, value);
+        }
+
+        /// <inheritdoc cref="WriteIfNot(Utf8JsonWriter,ReadOnlySpan{byte},float,float)"/>
+        [MethodImpl(ImSharpConfiguration.Inl)]
+        [OverloadResolutionPriority(100)]
+        public void WriteIfNot(ReadOnlySpan<byte> property, double value, double nullValue)
+        {
+            if (nullValue != value)
+                j.WriteNumber(property, value);
+        }
+
+        /// <inheritdoc cref="WriteIfNot(Utf8JsonWriter,ReadOnlySpan{byte},float,float)"/>
+        [MethodImpl(ImSharpConfiguration.Inl)]
+        [OverloadResolutionPriority(0)]
+        public void WriteIfNot<T>(ReadOnlySpan<byte> property, T value, T nullValue, bool signed = true) where T : unmanaged, INumber<T>
+        {
+            if (signed)
+                j.WriteSignedIfNot(property, value, nullValue);
+            else
+                j.WriteUnsignedIfNot(property, value, nullValue);
+        }
+
+        /// <summary> Only write an unsigned number property if the value is not equal to the specified null value. </summary>
+        /// <param name="property"> The property name. It gets omitted entirely if <paramref name="value"/> equals <paramref name="nullValue"/>. </param>
+        /// <param name="value"> The value. </param>
+        /// <param name="nullValue"> The null value. </param>
+        [MethodImpl(ImSharpConfiguration.Inl)]
+        public unsafe void WriteUnsignedIfNot<T>(ReadOnlySpan<byte> property, T value, T nullValue)
+            where T : unmanaged
+        {
+            switch (sizeof(T))
             {
-                var v = Unsafe.As<T, sbyte>(ref value);
-                if (v != Unsafe.As<T, sbyte>(ref nullValue))
-                    j.WriteNumber(property, v);
-                break;
+                case 1:
+                {
+                    var v = Unsafe.As<T, byte>(ref value);
+                    if (v != Unsafe.As<T, byte>(ref nullValue))
+                        j.WriteNumber(property, v);
+                    break;
+                }
+                case 2:
+                {
+                    var v = Unsafe.As<T, ushort>(ref value);
+                    if (v != Unsafe.As<T, ushort>(ref nullValue))
+                        j.WriteNumber(property, v);
+                    break;
+                }
+                case 4:
+                {
+                    var v = Unsafe.As<T, uint>(ref value);
+                    if (v != Unsafe.As<T, uint>(ref nullValue))
+                        j.WriteNumber(property, v);
+                    break;
+                }
+                case 8:
+                {
+                    var v = Unsafe.As<T, ulong>(ref value);
+                    if (v != Unsafe.As<T, ulong>(ref nullValue))
+                        j.WriteNumber(property, v);
+                    break;
+                }
+                default: throw new ArgumentException($"The type {typeof(T)} is not supported for {nameof(WriteUnsignedIfNot)}.");
             }
-            case 2:
+        }
+
+        /// <summary> Only write a signed number property if the value is not equal to the specified null value. </summary>
+        /// <param name="property"> The property name. It gets omitted entirely if <paramref name="value"/> equals <paramref name="nullValue"/>. </param>
+        /// <param name="value"> The value. </param>
+        /// <param name="nullValue"> The null value. </param>
+        [MethodImpl(ImSharpConfiguration.Inl)]
+        public unsafe void WriteSignedIfNot<T>(ReadOnlySpan<byte> property, T value, T nullValue) where T : unmanaged
+        {
+            switch (sizeof(T))
             {
-                var v = Unsafe.As<T, short>(ref value);
-                if (v != Unsafe.As<T, short>(ref nullValue))
-                    j.WriteNumber(property, v);
-                break;
+                case 1:
+                {
+                    var v = Unsafe.As<T, sbyte>(ref value);
+                    if (v != Unsafe.As<T, sbyte>(ref nullValue))
+                        j.WriteNumber(property, v);
+                    break;
+                }
+                case 2:
+                {
+                    var v = Unsafe.As<T, short>(ref value);
+                    if (v != Unsafe.As<T, short>(ref nullValue))
+                        j.WriteNumber(property, v);
+                    break;
+                }
+                case 4:
+                {
+                    var v = Unsafe.As<T, int>(ref value);
+                    if (v != Unsafe.As<T, int>(ref nullValue))
+                        j.WriteNumber(property, v);
+                    break;
+                }
+                case 8:
+                {
+                    var v = Unsafe.As<T, long>(ref value);
+                    if (v != Unsafe.As<T, long>(ref nullValue))
+                        j.WriteNumber(property, v);
+                    break;
+                }
+                default: throw new ArgumentException($"The type {typeof(T)} is not supported for {nameof(WriteSignedIfNot)}.");
             }
-            case 4:
-            {
-                var v = Unsafe.As<T, int>(ref value);
-                if (v != Unsafe.As<T, int>(ref nullValue))
-                    j.WriteNumber(property, v);
-                break;
-            }
-            case 8:
-            {
-                var v = Unsafe.As<T, long>(ref value);
-                if (v != Unsafe.As<T, long>(ref nullValue))
-                    j.WriteNumber(property, v);
-                break;
-            }
-            default: throw new ArgumentException($"The type {typeof(T)} is not supported for {nameof(WriteSignedIfNot)}.");
         }
     }
 
