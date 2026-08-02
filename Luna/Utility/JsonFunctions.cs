@@ -1242,6 +1242,19 @@ public static class JsonFunctions
                 j.WriteString(property, text);
         }
 
+        /// <summary> Only write a string property if the string is not equal to the specified null value. </summary>
+        /// <param name="property"> The property name. It gets omitted entirely if <paramref name="value"/> equals <paramref name="nullValue"/>. </param>
+        /// <param name="value"> The text value. </param>
+        /// <param name="nullValue"> The null value. </param>
+        /// <param name="comparer"> The comparer to use. </param>
+        [MethodImpl(ImSharpConfiguration.Inl)]
+        public void WriteIfNot(ReadOnlySpan<byte> property, string value, string nullValue,
+            StringComparison comparer = StringComparison.Ordinal)
+        {
+            if (!string.Equals(value, nullValue, comparer))
+                j.WriteString(property, value);
+        }
+
         /// <summary> Only write a boolean property if the value is not equal to the specified null value. </summary>
         /// <param name="property"> The property name. It gets omitted entirely if <paramref name="value"/> equals <paramref name="nullValue"/>. </param>
         /// <param name="value"> The value. </param>
@@ -1273,6 +1286,15 @@ public static class JsonFunctions
         {
             if (nullValue != value)
                 j.WriteNumber(property, value);
+        }
+
+        /// <inheritdoc cref="WriteIfNot(Utf8JsonWriter,ReadOnlySpan{byte},float,float)"/>
+        [MethodImpl(ImSharpConfiguration.Inl)]
+        [OverloadResolutionPriority(100)]
+        public void WriteEnumIfNot<T>(ReadOnlySpan<byte> property, T value, T nullValue) where T : unmanaged, Enum
+        {
+            if (!EqualityComparer<T>.Default.Equals(value, nullValue))
+                j.WriteString(property, value.StringU8);
         }
 
         /// <inheritdoc cref="WriteIfNot(Utf8JsonWriter,ReadOnlySpan{byte},float,float)"/>
@@ -1440,14 +1462,32 @@ public static class JsonFunctions
             writer.WriteEndObject();
         }
 
-        /// <summary> Only write a string property if the string is neither null nor empty. </summary>
-        /// <param name="property"> The property name. It gets omitted entirely if <paramref name="text"/> is null or empty. </param>
-        /// <param name="text"> The text value. </param>
+        /// <summary> Write a property name and start the object beforehand if it is not started yet. </summary>
+        /// <param name="property"> The name of the property to write. </param>
+        public void WriteProperty(ReadOnlySpan<byte> property)
+        {
+            StartObject();
+            writer.WritePropertyName(property);
+        }
+
+        /// <inheritdoc cref="JsonFunctions.WriteNonEmptyString"/>
         [MethodImpl(ImSharpConfiguration.Inl)]
         public void WriteNonEmptyString(ReadOnlySpan<byte> property, string? text)
         {
             if (!string.IsNullOrEmpty(text))
                 writer.WriteString(property, text);
+        }
+
+        /// <inheritdoc cref="JsonFunctions.WriteIfNot(Utf8JsonWriter,ReadOnlySpan{byte},string,string,StringComparison)"/>
+        [MethodImpl(ImSharpConfiguration.Inl)]
+        public void WriteIfNot(ReadOnlySpan<byte> property, string value, string nullValue,
+            StringComparison comparer = StringComparison.Ordinal)
+        {
+            if (string.Equals(value, nullValue, comparer))
+                return;
+
+            StartObject();
+            writer.WriteString(property, value);
         }
 
         private void StartObject()
@@ -1460,18 +1500,58 @@ public static class JsonFunctions
             writer.WriteStartObject();
         }
 
-        /// <summary> Only write a boolean property if the value is not equal to the specified null value. </summary>
-        /// <param name="property"> The property name. It gets omitted entirely if <paramref name="value"/> equals <paramref name="nullValue"/>. </param>
-        /// <param name="value"> The value. </param>
-        /// <param name="nullValue"> The null value. </param>
+        /// <inheritdoc cref="JsonFunctions.WriteIfNot(Utf8JsonWriter,ReadOnlySpan{byte},bool,bool)"/>
         [MethodImpl(ImSharpConfiguration.Inl)]
-        public void WriteBoolIf(ReadOnlySpan<byte> property, bool value, bool nullValue)
+        public void WriteIfNot(ReadOnlySpan<byte> property, bool value, bool nullValue)
         {
             if (value == nullValue)
                 return;
 
             StartObject();
             writer.WriteBoolean(property, value);
+        }
+
+        /// <inheritdoc cref="JsonFunctions.WriteIfNot(Utf8JsonWriter,ReadOnlySpan{byte},float,float)"/>
+        [MethodImpl(ImSharpConfiguration.Inl)]
+        public void WriteIfNot(ReadOnlySpan<byte> property, float value, float nullValue)
+        {
+            if (value == nullValue)
+                return;
+
+            StartObject();
+            writer.WriteNumber(property, value);
+        }
+
+        /// <inheritdoc cref="JsonFunctions.WriteIfNot(Utf8JsonWriter,ReadOnlySpan{byte},double,double)"/>
+        [MethodImpl(ImSharpConfiguration.Inl)]
+        public void WriteIfNot(ReadOnlySpan<byte> property, double value, double nullValue)
+        {
+            if (value == nullValue)
+                return;
+
+            StartObject();
+            writer.WriteNumber(property, value);
+        }
+
+        /// <inheritdoc cref="JsonFunctions.WriteEnumIfNot{T}(Utf8JsonWriter,ReadOnlySpan{byte},T,T)"/>
+        [MethodImpl(ImSharpConfiguration.Inl)]
+        public void WriteEnumIfNot<T>(ReadOnlySpan<byte> property, T value, T nullValue) where T : unmanaged, Enum
+        {
+            if (EqualityComparer<T>.Default.Equals(value, nullValue))
+                return;
+
+            StartObject();
+            writer.WriteString(property, value.StringU8);
+        }
+
+        /// <inheritdoc cref="JsonFunctions.WriteIfNot{T}(Utf8JsonWriter,ReadOnlySpan{byte},T,T,bool)"/>
+        [MethodImpl(ImSharpConfiguration.Inl)]
+        public void WriteIfNot<T>(ReadOnlySpan<byte> property, T value, T nullValue, bool signed = true) where T : unmanaged, INumber<T>
+        {
+            if (signed)
+                WriteSignedIfNot(property, value, nullValue);
+            else
+                WriteUnsignedIfNot(property, value, nullValue);
         }
 
         /// <summary> Only write an unsigned number property if the value is not equal to the specified null value. </summary>

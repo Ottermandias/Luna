@@ -48,6 +48,7 @@ public abstract class ConfigurationFile<TProvider>(BaseSaveService<TProvider> sa
         using var j = new Utf8JsonWriter(stream, JsonFunctions.WriterOptions);
         j.WriteStartObject();
         j.WriteNumber("Version"u8, CurrentVersion);
+        j.WriteNumber("Timestamp"u8, DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
         AddData(j);
         j.WriteEndObject();
     }

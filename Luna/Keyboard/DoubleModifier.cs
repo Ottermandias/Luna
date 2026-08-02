@@ -1,5 +1,7 @@
+using System.Text.Json;
 using Dalamud.Game.ClientState.Keys;
 using Newtonsoft.Json;
+using JsonSerializer = Newtonsoft.Json.JsonSerializer;
 
 namespace Luna;
 
@@ -98,6 +100,74 @@ public struct DoubleModifier : IEquatable<DoubleModifier>
     /// <summary> Check whether both required modifiers are currently held according to ImGui. </summary>
     public bool IsActive()
         => Modifier1.IsActive() && Modifier2.IsActive();
+
+    /// <summary> Serialize this object to JSON. </summary>
+    /// <param name="j"> The JSON writer. </param>
+    /// <returns> The JSON writer for method chaining. </returns>
+    public Utf8JsonWriter Serialize(Utf8JsonWriter j)
+    {
+        if (Modifier2 == ModifierHotkey.NoKey)
+        {
+            j.WriteNumberValue((ushort)Modifier1.Modifier);
+        }
+        else
+        {
+            j.WriteStartObject();
+            j.WriteNumber("Modifier1"u8, (ushort)Modifier1.Modifier);
+            j.WriteNumber("Modifier2"u8, (ushort)Modifier2.Modifier);
+            j.WriteEndObject();
+        }
+
+        return j;
+    }
+
+    /// <summary> Try deserializing a DoubleModifier from the JsonReader. </summary>
+    /// <param name="j"> The JSON reader. </param>
+    /// <param name="ret"> The deserialized value. </param>
+    /// <param name="allowNull"> Whether to parse a null-token as <see cref="NoKey"/>. </param>
+    /// <returns> True if the object could be parsed, false otherwise. </returns>
+    public static bool TryDeserialize(ref Utf8JsonReader j, out DoubleModifier ret, bool allowNull)
+    {
+        if (j.TokenType is JsonTokenType.Null)
+        {
+            ret = NoKey;
+            return allowNull;
+        }
+
+        if (j.TokenType is JsonTokenType.Number)
+        {
+            if (j.TryGetUInt16(out var m))
+            {
+                ret = new DoubleModifier(new ModifierHotkey((VirtualKey)m));
+                return true;
+            }
+
+            ret = NoKey;
+            return false;
+        }
+
+        if (j.TokenType is not JsonTokenType.StartObject)
+        {
+            ret = NoKey;
+            return false;
+        }
+
+        var limit = j.CreateObjectLimit();
+        var mod1  = ModifierHotkey.NoKey.Modifier;
+        var mod2  = ModifierHotkey.NoKey.Modifier;
+        while (limit.Read(ref j))
+        {
+            if (j.NumberProperty("Modifier1"u8, out ushort m1))
+                mod1 = new ModifierHotkey((VirtualKey)m1);
+            else if (j.NumberProperty("Modifier2"u8, out ushort m2))
+                mod2 = new ModifierHotkey((VirtualKey)m2);
+            else
+                j.Skip();
+        }
+
+        ret = new DoubleModifier(mod1, mod2);
+        return true;
+    }
 
     private sealed class Converter : JsonConverter<DoubleModifier>
     {

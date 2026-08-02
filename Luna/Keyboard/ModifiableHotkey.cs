@@ -1,5 +1,7 @@
+using System.Text.Json;
 using Dalamud.Game.ClientState.Keys;
 using Newtonsoft.Json;
+using JsonSerializer = Newtonsoft.Json.JsonSerializer;
 
 namespace Luna;
 
@@ -143,6 +145,78 @@ public struct ModifiableHotkey : IEquatable<ModifiableHotkey>
     /// <summary> Check whether both required modifiers are currently held and the associated hotkey is pressed this frame according to ImGui. </summary>
     public bool IsPressed()
         => _modifiers.IsActive() && Im.Keyboard.IsPressed(Hotkey.ToImGuiKey());
+
+    /// <summary> Serialize this object to JSON. </summary>
+    /// <param name="j"> The JSON writer. </param>
+    /// <returns> The JSON writer for method chaining. </returns>
+    public Utf8JsonWriter Serialize(Utf8JsonWriter j)
+    {
+        if (Modifiers == DoubleModifier.NoKey)
+        {
+            j.WriteNumberValue((ushort)Hotkey);
+        }
+        else
+        {
+            j.WriteStartObject();
+            j.WriteNumber("Hotkey"u8, (ushort)Hotkey);
+            j.WriteNumber("Modifier1"u8, (ushort)Modifiers.Modifier1.Modifier);
+            j.WriteIfNot("Modifier2"u8, (ushort)Modifiers.Modifier2.Modifier, (ushort)ModifierHotkey.NoKey.Modifier);
+            j.WriteEndObject();
+        }
+
+        return j;
+    }
+
+    /// <summary> Try deserializing a modifiable hotkey from the JsonReader. </summary>
+    /// <param name="j"> The JSON reader. </param>
+    /// <param name="ret"> The deserialized value. </param>
+    /// <param name="allowNull"> Whether to parse a null-token as no key. </param>
+    /// <returns> True if the object could be parsed, false otherwise. </returns>
+    public static bool TryDeserialize(ref Utf8JsonReader j, out ModifiableHotkey ret, bool allowNull)
+    {
+        if (j.TokenType is JsonTokenType.Null)
+        {
+            ret = new ModifiableHotkey();
+            return allowNull;
+        }
+
+        if (j.TokenType is JsonTokenType.Number)
+        {
+            if (j.TryGetUInt16(out var m))
+            {
+                ret = new ModifiableHotkey((VirtualKey)m);
+                return true;
+            }
+
+            ret = new ModifiableHotkey();
+            return false;
+        }
+
+        if (j.TokenType is not JsonTokenType.StartObject)
+        {
+            ret = new ModifiableHotkey();
+            return false;
+        }
+
+        var limit = j.CreateObjectLimit();
+        var hot   = VirtualKey.NO_KEY;
+        var mod1  = ModifierHotkey.NoKey.Modifier;
+        var mod2  = ModifierHotkey.NoKey.Modifier;
+        while (limit.Read(ref j))
+        {
+            if (j.NumberProperty("Hotkey"u8, out ushort h))
+                hot = (VirtualKey)h;
+            else if (j.NumberProperty("Modifier1"u8, out ushort m1))
+                mod1 = new ModifierHotkey((VirtualKey)m1);
+            else if (j.NumberProperty("Modifier2"u8, out ushort m2))
+                mod2 = new ModifierHotkey((VirtualKey)m2);
+            else
+                j.Skip();
+        }
+
+        ret = new ModifiableHotkey(hot, mod1, mod2);
+        return true;
+    }
 
     private sealed class Converter : JsonConverter<ModifiableHotkey>
     {
