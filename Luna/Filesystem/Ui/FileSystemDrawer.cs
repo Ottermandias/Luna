@@ -108,14 +108,17 @@ public abstract class FileSystemDrawer : IPanel
         var ret = new ButtonList<IFileSystemFolder>();
         ret.AddButton(new ExpandDescendantsButton(drawer.FileSystem, filter),   100);
         ret.AddButton(new CollapseDescendantsButton(drawer.FileSystem, filter), 90);
+        ret.AddButton(new MoveSelectionButton(drawer.FileSystem),               50);
+        ret.AddButton(new CreateSubFolderButton(drawer.FileSystem),             25);
 
         var editFolderButtons = new SubMenuButton<IFileSystemFolder>(new StringU8("Edit Folder"u8));
-        editFolderButtons.Entries.AddButton(new LockFolderButton(drawer.FileSystem),     20);
-        editFolderButtons.Entries.AddButton(new DissolveFolderButton(drawer.FileSystem), 15);
-        editFolderButtons.Entries.AddButton(new MenuSeparator<IFileSystemFolder>(),      12);
-        editFolderButtons.Entries.AddButton(new FolderAsSeparatorCheckbox(drawer),       11);
-        editFolderButtons.Entries.AddButton(new FolderColorEdits(drawer),                10);
-        editFolderButtons.Entries.AddButton(new SortModeSelector(drawer),                0);
+        editFolderButtons.Entries.AddButton(new LockFolderButton(drawer.FileSystem),         20);
+        editFolderButtons.Entries.AddButton(new DissolveFolderButton(drawer.FileSystem),     15);
+        editFolderButtons.Entries.AddButton(new DissolveAllFoldersButton(drawer.FileSystem), 14);
+        editFolderButtons.Entries.AddButton(new MenuSeparator<IFileSystemFolder>(),          12);
+        editFolderButtons.Entries.AddButton(new FolderAsSeparatorCheckbox(drawer),           11);
+        editFolderButtons.Entries.AddButton(new FolderColorEdits(drawer),                    10);
+        editFolderButtons.Entries.AddButton(new SortModeSelector(drawer),                    0);
         ret.AddButton(editFolderButtons, 0);
 
         ret.AddButton(new RenameFolderInput(drawer.FileSystem), -100);
