@@ -1288,7 +1288,10 @@ public static class JsonFunctions
                 j.WriteNumber(property, value);
         }
 
-        /// <inheritdoc cref="WriteIfNot(Utf8JsonWriter,ReadOnlySpan{byte},float,float)"/>
+        /// <summary> Only write an enum property as string if the value is not equal to the specified null value. </summary>
+        /// <param name="property"> The property name. It gets omitted entirely if <paramref name="value"/> equals <paramref name="nullValue"/>. </param>
+        /// <param name="value"> The value. </param>
+        /// <param name="nullValue"> The null value. </param>
         [MethodImpl(ImSharpConfiguration.Inl)]
         [OverloadResolutionPriority(100)]
         public void WriteEnumIfNot<T>(ReadOnlySpan<byte> property, T value, T nullValue) where T : unmanaged, Enum

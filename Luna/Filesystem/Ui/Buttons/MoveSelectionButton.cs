@@ -34,5 +34,3 @@ public sealed class MoveSelectionButton(BaseFileSystem fileSystem) : BaseButton<
             Im.Text($"\nHold {LunaStyle.Modifier.Misclick} while clicking to dissolve.");
     }
 }
-
-}
