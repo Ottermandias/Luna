@@ -84,3 +84,17 @@ public interface IJsonParsable<out TSelf> : IJsonParsable where TSelf : allows r
     /// <returns> The read and parsed object. </returns>
     public abstract static TSelf Read(scoped ref Utf8JsonReader reader, string filePath, object? userInput = null);
 }
+
+/// <summary> A basic indirection around a <see cref="JsonDocument"/> to parse arbitrary provided data with recovery. </summary>
+public sealed class ParsableJsonDocument : IJsonParsable<ParsableJsonDocument>
+{
+    private ParsableJsonDocument(JsonDocument document)
+        => Document = document;
+
+    /// <summary> The parsed JSON document. </summary>
+    public readonly JsonDocument Document;
+
+    /// <summary> Read the first object of the reader into a JSON document. </summary>
+    public static ParsableJsonDocument Read(scoped ref Utf8JsonReader reader, string filePath, object? userInput = null)
+        => new(JsonDocument.ParseValue(ref reader));
+}

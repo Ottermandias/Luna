@@ -1,4 +1,4 @@
-﻿using System.Text.Json;
+using System.Text.Json;
 using Newtonsoft.Json.Linq;
 
 namespace Luna;
@@ -66,16 +66,20 @@ public abstract class PredefinedTagManager<TProvider, TObj>(BaseSaveService<TPro
     }
 
     /// <inheritdoc/>
-    protected override void LoadData(JObject j)
+    protected override void LoadData(in JsonElement j)
     {
-        if (j["Tags"] is JArray array)
-            foreach (var tag in array)
-            {
-                if (tag.ToObject<string>() is not { } value)
-                    Messager.NotificationMessage("Non-string tag found, ignoring.");
-                else if (!PredefinedTags.AddUnique(value))
-                    Messager.NotificationMessage($"Duplicate tag {tag} found in predefined tags, ignoring.");
-            }
+        if (!j.TryReadArray("Tags"u8, out var array))
+            return;
+
+        foreach (var tag in array.EnumerateArray())
+        {
+            if (tag.ValueKind is not JsonValueKind.String)
+                Messager.NotificationMessage("Non-string tag found, ignoring.");
+            else if (tag.GetString() is not { } text)
+                Messager.NotificationMessage("Failed to read string tag, ignoring.");
+            else if (!PredefinedTags.AddUnique(text))
+                Messager.NotificationMessage($"Duplicate tag {text} found in predefined tags, ignoring.");
+        }
     }
 
     /// <inheritdoc/>

@@ -121,6 +121,49 @@ public struct DoubleModifier : IEquatable<DoubleModifier>
         return j;
     }
 
+    /// <summary> Try deserializing a DoubleModifier from the JsonElement. </summary>
+    /// <param name="j"> The JSON element. </param>
+    /// <param name="ret"> The deserialized value. </param>
+    /// <param name="allowNull"> Whether to parse a null-token as <see cref="NoKey"/>. </param>
+    /// <returns> True if the object could be parsed, false otherwise. </returns>
+    public static bool TryDeserialize(in JsonElement j, out DoubleModifier ret, bool allowNull)
+    {
+        if (j.ValueKind is JsonValueKind.Null)
+        {
+            ret = NoKey;
+            return allowNull;
+        }
+
+        if (j.ValueKind is JsonValueKind.Number)
+        {
+            if (j.TryGetUInt16(out var m))
+            {
+                ret = new DoubleModifier(new ModifierHotkey((VirtualKey)m));
+                return true;
+            }
+
+            ret = NoKey;
+            return false;
+        }
+
+        if (j.ValueKind is not JsonValueKind.Object)
+        {
+            ret = NoKey;
+            return false;
+        }
+
+        var mod1 = ModifierHotkey.NoKey.Modifier;
+        var mod2 = ModifierHotkey.NoKey.Modifier;
+        if (j.TryReadProperty("Modifier1"u8, out ushort? m1, false) && m1.HasValue)
+            mod1 = new ModifierHotkey((VirtualKey)m1.Value);
+
+        if (j.TryReadProperty("Modifier2"u8, out ushort? m2, false) && m2.HasValue)
+            mod2 = new ModifierHotkey((VirtualKey)m2.Value);
+
+        ret = new DoubleModifier(mod1, mod2);
+        return true;
+    }
+
     /// <summary> Try deserializing a DoubleModifier from the JsonReader. </summary>
     /// <param name="j"> The JSON reader. </param>
     /// <param name="ret"> The deserialized value. </param>

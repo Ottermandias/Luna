@@ -94,6 +94,24 @@ public readonly record struct TwoPanelWidth(float Width, ScalingMode Mode)
         };
     }
 
+    /// <summary> Read a named <see cref="TwoPanelLayout"/> from a deserialized JSON object. </summary>
+    /// <param name="json"> The deserialized JSON data. </param>
+    /// <param name="property"> The name of the object to read. </param>
+    /// <param name="defaultValue"> The default value if the object or parts of it can not be read or are not supplied. If no default value is provided, <see cref="IndeterminateRelative"/> is used. </param>
+    /// <returns> The parsed object. </returns>
+    public static TwoPanelWidth ReadJson(in JsonElement json, ReadOnlySpan<byte> property, TwoPanelWidth defaultValue)
+    {
+        if (!json.TryReadObject(property, out var obj))
+            return defaultValue;
+
+        if (!obj.TryReadProperty("Width"u8, out float? value) || !value.HasValue)
+            return defaultValue;
+
+        return obj.TryReadEnum("Mode"u8, out ScalingMode? mode, false, false) && mode.HasValue
+            ? new TwoPanelWidth(value.Value, mode.Value)
+            : defaultValue;
+    }
+
     /// <summary> Indeterminate value for an absolute selector that will resolve to half of the available content region but return absolute values. </summary>
     public static readonly TwoPanelWidth IndeterminateAbsolute = new(float.NaN, ScalingMode.Absolute);
 

@@ -355,14 +355,19 @@ public sealed class ColorDictionary<TColorId, TColorData> : IReadOnlyCollection<
 }
 
 /// <summary> A default converter for serialization and deserialization.  </summary>
-internal sealed class Converter<TColorId, TColorData> : JsonConverter<ColorDictionary<TColorId, TColorData>>
+public sealed class ColorDictionaryConverter<TColorId, TColorData>(
+    MessageService? messager,
+    bool withDefaults,
+    bool allDefaults,
+    bool ignoreUnknowns) : JsonConverter<ColorDictionary<TColorId, TColorData>>
     where TColorId : unmanaged, Enum
     where TColorData : IColorData<TColorId>
 {
-    public override ColorDictionary<TColorId, TColorData> Read(ref Utf8JsonReader reader, Type typeToConvert,
+    public override ColorDictionary<TColorId, TColorData>? Read(ref Utf8JsonReader reader, Type typeToConvert,
         JsonSerializerOptions options)
-        => ColorDictionary<TColorId, TColorData>.Deserialize(null, ref reader, true, false, true);
+        => ColorDictionary<TColorId, TColorData>.Deserialize(messager, ref reader, withDefaults, allDefaults, ignoreUnknowns);
+
 
     public override void Write(Utf8JsonWriter writer, ColorDictionary<TColorId, TColorData> value, JsonSerializerOptions options)
-        => value.Serialize(writer, true);
+        => value.Serialize(writer, withDefaults);
 }

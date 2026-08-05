@@ -1,6 +1,5 @@
 using System.Text.Json;
 using Dalamud.Interface.ImGuiNotification;
-using Newtonsoft.Json.Linq;
 
 namespace Luna;
 
@@ -19,6 +18,12 @@ public abstract class ConfigurationFile<TProvider>(BaseSaveService<TProvider> sa
     /// <summary> The messager this file uses. </summary>
     protected readonly MessageService Messager = messager;
 
+    /// <summary> The version of the loaded file. -1 if no file existed or no version was set. </summary>
+    public int LoadedVersion { get; set; } = -1;
+
+    /// <summary> The timestamp of the loaded file. Unix Epoch if no file existed or no timestamp was set. </summary>
+    public DateTimeOffset LoadedTimestamp { get; set; } = DateTimeOffset.UnixEpoch;
+
     /// <summary> The current version of this file in the program. </summary>
     public abstract int CurrentVersion { get; }
 
@@ -28,7 +33,7 @@ public abstract class ConfigurationFile<TProvider>(BaseSaveService<TProvider> sa
 
     /// <summary> The function that parses the JObject and fills this files data with the result. </summary>
     /// <param name="j"> The deserialized JObject. </param>
-    protected abstract void LoadData(JObject j);
+    protected abstract void LoadData(in JsonElement j);
 
     /// <summary> Obtain this file's path for saving or loading from the file name provider. </summary>
     /// <returns> The full path for this file. </returns>
@@ -47,7 +52,7 @@ public abstract class ConfigurationFile<TProvider>(BaseSaveService<TProvider> sa
     {
         using var j = new Utf8JsonWriter(stream, JsonFunctions.WriterOptions);
         j.WriteStartObject();
-        j.WriteNumber("Version"u8, CurrentVersion);
+        j.WriteNumber("Version"u8,   CurrentVersion);
         j.WriteNumber("Timestamp"u8, DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
         AddData(j);
         j.WriteEndObject();
@@ -64,15 +69,16 @@ public abstract class ConfigurationFile<TProvider>(BaseSaveService<TProvider> sa
         try
         {
             Messager.Log.Debug($"Reading {logName}...");
-            var text = File.ReadAllText(fileName);
-            var jObj = JObject.Parse(text);
-            if (jObj["Version"]?.Value<int>() is not { } version)
+            var document = IJsonParsable.ReadJson<ParsableJsonDocument>(SaveService, fileName).Document.RootElement;
+            LoadedTimestamp = document.PropertyOrDefault("Timestamp"u8, DateTimeOffset.UnixEpoch);
+            LoadedVersion   = document.PropertyOrDefault("Version"u8,   -1);
+            if (LoadedVersion is - 1)
                 throw new Exception("No version provided.");
 
-            if (version != CurrentVersion && HandleVersionMigration(logName, jObj, version))
+            if (LoadedVersion != CurrentVersion && HandleVersionMigration(logName, document, LoadedVersion))
                 return;
 
-            LoadData(jObj);
+            LoadData(document);
         }
         catch (Exception ex)
         {
@@ -87,6 +93,6 @@ public abstract class ConfigurationFile<TProvider>(BaseSaveService<TProvider> sa
     /// <param name="version"> The version of the file. </param>
     /// <returns> False if the regular LoadData should still be called, true if the migration incorporated the loading. Failure to migrate should cause an exception. </returns>
     /// <remarks> This is not called if <paramref name="version"/> is the same as <see cref="CurrentVersion"/>, or no version could be parsed. </remarks>
-    protected virtual bool HandleVersionMigration(string logName, JObject data, int version)
+    protected virtual bool HandleVersionMigration(string logName, in JsonElement data, int version)
         => throw new Exception($"{logName} Version {version} is outdated and can not be migrated.");
 }
