@@ -181,6 +181,10 @@ public class ListDictionary<TKey, TValue> : IReadOnlyCollection<KeyValuePair<TKe
     public int Count
         => ValueCount;
 
+    /// <summary> Remove all items. </summary>
+    public void Clear()
+        => _dict.Clear();
+
     /// <summary> Get a collection of the keys in this dictionary. </summary>
     public IReadOnlyCollection<TKey> Keys
         => new CollectionAdapter<TKey>(_dict.Keys, _dict.Count);

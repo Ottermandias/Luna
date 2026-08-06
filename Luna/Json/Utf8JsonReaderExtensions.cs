@@ -1,5 +1,4 @@
 using System.Text.Json;
-using System.Text.Json.Serialization;
 
 namespace Luna;
 
@@ -580,9 +579,11 @@ public static partial class JsonFunctions
 
         /// <summary> Read an array of string values that represent flags of an enum. </summary>
         /// <param name="ignoreUnknownValues"> Whether entries not matching any enum entries should be ignored or throw an error. </param>
+        /// <param name="additionalValues"> Additional known values that can be parsed to specific values. </param>
         /// <returns> Null if the array is null, the bitwise OR'd flags otherwise. </returns>
         /// <exception cref="JsonException"> Throws if the JSON is not an array of strings that each represent a value of the flag enumeration. </exception>
-        public TEnum? ReadFlagEnumArray<TEnum>(bool ignoreUnknownValues = false) where TEnum : unmanaged, Enum
+        public TEnum? ReadFlagEnumArray<TEnum>(bool ignoreUnknownValues = false, IReadOnlyDictionary<StringU8, TEnum>? additionalValues = null)
+            where TEnum : unmanaged, Enum
         {
             if (reader.TokenType is JsonTokenType.Null)
                 return null;
@@ -597,7 +598,7 @@ public static partial class JsonFunctions
                 if (reader.TokenType is JsonTokenType.EndArray)
                     return ret;
 
-                if (reader.TryReadTextEnum(out TEnum value))
+                if (reader.TryReadTextEnum(out var value, additionalValues))
                     ret = ret.Or(value);
                 else if (!ignoreUnknownValues)
                     throw new Exception($"Expected string representing a flag of {typeof(TEnum).Name}.");
@@ -612,8 +613,10 @@ public static partial class JsonFunctions
         /// <summary> Read the UTF8 string at the current token, unescaped, and parse it into an enumeration value. </summary>
         /// <typeparam name="TEnum"> The enumeration type. </typeparam>
         /// <param name="value"> On success, the parsed enumeration value. </param>
+        /// <param name="additionalValues"> Additional known values that can be parsed to specific values. </param>
         /// <returns> True on success, false if the current token is not a string or the string does not correspond to a known enumeration value. </returns>
-        public bool TryReadTextEnum<TEnum>(out TEnum value) where TEnum : unmanaged, Enum
+        public bool TryReadTextEnum<TEnum>(out TEnum value, IReadOnlyDictionary<StringU8, TEnum>? additionalValues = null)
+            where TEnum : unmanaged, Enum
         {
             if (!reader.TryReadUtf8String(out var text))
             {
@@ -621,7 +624,10 @@ public static partial class JsonFunctions
                 return false;
             }
 
-            return EnumExtensions.Parse(text, out value);
+            if (EnumExtensions.Parse(text, out value))
+                return true;
+
+            return additionalValues?.TryGetValue(text, out value) ?? false;
         }
 
         /// <summary> Try to read the current token as a number of the given type. </summary>
