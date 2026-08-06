@@ -37,8 +37,14 @@ public static class ConditionParser
         {
             while (obj.Read(ref reader))
             {
-                if (!reader.CheckProperty("Conditions"u8))
+                if (reader.TokenType is not JsonTokenType.PropertyName)
                     continue;
+
+                if (!reader.CheckProperty("Conditions"u8))
+                {
+                    reader.Skip();
+                    continue;
+                }
 
                 if (reader.TokenType is JsonTokenType.Null)
                 {
@@ -59,8 +65,14 @@ public static class ConditionParser
         {
             while (obj.Read(ref reader))
             {
-                if (!reader.CheckProperty("Conditions"u8))
+                if (reader.TokenType is not JsonTokenType.PropertyName)
                     continue;
+
+                if (!reader.CheckProperty("Conditions"u8))
+                {
+                    reader.Skip();
+                    continue;
+                }
 
                 if (reader.TokenType is JsonTokenType.Null)
                 {
@@ -81,8 +93,14 @@ public static class ConditionParser
         {
             while (obj.Read(ref reader))
             {
-                if (!reader.CheckProperty("Condition"u8))
+                if (reader.TokenType is not JsonTokenType.PropertyName)
                     continue;
+
+                if (!reader.CheckProperty("Condition"u8))
+                {
+                    reader.Skip();
+                    continue;
+                }
 
                 if (reader.TokenType is not JsonTokenType.StartObject)
                 {
