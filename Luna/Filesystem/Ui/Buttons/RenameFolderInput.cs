@@ -21,7 +21,7 @@ public sealed class RenameFolderInput(BaseFileSystem fileSystem) : BaseButton<IF
         if (Im.Window.Appearing)
             Im.Keyboard.SetFocusHere();
 
-        if (Im.Input.Text(Label(data), ref currentPath, flags: InputTextFlags.EnterReturnsTrue))
+        if (Im.Input.Text(Label(data), ref currentPath, flags: InputTextFlags.EnterReturnsTrue) && currentPath.Length > 0)
         {
             fileSystem.RenameAndMove(data, currentPath);
             fileSystem.ExpandAllAncestors(data);
