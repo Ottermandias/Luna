@@ -118,6 +118,10 @@ public class SetDictionary<TKey, TValue> : IReadOnlyCollection<KeyValuePair<TKey
         return set.Count;
     }
 
+    /// <summary> Remove all items. </summary>
+    public void Clear()
+        => _dict.Clear();
+
     /// <summary> Remove a given key and return the set of values associated with it, if it existed. </summary>
     /// <param name="key"> The key to remove. </param>
     /// <param name="values"> The values associated with the key, if the key was found. </param>

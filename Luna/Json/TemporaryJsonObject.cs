@@ -40,8 +40,11 @@ public ref struct TemporaryJsonObject(Utf8JsonWriter writer, ReadOnlySpan<byte> 
     [MethodImpl(ImSharpConfiguration.Inl)]
     public void WriteNonEmptyString(ReadOnlySpan<byte> property, string? text)
     {
-        if (!string.IsNullOrEmpty(text))
-            writer.WriteString(property, text);
+        if (string.IsNullOrEmpty(text))
+            return;
+
+        StartObject();
+        writer.WriteString(property, text);
     }
 
     /// <inheritdoc cref="JsonFunctions.WriteIfNot(Utf8JsonWriter,ReadOnlySpan{byte},string,string,StringComparison)"/>
