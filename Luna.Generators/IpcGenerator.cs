@@ -72,7 +72,7 @@ public sealed class IpcGenerator : IIncrementalGenerator
         .AppendLine(
             "/// <summary> Erases the custom type of the marked parameter or return value at the IPC level, replacing it by the best matching shared type the generator can determine. Not currently supported on events. </summary>")
         .AppendLine(
-            "/// <remarks> Enums and strong types (see <see cref=\"Luna.Generators.StrongTypeAttribute\"/>) will be replaced by their underlying type. If no better match can be made, types will be replaced by <see cref=\"System.Object\"/>. </remarks>")
+            "/// <remarks> Enums and strong types (see <see cref=\"Luna.Generators.StrongTypeAttribute{T}\"/>) will be replaced by their underlying type. If no better match can be made, types will be replaced by <see cref=\"System.Object\"/>. </remarks>")
         .AppendLine("[AttributeUsage(AttributeTargets.Property | AttributeTargets.Parameter | AttributeTargets.ReturnValue)]")
         .EmbeddedAttribute()
         .GeneratedAttribute()

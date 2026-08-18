@@ -38,8 +38,8 @@ public sealed class AssociatedEnumGenerator : IIncrementalGenerator
         .AppendLine()
         .OpenNamespace("Luna.Generators")
         .AppendLine(
-            "/// <summary> Add a method returning an associated enum value for this enum. Use with <see cref=\"Luna.Generators.AssociateAttribute\"/>. </summary>")
-        .AppendLine("/// <typeparam name=\"T\"> The type of the associated enum. </param>")
+            "/// <summary> Add a method returning an associated enum value for this enum. Use with <see cref=\"Luna.Generators.AssociateAttribute{T}\"/>. </summary>")
+        .AppendLine("/// <typeparam name=\"T\"> The type of the associated enum. </typeparam>")
         .AppendLine(
             "/// <param name=\"ForwardMethod\"> The name of the method going from this enum to the associated one. Method is omitted if empty. Name is constructed from other type if null. </param>")
         .AppendLine(
@@ -60,7 +60,7 @@ public sealed class AssociatedEnumGenerator : IIncrementalGenerator
         .AppendLine()
         .AppendLine(
             "/// <summary> The name to provide when <see cref=\"Luna.Generators.NamedEnumAttribute\"/> is used for this enum. </summary>")
-        .AppendLine("/// <typeparam name=\"T\"> The type of the associated enum. </param>")
+        .AppendLine("/// <typeparam name=\"T\"> The type of the associated enum. </typeparam>")
         .AppendLine(
             "/// <param name=\"Value\"> The associated value. If this is null, the name of the attributed value itself is used. </param>")
         .AppendLine(

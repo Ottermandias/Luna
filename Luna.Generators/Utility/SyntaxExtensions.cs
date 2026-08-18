@@ -52,9 +52,18 @@ public static class SyntaxExtensions
                     SyntaxFactory.Trivia(SyntaxFactory.PragmaWarningDirectiveTrivia(SyntaxFactory.Token(SyntaxKind.DisableKeyword), true)),
                     SyntaxFactory.Trivia(SyntaxFactory.NullableDirectiveTrivia(SyntaxFactory.Token(SyntaxKind.EnableKeyword), true)));
 
-        public static AttributeSyntax AttributeUsage(AttributeTargets target)
-            => SyntaxFactory.Attribute("global::System.AttributeUsage".IdentifierName())
-                .AddArgumentListArguments(SyntaxFactory.AttributeArgument(target.EnumValue("global::System.AttributeTargets")));
+        public static AttributeSyntax AttributeUsage(AttributeTargets first, params ReadOnlySpan<AttributeTargets> remaining)
+        {
+            ExpressionSyntax expression = first.EnumValue("global::System.AttributeTargets");
+            foreach (var target in remaining)
+            {
+                expression = SyntaxFactory.BinaryExpression(SyntaxKind.BitwiseOrExpression, expression,
+                    target.EnumValue("global::System.AttributeTargets"));
+            }
+
+            return SyntaxFactory.Attribute("global::System.AttributeUsage".IdentifierName())
+                .AddArgumentListArguments(SyntaxFactory.AttributeArgument(expression));
+        }
 
         public static SyntaxTrivia Inheritdoc()
             => SyntaxFactory.Comment("/// <inheritdoc/>");
