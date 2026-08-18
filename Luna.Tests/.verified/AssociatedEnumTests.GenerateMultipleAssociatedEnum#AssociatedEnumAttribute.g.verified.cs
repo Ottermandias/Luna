@@ -8,8 +8,8 @@ using System.CodeDom.Compiler;
 
 namespace Luna.Generators
 {
-    /// <summary> Add a method returning an associated enum value for this enum. Use with <see cref="Luna.Generators.AssociateAttribute"/>. </summary>
-    /// <typeparam name="T"> The type of the associated enum. </param>
+    /// <summary> Add a method returning an associated enum value for this enum. Use with <see cref="Luna.Generators.AssociateAttribute{T}"/>. </summary>
+    /// <typeparam name="T"> The type of the associated enum. </typeparam>
     /// <param name="ForwardMethod"> The name of the method going from this enum to the associated one. Method is omitted if empty. Name is constructed from other type if null. </param>
     /// <param name="BackwardMethod"> The name of the method going from the associated enum back to this one. Method is omitted if empty. Name is constructed from this type if null. </param>
     /// <param name="ForwardDefaultValue"> The default value used for unknown or omitted values in the forward method. </param>
@@ -22,7 +22,7 @@ namespace Luna.Generators
     internal class AssociatedEnumAttribute<T>(string? ForwardMethod = null, string? BackwardMethod = "", T ForwardDefaultValue = default!, object? BackwardDefaultValue = null, string? Namespace = null, string? Class = null) : Attribute where T : Enum;
     
     /// <summary> The name to provide when <see cref="Luna.Generators.NamedEnumAttribute"/> is used for this enum. </summary>
-    /// <typeparam name="T"> The type of the associated enum. </param>
+    /// <typeparam name="T"> The type of the associated enum. </typeparam>
     /// <param name="Value"> The associated value. If this is null, the name of the attributed value itself is used. </param>
     /// <param name="Associate"> Whether to associate this value from the enum or omit it and treat it as undefined. </param>
     /// <param name="DefaultName"> Whether to take the name from the attributed enum value, ignoring the provided value. </param>
