@@ -74,16 +74,27 @@ public abstract class PluginSubscriber : IDisposable
 
         _initializedEvent.Event += OnPluginLoad;
         _disposedEvent.Event    += OnPluginDispose;
+        // ReSharper disable once VirtualMemberCallInConstructor
+        Initialize();
         OnPluginLoad();
     }
+
+    /// <summary> Initialize additional objects in the subscriber before subscription is triggered. </summary>
+    protected virtual void Initialize()
+    { }
 
     /// <inheritdoc/>
     public void Dispose()
     {
         OnPluginDispose();
+        InternalDispose();
         _initializedEvent.Dispose();
         _disposedEvent.Dispose();
     }
+
+    /// <summary> Dispose additional objects in the subscriber. </summary>
+    protected virtual void InternalDispose()
+    { }
 
     private void OnPluginDispose()
     {
