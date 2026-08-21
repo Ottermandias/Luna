@@ -10,7 +10,9 @@ public interface IBasicWrapper<out TSelf> : IDisposable
     public IIdDataShareAdapter Adapter { get; }
 
     /// <summary> Create a new wrapper for the given adapter. </summary>
-    public abstract static TSelf? Create(IIdDataShareAdapter? adapter);
+    /// <remarks> Used internally. </remarks>
+    [DebuggerHidden]
+    public abstract static TSelf? CreateWrapper(IIdDataShareAdapter? adapter);
 }
 
 /// <summary> A base class for wrappers for a specific method ID enumeration type (assumed to be based on <see cref="int"/>). </summary>
