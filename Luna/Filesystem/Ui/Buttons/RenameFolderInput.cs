@@ -20,7 +20,19 @@ public sealed class RenameFolderInput(BaseFileSystem fileSystem) : BaseButton<IF
 
         if (Im.Window.Appearing)
             Im.Keyboard.SetFocusHere();
+        Im.Text("Rename Folder (Display Only):"u8);
+        if (ImEx.InputOnDeactivation.Text("##Display"u8, data.DisplayName ?? string.Empty, out string newName, "Display Name..."u8))
+        {
+            fileSystem.ChangeFolderDisplayName(data, newName);
+            ret = true;
+        }
 
+        Im.Tooltip.OnHover("Enter a display name for this folder here. The folder will be sorted according to its path, but display this text as its name.\n"u8
+          + "An empty display name means it uses the path as its name.\n\n"u8
+          + "Keep in mind that display names do not have to be unique and paths need to be used for referencing a folder."u8);
+
+        MenuSeparator.DrawSeparator();
+        Im.Text("Move Folder:"u8);
         if (Im.Input.Text(Label(data), ref currentPath, flags: InputTextFlags.EnterReturnsTrue) && currentPath.Length > 0)
         {
             fileSystem.RenameAndMove(data, currentPath);

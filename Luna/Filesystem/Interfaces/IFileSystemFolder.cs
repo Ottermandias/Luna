@@ -3,6 +3,9 @@ namespace Luna;
 /// <summary> A read-only interface representing a folder in the file system. </summary>
 public interface IFileSystemFolder : IFileSystemNode
 {
+    /// <summary> Get an optional display name for this folder. </summary>
+    public string? DisplayName { get; }
+
     /// <summary> Get whether the folder is currently expanded/open. </summary>
     public bool Expanded { get; }
 

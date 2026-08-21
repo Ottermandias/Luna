@@ -36,13 +36,13 @@ public sealed class FileSystemFolderCache : IFileSystemNodeCache
         CollapsedColor = ((IFileSystemFolder)node).CollapsedColor.Color?.ToVector() ?? cache.CollapsedFolderColor;
         if (FlattenedAncestors is 0)
         {
-            name = node.Name.ToString();
+            name = ((IFileSystemFolder)node).DisplayName ?? node.Name.ToString();
         }
         else
         {
             var builder = new StringBuilder(256);
-            AppendFlattenedPath(builder, node.Parent, FlattenedAncestors - 1);
-            builder.Append(node.Name);
+            PrependFlattenedPath(builder, node.Parent, FlattenedAncestors - 1);
+            builder.Append(((IFileSystemFolder)node).DisplayName ?? node.Name);
             name = builder.ToString();
         }
 
@@ -51,13 +51,13 @@ public sealed class FileSystemFolderCache : IFileSystemNodeCache
 
         return;
 
-        static void AppendFlattenedPath(StringBuilder builder, IFileSystemNode? node, int flattenedAncestors)
+        static void PrependFlattenedPath(StringBuilder builder, IFileSystemNode? node, int flattenedAncestors)
         {
             if (node is null)
                 return;
 
             if (flattenedAncestors > 0)
-                AppendFlattenedPath(builder, node.Parent, flattenedAncestors - 1);
+                PrependFlattenedPath(builder, node.Parent, flattenedAncestors - 1);
 
             builder.Append(node.Name);
             builder.Append('/');

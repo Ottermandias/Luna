@@ -235,6 +235,21 @@ public class BaseFileSystem
         return (node, idx);
     }
 
+    /// <summary> Change the associated display name of a folder. </summary>
+    /// <param name="node"> The folder node. If this is not a folder, nothing is done. </param>
+    /// <param name="newDisplayName"> The new display name. If this is the same as before, nothing is done. Empty names are not permitted and treated as null/default. </param>
+    public void ChangeFolderDisplayName(IFileSystemNode node, string? newDisplayName)
+    {
+        if (newDisplayName?.Length is 0)
+            newDisplayName = null;
+
+        if (node is not FileSystemFolder folder || folder.DisplayName == newDisplayName)
+            return;
+
+        folder.DisplayName = newDisplayName;
+        Changed.Invoke(new FileSystemChanged.Arguments(FileSystemChangeType.FolderChanged, node, null, null));
+    }
+
     /// <summary> Change the associated color of an expanded folder. </summary>
     /// <param name="node"> The folder node. If this is not a folder, nothing is done. </param>
     /// <param name="color"> The new color. If this is the same as before, nothing is done. </param>

@@ -42,7 +42,7 @@ public abstract partial class FileSystemSaver : IDisposable
                 return new NodeData();
 
             var text = File.ReadAllText(filePath);
-            return System.Text.Json.JsonSerializer.Deserialize(text, SourceGenerationContext.Default.NodeData) ?? new NodeData();
+            return JsonSerializer.Deserialize(text, SourceGenerationContext.Default.NodeData) ?? new NodeData();
         }
         catch (Exception ex)
         {
@@ -62,7 +62,7 @@ public abstract partial class FileSystemSaver : IDisposable
                 return new Organization();
 
             var text = File.ReadAllText(filePath);
-            return System.Text.Json.JsonSerializer.Deserialize(text, SourceGenerationContext.Default.Organization) ?? new Organization();
+            return JsonSerializer.Deserialize(text, SourceGenerationContext.Default.Organization) ?? new Organization();
         }
         catch (Exception ex)
         {
@@ -105,10 +105,10 @@ public abstract partial class FileSystemSaver : IDisposable
         public Dictionary<string, SeparatorData> Separators = [];
 
         /// <summary> Folder data. </summary>
-        public readonly record struct FolderData(uint? ExpandedColor, uint? CollapsedColor, string? SortMode, bool? IsSeparator)
+        public readonly record struct FolderData(uint? ExpandedColor, uint? CollapsedColor, string? SortMode, string? DisplayName, bool? IsSeparator)
         {
             /// <summary> Empty folder data. </summary>
-            public static readonly FolderData Empty = new(null, null, null, false);
+            public static readonly FolderData Empty = new(null, null, null, null, false);
         }
 
         /// <summary> Separator data. </summary>
@@ -276,6 +276,7 @@ public abstract class FileSystemSaver<TSaveService, TProvider> : FileSystemSaver
         try
         {
             var folder = (FileSystemFolder)FileSystem.FindOrCreateAllFolders(path);
+            folder.DisplayName     = folderData.DisplayName;
             folder.ExpandedColor   = folderData.ExpandedColor.HasValue ? new Rgba32(folderData.ExpandedColor.Value) : ColorParameter.Default;
             folder.CollapsedColor  = folderData.CollapsedColor.HasValue ? new Rgba32(folderData.CollapsedColor.Value) : ColorParameter.Default;
             folder.DrawAsSeparator = folderData.IsSeparator ?? false;
@@ -650,6 +651,8 @@ public abstract class FileSystemSaver<TSaveService, TProvider> : FileSystemSaver
             foreach (var folder in saver.FileSystem.Root.GetDescendants().OfType<FileSystemFolder>())
             {
                 j.WriteStartObject(folder.FullPath);
+                if (folder.DisplayName is not null)
+                    j.WriteString("DisplayName"u8, folder.DisplayName);
                 if (!folder.ExpandedColor.IsDefault)
                     j.WriteNumber("ExpandedColor"u8, folder.ExpandedColor.Color!.Value.Color);
                 if (!folder.CollapsedColor.IsDefault)

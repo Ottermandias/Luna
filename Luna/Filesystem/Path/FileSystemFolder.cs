@@ -6,6 +6,9 @@ internal sealed class FileSystemFolder(FileSystemIdentifier identifier)
     : FileSystemNode(identifier), IFileSystemFolder
 {
     /// <inheritdoc/>
+    public string? DisplayName { get; internal set; }
+
+    /// <inheritdoc/>
     public int TotalDescendants { get; internal set; }
 
     /// <inheritdoc/>
