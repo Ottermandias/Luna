@@ -11,8 +11,15 @@ public interface IBasicWrapper<out TSelf> : IDisposable
 
     /// <summary> Create a new wrapper for the given adapter. </summary>
     /// <remarks> Used internally. </remarks>
-    [DebuggerHidden]
     public abstract static TSelf? CreateWrapper(IIdDataShareAdapter? adapter);
+}
+
+/// <summary> A wrapper to keep the <see cref="IBasicWrapper{T}.CreateWrapper"/> method somewhat hidden from consumers. </summary>
+public static class BasicWrapper
+{
+    /// <inheritdoc cref="IBasicWrapper{TWrapper}.CreateWrapper"/>
+    public static TWrapper? Create<TWrapper>(IIdDataShareAdapter? adapter) where TWrapper : IBasicWrapper<TWrapper>
+        => TWrapper.CreateWrapper(adapter);
 }
 
 /// <summary> A base class for wrappers for a specific method ID enumeration type (assumed to be based on <see cref="int"/>). </summary>
