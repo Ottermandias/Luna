@@ -1,3 +1,4 @@
+using Dalamud.Plugin;
 using Dalamud.Plugin.Ipc;
 
 namespace Luna;
@@ -27,6 +28,23 @@ public static class BasicWrapper
     /// <summary> An empty adapter supplying no functionality. </summary>
     public static readonly IIdDataShareAdapter EmptyAdapter = new EmptyAdapterObject();
 
+    /// <summary> Fetch an adapter from IPC. </summary>
+    /// <param name="pluginInterface"> The plugin interface to use for IPC. </param>
+    /// <param name="label"> The IPC label to query. </param>
+    /// <returns> The adapter to connect with or null if none could be fetched. </returns>
+    public static IIdDataShareAdapter? GetAdapter(IDalamudPluginInterface pluginInterface, string label)
+    {
+        try
+        {
+            var subscriber = pluginInterface.GetIpcSubscriber<IIdDataShareAdapter>(label);
+            return subscriber.InvokeFunc();
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
     private sealed class EmptyAdapterObject : IIdDataShareAdapter
     {
         public void Dispose()
@@ -35,6 +53,7 @@ public static class BasicWrapper
 }
 
 /// <summary> A base class for wrappers for a specific method ID enumeration type (assumed to be based on <see cref="int"/>). </summary>
+/// <param name="adapter"> An initial adapter to connect to. </param>
 /// <typeparam name="TSelf"> The own type for creation. </typeparam>
 /// <typeparam name="TEnum">
 ///   The method enum. This should have a '<see cref="Version"/>' method with the value <see cref="BasicWrapper.VersionMethod"/>
@@ -58,9 +77,34 @@ public abstract class BasicWrapper<TSelf, TEnum>(IIdDataShareAdapter? adapter = 
     public virtual (int Major, int Minor) Version
         => Adapter.TryInvoke<(int Major, int Minor)>(BasicWrapper.VersionMethod, out var ret) ? ret : (0, 0);
 
+    protected abstract string IpcLabel { get; }
+
+    /// <summary> Connect the wrapper to an adapter newly requested via IPC. </summary>
+    /// <param name="pluginInterface"> The plugin interface to use for IPC. </param>
+    /// <param name="requiredMajorVersion"> The required major version of the adapter. Unchecked if null. </param>
+    /// <param name="minimumMinorVersion"> The required minimum minor version of the adapter. This is only checked if a major version is passed. </param>
+    /// <returns> False if no adapter could be obtained or the version requirements are not met, true otherwise. </returns>
+    public bool Reconnect(IDalamudPluginInterface pluginInterface, int? requiredMajorVersion = null, int minimumMinorVersion = 0)
+    {
+        var adapter = BasicWrapper.GetAdapter(pluginInterface, IpcLabel);
+        UpdateAdapter(adapter);
+        if (!HasAdapter)
+            return false;
+
+        if (requiredMajorVersion is null)
+            return true;
+
+        var (major, minor) = Version;
+        return major == requiredMajorVersion.Value && minor >= minimumMinorVersion;
+    }
+
+    /// <summary> Close the current connection. </summary>
+    public void Disconnect()
+        => UpdateAdapter(null);
+
     /// <summary> Set the wrapped adapter to a new one. </summary>
     /// <param name="adapter"> The new adapter to wrap. If this is null, an empty adapter will be wrapped which will throw on any invocation. </param>
-    public unsafe void UpdateAdapter(IIdDataShareAdapter? adapter)
+    private unsafe void UpdateAdapter(IIdDataShareAdapter? adapter)
     {
         // If we get the same adapter, do nothing.
         adapter ??= BasicWrapper.EmptyAdapter;
@@ -317,7 +361,7 @@ public abstract class BasicWrapper<TSelf, TEnum>(IIdDataShareAdapter? adapter = 
         if (original is null)
             return;
 
-        if (DelegateMap.TryGetValue((original, method), out var subscriber))
+        if (DelegateMap.ContainsKey((original, method))
             return;
 
         var ret = createInternal(original);
