@@ -43,6 +43,10 @@ public class BaseFileSystem
     public IFileSystemFolder Root
         => _root;
 
+    /// <summary> Whether the file system has a folder named '.' at root. </summary>
+    public bool HasDotFolder
+        => _root.Children.Any(c => c.Name is ".");
+
     /// <summary> Change the lock state of an item and invoke a change for it if it actually changes. </summary>
     /// <returns> True on change, false if nothing changed. </returns>
     public bool ChangeLockState(IFileSystemNode node, bool value)

@@ -53,6 +53,10 @@ public abstract class PluginSubscriber : IDisposable
     /// <summary> A function to obtain the major and minor API versions of the connected plugin. </summary>
     protected abstract (int Major, int Minor) GetVersionInfo();
 
+    /// <summary> Get whether the subscriber's version requirements are fulfilled. </summary>
+    public bool MatchesVersions
+        => CurrentMajorVersion == RequiredMajorVersion && CurrentMinorVersion >= RequiredMinorVersion;
+
     /// <summary> Create a new plugin subscriber. </summary>
     /// <param name="log"> The logger. </param>
     /// <param name="pluginInterface"> The plugin interface. </param>
@@ -79,6 +83,14 @@ public abstract class PluginSubscriber : IDisposable
         OnPluginLoad();
     }
 
+    /// <summary> Recreate the plugin connection from scratch. </summary>
+    public void Reattach()
+        => OnPluginLoad();
+
+    /// <summary> Terminate the current plugin connection. </summary>
+    public void Detach()
+        => OnPluginDispose();
+
     /// <summary> Initialize additional objects in the subscriber before subscription is triggered. </summary>
     protected virtual void Initialize()
     { }
@@ -101,10 +113,7 @@ public abstract class PluginSubscriber : IDisposable
         if (!Available)
             return;
 
-        Available           = false;
-        CurrentMajorVersion = 0;
-        CurrentMajorVersion = 0;
-        AttachTime          = DateTime.UnixEpoch;
+        Available = false;
         try
         {
             PluginDisposed();
@@ -148,7 +157,7 @@ public abstract class PluginSubscriber : IDisposable
             throw;
         }
 
-        if (CurrentMajorVersion != RequiredMajorVersion || CurrentMinorVersion < RequiredMinorVersion)
+        if (!MatchesVersions)
             throw new Exception(
                 $"Invalid {PluginName} Version {CurrentMajorVersion}.{CurrentMinorVersion:D4}, required major Version {RequiredMajorVersion} with feature greater or equal to {RequiredMinorVersion}.");
     }
