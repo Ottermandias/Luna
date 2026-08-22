@@ -17,6 +17,9 @@ public interface IBasicWrapper<out TSelf> : IDisposable
 /// <summary> A wrapper to keep the <see cref="IBasicWrapper{T}.CreateWrapper"/> method somewhat hidden from consumers. </summary>
 public static class BasicWrapper
 {
+    /// <summary> The constant value to use for the version method in method enums. </summary>
+    public const int VersionMethod = -1;
+
     /// <inheritdoc cref="IBasicWrapper{TWrapper}.CreateWrapper"/>
     public static TWrapper? Create<TWrapper>(IIdDataShareAdapter? adapter) where TWrapper : IBasicWrapper<TWrapper>
         => TWrapper.CreateWrapper(adapter);
@@ -32,6 +35,11 @@ public static class BasicWrapper
 }
 
 /// <summary> A base class for wrappers for a specific method ID enumeration type (assumed to be based on <see cref="int"/>). </summary>
+/// <typeparam name="TSelf"> The own type for creation. </typeparam>
+/// <typeparam name="TEnum">
+///   The method enum. This should have a '<see cref="Version"/>' method with the value <see cref="BasicWrapper.VersionMethod"/>
+///   or the wrapper should override the <see cref="Version"/> attribute with some other implementation.
+/// </typeparam>
 public abstract class BasicWrapper<TSelf, TEnum>(IIdDataShareAdapter? adapter = null) : IDisposable
     where TSelf : BasicWrapper<TSelf, TEnum>, IBasicWrapper<TSelf>
     where TEnum : unmanaged, Enum
@@ -45,6 +53,10 @@ public abstract class BasicWrapper<TSelf, TEnum>(IIdDataShareAdapter? adapter = 
     /// <summary> Get whether the wrapper currently wraps an actual adapter. Note that this adapter may still be already disposed. </summary>
     public bool HasAdapter
         => Adapter != BasicWrapper.EmptyAdapter;
+
+    /// <summary> Get the version of the referenced adapter. </summary>
+    public virtual (int Major, int Minor) Version
+        => Adapter.TryInvoke<(int Major, int Minor)>(BasicWrapper.VersionMethod, out var ret) ? ret : (0, 0);
 
     /// <summary> Set the wrapped adapter to a new one. </summary>
     /// <param name="adapter"> The new adapter to wrap. If this is null, an empty adapter will be wrapped which will throw on any invocation. </param>

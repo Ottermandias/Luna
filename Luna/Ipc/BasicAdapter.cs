@@ -1,4 +1,5 @@
 using Dalamud.Plugin.Ipc;
+using Luna.Generators;
 
 namespace Luna;
 
@@ -19,6 +20,13 @@ public sealed partial class IpcObjectManager
         /// <summary> Whether the adapter is still alive. </summary>
         public bool Alive
             => Parent is not null;
+
+        /// <summary> The version of this adapter. </summary>
+        /// <remarks>
+        ///   The implementation of this should use an <see cref="AdapterMethodAttribute"/> with the value <c>-1</c>
+        ///   unless the associated <see cref="BasicWrapper{TSelf,TEnum}"/> implements its <see cref="BasicWrapper{TSelf,TEnum}.Version"/> attribute differently.
+        /// </remarks>
+        public abstract (int Major, int Minor) Version { get; }
 
         /// <summary> Check that a passed unmanaged type matches the expected input type and convert it. </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
