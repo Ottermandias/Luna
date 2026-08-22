@@ -6,7 +6,7 @@ namespace Luna.Generators;
 
 internal static class AdapterMethodAttribute
 {
-    public static string MetadataName      = $"Luna.Generators.{nameof(AdapterMethodAttribute)}";
+    public const  string MetadataName      = $"Luna.Generators.{nameof(AdapterMethodAttribute)}";
     private const string MethodIdMember    = "MethodId";
     private const string MethodIdParameter = "methodId";
 
@@ -18,14 +18,23 @@ internal static class AdapterMethodAttribute
         var comment =
             "/// <summary> Mark a method to be exposed through <see cref=\"global::Dalamud.Plugin.Ipc.IIdDataShareAdapter\"/>. </summary>"
                 .Comment();
-        var usage = SyntaxFactory.AttributeUsage(AttributeTargets.Method, AttributeTargets.Property);
+        var usage = SyntaxFactory.AttributeUsage(AttributeTargets.Method, AttributeTargets.Property, AttributeTargets.Event);
 
         var methodIdProperty = SyntaxFactory.CreateProperty(MethodIdMember,
             "The unique ID of the invocation this method shall be associated with. This can either be an integer or an integer-based enum value.",
             SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.ObjectKeyword)));
 
         var disposeAfterFailure = SyntaxFactory.CreateProperty("DisposeOnFailure",
-            "Whether to dispose the created object if it is not assignable to the target type.", SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.BoolKeyword)));
+            "Whether to dispose the created object if it is not assignable to the target type.",
+            SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.BoolKeyword)));
+
+        var subscribeEvent = SyntaxFactory.CreateProperty("SubscribeEvent",
+            "The name of an action to invoke when this event gets its first subscriber.",
+            SyntaxFactory.NullableType(SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.StringKeyword))));
+
+        var unsubscribeEvent = SyntaxFactory.CreateProperty("UnsubscribeEvent",
+            "The name of an action to invoke when this event loses its last subscriber.",
+            SyntaxFactory.NullableType(SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.StringKeyword))));
 
         var ctorParameters = SyntaxFactory.ParameterList(
             SyntaxFactory.SingletonSeparatedList(
@@ -45,7 +54,7 @@ internal static class AdapterMethodAttribute
                 SyntaxFactory.AttributeList(SyntaxFactory.SingletonSeparatedList(generated)),
                 SyntaxFactory.AttributeList(SyntaxFactory.SingletonSeparatedList(usage)))
             .AddBaseListTypes(SyntaxFactory.SimpleBaseType(SyntaxFactory.ParseTypeName("global::System.Attribute")))
-            .AddMembers(ctor, methodIdProperty, disposeAfterFailure)
+            .AddMembers(ctor, methodIdProperty, disposeAfterFailure, subscribeEvent, unsubscribeEvent)
             .WithLeadingTrivia(comment);
 
         return SyntaxFactory.CompilationUnit().AddMembers(@namespace.AddMembers(attribute)).Normalize();

@@ -8,6 +8,17 @@ namespace Luna.Generators;
 
 internal static class Utility
 {
+    /// <summary> Utility descriptor for debug diagnostics. </summary>
+    public static readonly DiagnosticDescriptor DebugDiagnostic = new(
+#pragma warning disable RS2008
+        "LUNADEBUG",
+#pragma warning restore RS2008
+        "Generator debug",
+        "{0}",
+        "Luna.Ipc",
+        DiagnosticSeverity.Warning,
+        true);
+
     /// <summary> Search for the name of a value in an Enum by the constant value. </summary>
     /// <param name="enumType"> The enum type. </param>
     /// <param name="value"> The constant value. </param>

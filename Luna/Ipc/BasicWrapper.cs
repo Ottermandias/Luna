@@ -20,15 +20,52 @@ public static class BasicWrapper
     /// <inheritdoc cref="IBasicWrapper{TWrapper}.CreateWrapper"/>
     public static TWrapper? Create<TWrapper>(IIdDataShareAdapter? adapter) where TWrapper : IBasicWrapper<TWrapper>
         => TWrapper.CreateWrapper(adapter);
+
+    /// <summary> An empty adapter supplying no functionality. </summary>
+    public static readonly IIdDataShareAdapter EmptyAdapter = new EmptyAdapterObject();
+
+    private sealed class EmptyAdapterObject : IIdDataShareAdapter
+    {
+        public void Dispose()
+        { }
+    }
 }
 
 /// <summary> A base class for wrappers for a specific method ID enumeration type (assumed to be based on <see cref="int"/>). </summary>
-public abstract class BasicWrapper<TSelf, TEnum>(IIdDataShareAdapter adapter) : IDisposable
+public abstract class BasicWrapper<TSelf, TEnum>(IIdDataShareAdapter? adapter = null) : IDisposable
     where TSelf : BasicWrapper<TSelf, TEnum>, IBasicWrapper<TSelf>
     where TEnum : unmanaged, Enum
 {
+    /// <summary> A delegate map for any events that need to be mapped. </summary>
+    protected readonly ConcurrentDictionary<(Delegate Subscriber, TEnum Event), Delegate> DelegateMap = [];
+
     /// <inheritdoc cref="IBasicWrapper{TSelf}.Adapter"/>
-    public IIdDataShareAdapter Adapter { get; } = adapter;
+    public IIdDataShareAdapter Adapter { get; private set; } = adapter ?? BasicWrapper.EmptyAdapter;
+
+    /// <summary> Get whether the wrapper currently wraps an actual adapter. Note that this adapter may still be already disposed. </summary>
+    public bool HasAdapter
+        => Adapter != BasicWrapper.EmptyAdapter;
+
+    /// <summary> Set the wrapped adapter to a new one. </summary>
+    /// <param name="adapter"> The new adapter to wrap. If this is null, an empty adapter will be wrapped which will throw on any invocation. </param>
+    public unsafe void UpdateAdapter(IIdDataShareAdapter? adapter)
+    {
+        // If we get the same adapter, do nothing.
+        adapter ??= BasicWrapper.EmptyAdapter;
+        if (adapter == Adapter)
+            return;
+
+        // Dispose the old adapter.
+        Adapter.Dispose();
+
+        // Assign the new adapter.
+        Adapter = adapter;
+        // Move all event subscriptions to the new adapters events.
+        // This works because the managed type check correctly identifies
+        // the delegates as their actual action types.
+        foreach (var ((_, @event), subscriber) in DelegateMap)
+            Adapter.Invoke(*(int*)&@event, subscriber, true);
+    }
 
     /// <inheritdoc cref="IIdDataShareAdapter.Invoke"/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -238,7 +275,52 @@ public abstract class BasicWrapper<TSelf, TEnum>(IIdDataShareAdapter adapter) : 
         where TRet : allows ref struct
         => Adapter.TryInvoke(*(int*)&methodId, a, b, c, d, e, f, g, h, i, out TRet? ret) ? ret : throw new InvocationException<TEnum>(methodId);
 
+    /// <summary> Remove a delegate from the delegate map and the current subscription, if an adapter is wrapped. </summary>
+    /// <param name="action"> The external action. </param>
+    /// <param name="method"> The event. </param>
+    /// <remarks> We do not need to specify the type since the managed type check in the invocation will do that. </remarks>
+    protected void RemoveDelegate(TEnum method, Delegate? action)
+    {
+        if (action is null)
+            return;
+
+        if (!DelegateMap.TryRemove((action, method), out var del))
+            del = action;
+
+        if (HasAdapter)
+            Invoke(method, del, false);
+    }
+
+    /// <summary> Add a delegate to the subscriber map and the current subscription, if an adapter is wrapped. </summary>
+    /// <typeparam name="TIn"> The external action type. </typeparam>
+    /// <typeparam name="TOut"> The internal action type. </typeparam>
+    /// <param name="original"> The external action. </param>
+    /// <param name="createInternal"> A converter between external and internal actions. </param>
+    /// <param name="method"> The event. </param>
+    /// <remarks> The strong typing helps to ensure compliance, but is not necessary for the actual invocation. </remarks>
+    protected void AddDelegate<TIn, TOut>(TEnum method, TIn? original, Func<TIn, TOut> createInternal)
+        where TIn : Delegate
+        where TOut : Delegate
+    {
+        if (original is null)
+            return;
+
+        if (DelegateMap.TryGetValue((original, method), out var subscriber))
+            return;
+
+        var ret = createInternal(original);
+        if (!DelegateMap.TryAdd((original, method), ret))
+            return;
+
+        if (HasAdapter)
+            Invoke(method, ret, true);
+    }
+
     /// <inheritdoc />
     public void Dispose()
-        => Adapter.Dispose();
+    {
+        DelegateMap.Clear();
+        Adapter.Dispose();
+        Adapter = BasicWrapper.EmptyAdapter;
+    }
 }

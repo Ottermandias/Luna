@@ -75,7 +75,6 @@ internal static class DataAdapterValidation
         return false;
     }
 
-
     private static readonly DiagnosticDescriptor InvalidSignature = new(
         "LUNAIPC001",
         "Invalid adapter method",

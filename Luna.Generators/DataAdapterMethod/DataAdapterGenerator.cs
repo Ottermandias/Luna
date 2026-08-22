@@ -90,7 +90,7 @@ public sealed class DataAdapterGenerator : IIncrementalGenerator
                 .WithModifiers(SyntaxFactory.TokenList(SyntaxFactory.Token(SyntaxKind.OutKeyword)));
 
         var invokeAliveCheck = SyntaxFactory.ExpressionStatement(SyntaxFactory.InvocationExpression("CheckAlive".IdentifierName()));
-        var sections = entries.Select(GenerateSwitchSection).Append(GenerateDefaultSection(arity, function));
+        var sections         = entries.Select(GenerateSwitchSection).Append(GenerateDefaultSection(arity, function));
         var method = SyntaxFactory
             .MethodDeclaration(SyntaxFactory.PredefinedType(SyntaxFactory.Token(function ? SyntaxKind.BoolKeyword : SyntaxKind.VoidKeyword)),
                 (function ? "TryInvoke" : "Invoke").Identifier())
@@ -128,12 +128,20 @@ public sealed class DataAdapterGenerator : IIncrementalGenerator
 
     private static SwitchSectionSyntax GenerateSwitchSection(DataAdapterMethodEntry entry)
     {
-        var               invocation = CreateInvocation(entry);
         StatementSyntax[] statements;
 
-        if (entry.IsFunction)
+        if (entry.IsEvent)
         {
-            var checkRet = CreateCheckRet(entry, invocation);
+            statements =
+            [
+                CreateEventSubscription(entry),
+                SyntaxFactory.ReturnStatement(),
+            ];
+        }
+        else if (entry.IsFunction)
+        {
+            var invocation = CreateInvocation(entry);
+            var checkRet   = CreateCheckRet(entry, invocation);
             statements =
             [
                 SyntaxFactory.ExpressionStatement(SyntaxFactory.AssignmentExpression(SyntaxKind.SimpleAssignmentExpression,
@@ -143,6 +151,7 @@ public sealed class DataAdapterGenerator : IIncrementalGenerator
         }
         else
         {
+            var invocation = CreateInvocation(entry);
             statements =
             [
                 SyntaxFactory.ExpressionStatement(invocation),
@@ -152,9 +161,55 @@ public sealed class DataAdapterGenerator : IIncrementalGenerator
 
         return SyntaxFactory.SwitchSection()
             .WithLabels(SyntaxFactory.SingletonList<SwitchLabelSyntax>(
-                SyntaxFactory.CaseSwitchLabel(IntLiteral(entry.Id))))
+                SyntaxFactory.CaseSwitchLabel(MethodIdExpression(entry))))
             .WithStatements(SyntaxFactory.List(statements));
     }
+
+    private static ExpressionSyntax MethodIdExpression(in DataAdapterMethodEntry entry)
+    {
+        if (entry.IdEnumType is null || entry.IdEnumMember is null)
+            return IntLiteral(entry.Id);
+
+        var enumValue = SyntaxFactory.MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression, entry.IdEnumType.GetTypeSyntax(),
+            entry.IdEnumMember.Name.IdentifierName());
+        return SyntaxFactory.CastExpression(SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.IntKeyword)), enumValue);
+    }
+
+    private static IfStatementSyntax CreateEventSubscription(in DataAdapterMethodEntry entry)
+    {
+        var @event = (IEventSymbol)entry.Method.AssociatedSymbol!;
+
+        var action    = CreateCheckValue(entry, @event.Type.GetTypeSyntax(), @event.Type.IsReferenceType, 0);
+        var remove    = CreateCheckValue(entry, SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.BoolKeyword)), false, 1);
+        var eventName = @event.Name.IdentifierName();
+
+        var add = SyntaxFactory.ExpressionStatement(SyntaxFactory.AssignmentExpression(SyntaxKind.AddAssignmentExpression, eventName, action));
+        var subscriptionStatements = new List<StatementSyntax>();
+        if (entry.SubscriptionEvent.Length > 0)
+            subscriptionStatements.Add(SyntaxFactory.IfStatement(IsNull(eventName), Invoke(entry.SubscriptionEvent)));
+        subscriptionStatements.Add(add);
+
+        var subtract = SyntaxFactory.ExpressionStatement(SyntaxFactory.AssignmentExpression(SyntaxKind.SubtractAssignmentExpression, eventName,
+            action));
+        List<StatementSyntax> unsubscriptionStatements = [subtract];
+        if (entry.UnsubscriptionEvent.Length > 0)
+            unsubscriptionStatements.Add(SyntaxFactory.IfStatement(IsNull(eventName), Invoke(entry.UnsubscriptionEvent)));
+
+        return SyntaxFactory.IfStatement(remove, SyntaxFactory.Block(unsubscriptionStatements),
+            SyntaxFactory.ElseClause(SyntaxFactory.Block(subscriptionStatements)));
+
+        static BinaryExpressionSyntax IsNull(ExpressionSyntax expression)
+        {
+            return SyntaxFactory.BinaryExpression(SyntaxKind.EqualsExpression, expression,
+                SyntaxFactory.LiteralExpression(SyntaxKind.NullLiteralExpression));
+        }
+
+        static ExpressionStatementSyntax Invoke(string method)
+        {
+            return SyntaxFactory.ExpressionStatement(SyntaxFactory.InvocationExpression(method.IdentifierName()));
+        }
+    }
+
 
     private static SwitchSectionSyntax GenerateDefaultSection(
         int arity,
@@ -201,16 +256,20 @@ public sealed class DataAdapterGenerator : IIncrementalGenerator
     }
 
     private static InvocationExpressionSyntax CreateCheckValue(in DataAdapterMethodEntry entry, IParameterSymbol parameter, int argumentIndex)
+        => CreateCheckValue(entry, parameter.Type.GetTypeSyntax(), parameter.Type.IsReferenceType, argumentIndex);
+
+    private static InvocationExpressionSyntax CreateCheckValue(in DataAdapterMethodEntry entry, TypeSyntax targetType, bool isReferenceType,
+        int argumentIndex)
     {
         var method = SyntaxFactory.GenericName("CheckValue".Identifier())
             .WithTypeArgumentList(SyntaxFactory.TypeArgumentList(
-                SyntaxFactory.SeparatedList<TypeSyntax>([TypeNames[argumentIndex].IdentifierName(), parameter.Type.GetTypeSyntax()])));
+                SyntaxFactory.SeparatedList<TypeSyntax>([TypeNames[argumentIndex].IdentifierName(), targetType])));
 
         var valueArgument = SyntaxFactory.Argument(ParameterNames[argumentIndex].IdentifierName());
 
         // Reference types go through CheckValue<TArg, TOut>(..., argument)
         // Value types go through CheckValue<TArg, TOut>(..., ref argument)
-        if (!parameter.Type.IsReferenceType)
+        if (!isReferenceType)
             valueArgument = valueArgument.WithRefOrOutKeyword(SyntaxFactory.Token(SyntaxKind.RefKeyword));
 
         return SyntaxFactory.InvocationExpression(method)
@@ -265,7 +324,11 @@ public sealed class DataAdapterGenerator : IIncrementalGenerator
                             SyntaxFactory.RefStructConstraint()))));
 
     private static bool IsCandidate(SyntaxNode node, CancellationToken token)
-        => node is MethodDeclarationSyntax or PropertyDeclarationSyntax or AccessorDeclarationSyntax;
+        => node is MethodDeclarationSyntax or PropertyDeclarationSyntax or AccessorDeclarationSyntax or EventFieldDeclarationSyntax
+            or VariableDeclaratorSyntax
+            {
+                Parent.Parent: EventFieldDeclarationSyntax,
+            };
 
     private static IMethodSymbol? GetTypeToGenerate(GeneratorAttributeSyntaxContext context, CancellationToken token)
     {
@@ -273,6 +336,8 @@ public sealed class DataAdapterGenerator : IIncrementalGenerator
             return m;
         if (context.TargetSymbol is IPropertySymbol p)
             return p.GetMethod;
+        if (context.TargetSymbol is IEventSymbol e)
+            return e.AddMethod;
 
         return null;
     }
