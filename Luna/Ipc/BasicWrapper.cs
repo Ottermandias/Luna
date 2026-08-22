@@ -361,7 +361,7 @@ public abstract class BasicWrapper<TSelf, TEnum>(IIdDataShareAdapter? adapter = 
         if (original is null)
             return;
 
-        if (DelegateMap.ContainsKey((original, method))
+        if (DelegateMap.ContainsKey((original, method)))
             return;
 
         var ret = createInternal(original);
