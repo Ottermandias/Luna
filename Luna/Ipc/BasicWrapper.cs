@@ -119,8 +119,9 @@ public abstract class BasicWrapper<TSelf, TEnum>(IIdDataShareAdapter? adapter = 
         // Move all event subscriptions to the new adapters events.
         // This works because the managed type check correctly identifies
         // the delegates as their actual action types.
-        foreach (var ((_, @event), subscriber) in DelegateMap)
-            Adapter.Invoke(*(int*)&@event, subscriber, true);
+        if (HasAdapter)
+            foreach (var ((_, @event), subscriber) in DelegateMap)
+                Adapter.Invoke(*(int*)&@event, subscriber, false);
     }
 
     /// <inheritdoc cref="IIdDataShareAdapter.Invoke"/>
