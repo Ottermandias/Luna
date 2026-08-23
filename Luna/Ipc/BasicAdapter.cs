@@ -5,17 +5,37 @@ namespace Luna;
 
 public sealed partial class IpcObjectManager
 {
+    /// <summary> Since <see cref="BasicAdapter"/> can not implement <see cref="IIdDataShareAdapter"/> directly due to intermediate classes breaking default interface resolution, we use this basic interface instead. </summary>
+    public interface IBasicAdapter : IIdDataShareAdapter
+    {
+        /// <summary> The internal name of the plugin that requested this adapter. </summary>
+        public string Owner { get; }
+
+        /// <summary> The actual type name of this adapter. </summary>
+        public string Type { get; }
+
+        /// <summary> Whether the adapter is still alive. </summary>
+        public bool Alive { get; }
+
+        /// <summary> The version of this adapter. </summary>
+        /// <remarks>
+        ///   The implementation of this should use an <see cref="AdapterMethodAttribute"/> with the value <c>-1</c>
+        ///   unless the associated <see cref="BasicWrapper{TSelf,TEnum}"/> implements its <see cref="BasicWrapper{TSelf,TEnum}.Version"/> attribute differently.
+        /// </remarks>
+        public (int Major, int Minor) Version { get; }
+    }
+
     /// <summary> Utility functions for data adapters. </summary>
-    public abstract class BasicAdapter(IAdapterFactory parent, string owner, string type) : IIdDataShareAdapter
+    public abstract class BasicAdapter(IAdapterFactory parent, string owner, string type) : IDisposable
     {
         /// <summary> The factory that created this adapter. </summary>
         protected IAdapterFactory? Parent { get; private set; } = parent;
 
         /// <summary> The internal name of the plugin that requested this adapter. </summary>
-        public readonly string Owner = owner;
+        public string Owner { get; } = owner;
 
         /// <summary> The actual type name of this adapter. </summary>
-        public readonly string Type = type;
+        public string Type { get; } = type;
 
         /// <summary> Whether the adapter is still alive. </summary>
         public bool Alive
@@ -99,7 +119,7 @@ public sealed partial class IpcObjectManager
             {
                 lock (Parent.IpcManager._objects)
                 {
-                    Parent.IpcManager._objects.RemoveValue(Owner, this);
+                    Parent.IpcManager._objects.RemoveValue(Owner, (IBasicAdapter)this);
                 }
 
                 LogDisposal(Parent.IpcManager._log, Type, Owner);

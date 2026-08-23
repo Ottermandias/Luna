@@ -344,7 +344,7 @@ public abstract class BasicWrapper<TSelf, TEnum>(IIdDataShareAdapter? adapter = 
             del = action;
 
         if (HasAdapter)
-            Invoke(method, del, false);
+            Invoke(method, del, true);
     }
 
     /// <summary> Add a delegate to the subscriber map and the current subscription, if an adapter is wrapped. </summary>
@@ -369,7 +369,7 @@ public abstract class BasicWrapper<TSelf, TEnum>(IIdDataShareAdapter? adapter = 
             return;
 
         if (HasAdapter)
-            Invoke(method, ret, true);
+            Invoke(method, ret, false);
     }
 
     /// <inheritdoc />

@@ -12,7 +12,7 @@ public interface IAdapterFactory
     /// <param name="owner"> The requesting plugin. </param>
     /// <param name="data"> Arbitrary data for adapters that refer to specific objects instead of singletons. </param>
     /// <returns> The adapter. </returns>
-    public IpcObjectManager.BasicAdapter? CreateAdapter(string owner, object? data);
+    public IpcObjectManager.IBasicAdapter? CreateAdapter(string owner, object? data);
 }
 
 /// <summary> Extensions for <see cref="IAdapterFactory"/> implementations. </summary>

@@ -7,10 +7,10 @@ namespace Luna;
 /// <summary> A manager for data share adapters used for IPC communication across plugins. </summary>
 public sealed partial class IpcObjectManager : IDisposable, IApiService
 {
-    private readonly IDalamudPluginInterface             _pluginInterface;
-    private readonly LunaLogger                          _log;
-    private readonly SetDictionary<string, BasicAdapter> _objects = [];
-    private          bool                                _disposed;
+    private readonly IDalamudPluginInterface              _pluginInterface;
+    private readonly LunaLogger                           _log;
+    private readonly SetDictionary<string, IBasicAdapter> _objects = [];
+    private          bool                                 _disposed;
 
     /// <summary> A manager for data share adapters used for IPC communication across plugins. </summary>
     /// <param name="log"> A logger. </param>
