@@ -26,7 +26,8 @@ public sealed class FileSystemSeparatorCache : IFileSystemNodeCache
     /// <param name="cache"> The cache drawing the node. </param>
     /// <param name="depth"> The depth of the node </param>
     /// <param name="color"> The color to draw the line in. </param>
-    public static void DrawLine(FileSystemCache cache, int depth, ColorParameter color)
+    /// <param name="lineColor"> The actual color of the tree line connecting to this. </param>
+    public static void DrawLine(FileSystemCache cache, int depth, ColorParameter color, ColorParameter lineColor)
     {
         const float lengthGradientPixel = 20;
         var         start               = Im.Cursor.ScreenPosition;
@@ -38,21 +39,23 @@ public sealed class FileSystemSeparatorCache : IFileSystemNodeCache
 
         if (color.IsDefault)
         {
-            Im.Window.DrawList.Shape.Line(start, end, cache.LineColor, 2 * Im.Style.GlobalScale);
+            var parentColor = lineColor.CheckDefault(cache.GetLineColor(depth));
+            Im.Window.DrawList.Shape.Line(start, end, parentColor, 2 * Im.Style.GlobalScale);
         }
         else
         {
             if (depth > 0)
             {
-                var shape      = Im.Window.DrawList.Shape;
-                var pixels     = (int)(lengthGradientPixel * Im.Style.GlobalScale);
-                var colorDiff  = (color.Color!.Value.ToVector() - cache.LineColor) / (pixels + 1);
-                var localColor = cache.LineColor;
+                var parentColor = lineColor.CheckDefault(cache.GetLineColor(depth));
+                var shape       = Im.Window.DrawList.Shape;
+                var pixels      = (int)(lengthGradientPixel * Im.Style.GlobalScale);
+                var localColor  = parentColor.ToVector();
+                var colorDiff   = (color.Color!.Value.ToVector() - localColor) / (pixels + 1);
                 for (var i = 0; i < pixels; ++i)
                 {
                     var segmentEnd = start with { X = start.X + 1 };
                     localColor += colorDiff;
-                    shape.Line(start, segmentEnd, color, 2 * Im.Style.GlobalScale);
+                    shape.Line(start, segmentEnd, localColor, 2 * Im.Style.GlobalScale);
                     start = segmentEnd;
                 }
             }
@@ -64,7 +67,7 @@ public sealed class FileSystemSeparatorCache : IFileSystemNodeCache
     /// <inheritdoc/>
     public void Draw(FileSystemCache cache, IFileSystemNode node, bool startsLine)
     {
-        DrawLine(cache, node.Depth, Color);
+        DrawLine(cache, node.Depth, Color, node.Parent?.LineColor ?? ColorParameter.Default);
         Im.InvisibleButton(Name.Utf8, Im.ContentRegion.Available with { Y = Im.Style.TextHeight });
 
         if (cache.Parent.SeparatorContext.Count is 0)

@@ -46,7 +46,7 @@ internal abstract class FileSystemNode(FileSystemIdentifier identifier) : IFileS
         => FullPath.AsSpan(NameOffset);
 
     /// <inheritdoc/>
-    public int Depth { get; private set; }
+    public int Depth { get; protected set; }
 
     /// <inheritdoc/>
     public int IndexInParent { get; private set; }

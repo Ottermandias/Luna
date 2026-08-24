@@ -70,7 +70,7 @@ public sealed class FileSystemFolderCache : IFileSystemNodeCache
         var folder = (IFileSystemFolder)node;
         if (folder.DrawAsSeparator)
         {
-            FileSystemSeparatorCache.DrawLine(cache, node.Depth, ExpandedColor);
+            FileSystemSeparatorCache.DrawLine(cache, node.Depth, folder.LineColor, node.Parent?.LineColor ?? ColorParameter.Default);
             Im.InvisibleButton(Label, Im.ContentRegion.Available with { Y = Im.Style.TextHeight });
         }
         else

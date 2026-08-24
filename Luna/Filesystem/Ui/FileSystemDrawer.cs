@@ -77,9 +77,13 @@ public abstract class FileSystemDrawer : IPanel
     public virtual Vector4 CollapsedFolderColor
         => Im.Style[ImGuiColor.Text];
 
-    /// <summary> Get the color the folder line should use. </summary>
-    public virtual Vector4 FolderLineColor
-        => Im.Style[ImGuiColor.TextDisabled];
+    /// <summary> Get the color the odd folder lines should use. </summary>
+    public virtual Rgba32 FolderLineColor
+        => ImGuiColor.TextDisabled.Get();
+
+    /// <summary> Get the color the even folder lines should use. </summary>
+    public virtual Rgba32 AlternatingFolderLineColor
+        => ImGuiColor.TextDisabled.Get();
 
     /// <summary> An event that is invoked when the <see cref="SortMode"/> changes. </summary>
     public event Action? SortModeChanged;

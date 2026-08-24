@@ -93,6 +93,33 @@ public sealed partial class IpcObjectManager : IDisposable, IApiService
         }
     }
 
+    public void DrawDebug()
+    {
+        using var id = Im.Id.Empty();
+        lock (_objects)
+        {
+            foreach (var (owner, objects) in _objects.Grouped)
+            {
+                id.PushNext();
+                using var tree = Im.Tree.Node(owner);
+                if (tree)
+                    foreach (var adapter in objects)
+                    {
+                        Im.Tree.Leaf(adapter.Type);
+                        Im.Line.Same(300 * Im.Style.GlobalScale);
+                        using (Im.Group())
+                        {
+                            foreach (var @event in adapter.EventSubscriptions)
+                                Im.Text(@event);
+                        }
+                    }
+
+                id.Pop();
+            }
+        }
+    }
+
+
     [LoggerMessage(Microsoft.Extensions.Logging.LogLevel.Debug, "Provided IPC wrapper {Type} for {Owner} from {Caller}.")]
     static partial void LogCreation(LunaLogger logger, string type, string owner, string caller);
 

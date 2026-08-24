@@ -39,6 +39,20 @@ public sealed class FolderColorEdits(FileSystemDrawer drawer) : BaseButton<IFile
                 drawer.FileSystem.ChangeFolderCollapsedColor(data, color);
         }
 
+        var lineColor = drawer.FolderLineColor;
+        if (ImEx.IconCheckbox("##defLine"u8, LunaStyle.LockedIcon, data.LineColor.IsDefault, out isDefault))
+            drawer.FileSystem.ChangeFolderLineColor(data, isDefault ? ColorParameter.Default : lineColor);
+
+        Im.Tooltip.OnHover(isDefault ? "Use the custom color configured here."u8 : "Use the globally set color for folder lines."u8);
+
+        Im.Line.SameInner();
+        using (Im.Disabled(isDefault))
+        {
+            var color = data.LineColor.Color?.ToVector() ?? lineColor;
+            if (Im.Color.Editor("Folder Line Color"u8, ref color, ColorEditorFlags.AlphaPreviewHalf | ColorEditorFlags.NoInputs))
+                drawer.FileSystem.ChangeFolderLineColor(data, color);
+        }
+
         return false;
     }
 }

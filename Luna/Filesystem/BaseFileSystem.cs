@@ -278,6 +278,18 @@ public class BaseFileSystem
         Changed.Invoke(new FileSystemChanged.Arguments(FileSystemChangeType.FolderChanged, node, null, null));
     }
 
+    /// <summary> Change the associated color of a folder line. </summary>
+    /// <param name="node"> The folder node. If this is not a folder, nothing is done. </param>
+    /// <param name="color"> The new color. If this is the same as before, nothing is done. </param>
+    public void ChangeFolderLineColor(IFileSystemNode node, ColorParameter color)
+    {
+        if (node is not FileSystemFolder folder || folder.LineColor == color)
+            return;
+
+        folder.LineColor = color;
+        Changed.Invoke(new FileSystemChanged.Arguments(FileSystemChangeType.FolderChanged, node, null, null));
+    }
+
     /// <summary> Change the separator behavior of a folder. </summary>
     /// <param name="node"> The folder node. If this is not a folder, nothing is done. </param>
     /// <param name="isSeparator"> The new separator state. If this is the same as before, nothing is done. </param>

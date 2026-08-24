@@ -24,6 +24,9 @@ public interface IFileSystemFolder : IFileSystemNode
     /// <summary> A specific color for this folder overwriting the default collapsed color. </summary>
     public ColorParameter CollapsedColor { get; }
 
+    /// <summary> An override for the color of the folder line going out of this folder when expanded. </summary>
+    public ColorParameter LineColor { get; }
+
     /// <summary> A specific sort mode for this folder, overwriting the default sort mode. This does not apply to descendant folders. </summary>
     public ISortMode? SortMode { get; }
 

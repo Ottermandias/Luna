@@ -40,8 +40,15 @@ public abstract class FileSystemCache : BasicCache
     /// <summary> The actual node being dragged. </summary>
     internal IFileSystemNode? DraggedNode;
 
-    /// <summary> The color to use for the tree lines. </summary>
-    public Vector4 LineColor { get; set; } = Vector4.One;
+    /// <summary> The color to use for the odd tree lines. </summary>
+    public Rgba32 LineColor { get; set; } = Rgba32.White;
+
+    /// <summary> The color to use for the even tree lines. </summary>
+    public Rgba32 AlternatingLineColor { get; set; } = Rgba32.White;
+
+    /// <summary> Get the correct line color according to depth. </summary>
+    public Rgba32 GetLineColor(int depth)
+        => int.IsEvenInteger(depth) ? LineColor : AlternatingLineColor;
 
     /// <summary> The color to use for collapsed folder labels. </summary>
     public Vector4 CollapsedFolderColor
@@ -352,6 +359,9 @@ public abstract class FileSystemCache : BasicCache
         public int StartsLineTo { get; set; }
 
         /// <inheritdoc/>
+        public ColorParameter LineColor { get; set; }
+
+        /// <inheritdoc/>
         public int IndentationDepth { get; set; }
 
         /// <summary> Whether a folder uses its persistent expansion state or the filter expansion state. </summary>
@@ -415,7 +425,7 @@ public abstract class FileSystemCache<TData> : FileSystemCache
             JumpToNode.SetTarget(null!);
         }
 
-        TreeLine.Draw(VisibleNodes, LineColor);
+        TreeLine.Draw(VisibleNodes, LineColor, AlternatingLineColor);
     }
 
     public override void Update()
@@ -426,6 +436,7 @@ public abstract class FileSystemCache<TData> : FileSystemCache
         CollapsedFolderColor =  Parent.CollapsedFolderColor;
         ExpandedFolderColor  =  Parent.ExpandedFolderColor;
         LineColor            =  Parent.FolderLineColor;
+        AlternatingLineColor =  Parent.AlternatingFolderLineColor;
         Dirty                &= ~IManagedCache.DirtyFlags.Colors;
     }
 
@@ -492,8 +503,9 @@ public abstract class FileSystemCache<TData> : FileSystemCache
                         IndentationDepth = currentDepth,
                         ParentIndex      = parentIndex,
                         StartsLineTo     = -1,
+                        LineColor        = folder.LineColor,
                     };
-                    var childrenDepth  = folder.DrawAsSeparator ? currentDepth : currentDepth + 1;
+                    var childrenDepth = folder.DrawAsSeparator ? currentDepth : currentDepth + 1;
 
                     // We only respect the expanded state of folders if the filter is currently empty.
                     // As soon as a filter is set, expand all folders that are visible or have visible children.
@@ -510,7 +522,6 @@ public abstract class FileSystemCache<TData> : FileSystemCache
                             // We have visible children, so the folder is also visible either way.
                             // The line should only go to the last child nested one deeper, if that is a folder, it may not be the newest child.
                             if (!folder.DrawAsSeparator)
-                            {
                                 for (var i = InternalNodes.Count - 1; i > index; i--)
                                 {
                                     if (InternalNodes[i].IndentationDepth == currentDepth + 1)
@@ -519,7 +530,6 @@ public abstract class FileSystemCache<TData> : FileSystemCache
                                         break;
                                     }
                                 }
-                            }
                         }
                     }
                     else
@@ -545,7 +555,6 @@ public abstract class FileSystemCache<TData> : FileSystemCache
                             if (InternalNodes.Count > index + 1)
                             {
                                 if (!folder.DrawAsSeparator)
-                                {
                                     // The line should only go to the last child nested one deeper, if that is a folder, it may not be the newest child.
                                     for (var i = InternalNodes.Count - 1; i > index; i--)
                                     {
@@ -555,11 +564,12 @@ public abstract class FileSystemCache<TData> : FileSystemCache
                                             break;
                                         }
                                     }
-                                }
                             }
                             // The folder has neither visible children, nor is visible by itself. Remove it again.
                             else if (!visible)
+                            {
                                 InternalNodes.RemoveAt(index);
+                            }
                         }
                     }
 

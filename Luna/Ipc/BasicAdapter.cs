@@ -17,6 +17,9 @@ public sealed partial class IpcObjectManager
         /// <summary> Whether the adapter is still alive. </summary>
         public bool Alive { get; }
 
+        /// <summary> Get all events this adapter is subscribed to. </summary>
+        public IEnumerable<string> EventSubscriptions { get; }
+
         /// <summary> The version of this adapter. </summary>
         /// <remarks>
         ///   The implementation of this should use an <see cref="AdapterMethodAttribute"/> with the value <c>-1</c>
@@ -28,6 +31,13 @@ public sealed partial class IpcObjectManager
     /// <summary> Utility functions for data adapters. </summary>
     public abstract class BasicAdapter(IAdapterFactory parent, string owner, string type) : IDisposable
     {
+        /// <summary> Display names of events we are subscribed to. </summary>
+        protected readonly ConcurrentSet<string> SubscribedEvents = [];
+
+        /// <inheritdoc cref="IBasicAdapter.EventSubscriptions"/>
+        public IEnumerable<string> EventSubscriptions
+            => SubscribedEvents;
+
         /// <summary> The factory that created this adapter. </summary>
         protected IAdapterFactory? Parent { get; private set; } = parent;
 
@@ -115,6 +125,7 @@ public sealed partial class IpcObjectManager
             if (Parent is null)
                 return;
 
+            SubscribedEvents.Clear();
             if (!Parent.IpcManager._disposed)
             {
                 lock (Parent.IpcManager._objects)
