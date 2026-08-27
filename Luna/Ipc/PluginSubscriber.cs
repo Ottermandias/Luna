@@ -130,9 +130,9 @@ public abstract class PluginSubscriber : IDisposable
         try
         {
             OnPluginDispose();
+            Available = true;
             QueryVersion();
             PluginInitialized();
-            Available = true;
             Initialized?.Invoke();
             Log.Debug($"Attached to {PluginName} with IPC version {CurrentMajorVersion}.{CurrentMinorVersion}.");
         }
