@@ -179,17 +179,22 @@ public static class CompressionFunctions
     /// <param name="base64"> The UTF16 Base64 string. </param>
     /// <param name="compressed"> The generally compressed byte data, or an empty array on failure. </param>
     /// <returns> True on success, false if the passed data was not valid Base64. </returns>
-    public static bool Decode(ReadOnlySpan<char> base64, out byte[] compressed)
+    public static bool Decode(ReadOnlySpan<char> base64, out Memory<byte> compressed)
     {
         try
         {
             compressed = new byte[Encoding.UTF8.GetByteCount(base64)];
-            Encoding.UTF8.GetBytes(base64, compressed);
+            var count     = Encoding.UTF8.GetBytes(base64, compressed.Span);
+            var operation = System.Buffers.Text.Base64.DecodeFromUtf8InPlace(compressed.Span[..count], out var newLength);
+            if (operation is not OperationStatus.Done)
+                return false;
+
+            compressed = compressed[..newLength];
             return true;
         }
         catch
         {
-            compressed = [];
+            compressed = Memory<byte>.Empty;
             return false;
         }
     }
