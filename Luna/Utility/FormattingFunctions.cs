@@ -1,4 +1,4 @@
-﻿namespace Luna;
+namespace Luna;
 
 /// <summary> Utility functions to handle display of data. </summary>
 public static class FormattingFunctions
@@ -48,6 +48,8 @@ public static class FormattingFunctions
     /// <returns> A UTF8-encoded string consisting of the byte-wise hex data. </returns>
     public static unsafe StringU8 BytewiseHex(ReadOnlySpan<byte> bytes, bool capitalized = true)
     {
+        if (bytes.Length is 0)
+            return StringU8.Empty;
         var ret  = new byte[bytes.Length * 2 + 1];
         var span = capitalized ? HexDigitsUpper : HexDigitsLower;
         fixed (byte* retPtr = ret, dataPtr = bytes)
@@ -72,6 +74,8 @@ public static class FormattingFunctions
     /// <returns> A UTF8-encoded string consisting of the byte-wise hex data. </returns>
     public static unsafe StringU8 BytewiseHexSpaced(ReadOnlySpan<byte> bytes, bool capitalized = true)
     {
+        if (bytes.Length is 0)
+            return StringU8.Empty;
         var ret  = new byte[bytes.Length * 3];
         var span = capitalized ? HexDigitsUpper : HexDigitsLower;
         fixed (byte* retPtr = ret, dataPtr = bytes)

@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Newtonsoft.Json.Linq;
 
 namespace Luna;
@@ -252,6 +253,48 @@ public readonly struct QuadBool : IEquatable<QuadBool>, IEquatable<OptionalBool>
         return false;
     }
 
+    /// <summary> Write the quad bool as a property. </summary>
+    /// <param name="j"> The JSON writer. </param>
+    /// <param name="property"> The property name for the full quad bool object. </param>
+    /// <param name="valueProperty"> The property name for the value property. </param>
+    /// <param name="setProperty"> The property name for the set property. </param>
+    public void WriteJson(Utf8JsonWriter j, ReadOnlySpan<byte> property, ReadOnlySpan<byte> valueProperty, ReadOnlySpan<byte> setProperty)
+    {
+        j.WriteStartObject(property);
+        j.WriteBoolean(valueProperty, ForcedValue);
+        j.WriteIfNot(setProperty, Set, false);
+        j.WriteEndObject();
+    }
+
+    /// <summary> Parse the current object to a QuadBool. </summary>
+    /// <param name="j"> The JSON reader. </param>
+    /// <param name="valueProperty"> The property name for the value property. </param>
+    /// <param name="setProperty"> The property name for the set property. </param>
+    /// <param name="value"> The returned value on success. </param>
+    /// <returns> True if we are at an object, which will be read entirely, false otherwise.</returns>
+    public static bool ParseJson(ref Utf8JsonReader j, ReadOnlySpan<byte> valueProperty, ReadOnlySpan<byte> setProperty, out QuadBool value)
+    {
+        value = Null;
+        if (j.TokenType is not JsonTokenType.StartObject)
+            return false;
+
+        var forcedValue = false;
+        var set         = false;
+        var objReader   = j.CreateObjectLimit();
+        while (objReader.Read(ref j))
+        {
+            if (j.BoolProperty(valueProperty, out var v))
+                forcedValue = v;
+            else if (j.BoolProperty(setProperty, out var s))
+                set = s;
+            else
+                j.Skip();
+        }
+
+        value = new QuadBool(forcedValue, set);
+        return true;
+    }
+
     /// <summary> Create a JObject from this object with the given names as property names. </summary>
     /// <param name="nameValue"> The property name for the value bool. </param>
     /// <param name="nameSet"> The property name for the state bool. </param>
@@ -263,6 +306,22 @@ public readonly struct QuadBool : IEquatable<QuadBool>, IEquatable<OptionalBool>
             [nameSet]   = Set,
         };
 
+    /// <summary> Parse a JsonElement into a QuadBool from the given property names. </summary>
+    /// <param name="token"> The JToken to parse. </param>
+    /// <param name="nameValue"> The property name for the value bool. </param>
+    /// <param name="nameSet"> The property name for the state bool. </param>
+    /// <param name="def"> The default value if parsing is not successful. </param>
+    /// <returns> The parsed value, filled with the default values if properties were not contained. </returns>
+    public static QuadBool FromJsonElement(in JsonElement? token, ReadOnlySpan<byte> nameValue, ReadOnlySpan<byte> nameSet, QuadBool def)
+    {
+        if (token is not {} j)
+            return def;
+
+        var value   = j.PropertyOrDefault(nameValue, def.ForcedValue);
+        var enabled = j.PropertyOrDefault(nameSet, def.Set);
+        return new QuadBool(value, enabled);
+    }
+
     /// <summary> Parse a JToken into a QuadBool from the given property names. </summary>
     /// <param name="token"> The JToken to parse. </param>
     /// <param name="nameValue"> The property name for the value bool. </param>
@@ -271,7 +330,7 @@ public readonly struct QuadBool : IEquatable<QuadBool>, IEquatable<OptionalBool>
     /// <returns> The parsed value, filled with the default values if properties were not contained. </returns>
     public static QuadBool FromJObject(JToken? token, string nameValue, string nameSet, QuadBool def)
     {
-        if (token == null)
+        if (token is null)
             return def;
 
         var value   = token[nameValue]?.ToObject<bool>() ?? def.ForcedValue;

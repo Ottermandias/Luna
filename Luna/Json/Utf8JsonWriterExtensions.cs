@@ -54,6 +54,23 @@ public static partial class JsonFunctions
                 j.WriteNumber(property, value);
         }
 
+        /// <summary> Only write a number property if the floating point value is not NaN. </summary>
+        /// <param name="property"> The property name. It gets omitted entirely if <paramref name="value"/> is any NaN value. </param>
+        /// <param name="value"> The value. </param>
+        [MethodImpl(ImSharpConfiguration.Inl)]
+        public void WriteIfNotNaN<T>(ReadOnlySpan<byte> property, T value) where T : IFloatingPoint<T>
+        {
+            if (T.IsNaN(value))
+                return;
+
+            if (typeof(T) == typeof(float))
+                j.WriteNumber(property, Unsafe.As<T, float>(ref value));
+            else if (typeof(T) == typeof(double))
+                j.WriteNumber(property, Unsafe.As<T, double>(ref value));
+            else
+                throw new ArgumentException($"The type {typeof(T)} is not supported for {nameof(WriteIfNotNaN)}.");
+        }
+
         /// <inheritdoc cref="WriteIfNot(Utf8JsonWriter,ReadOnlySpan{byte},float,float)"/>
         [MethodImpl(ImSharpConfiguration.Inl)]
         [OverloadResolutionPriority(100)]
