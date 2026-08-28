@@ -205,7 +205,6 @@ public sealed unsafe class ImSharpDalamudContext : IRequiredService, IDisposable
                 return;
 
             ImSharpContext.TearDownDefault((ImSharpContext*)_context);
-            ((ImSharpContext*)_context)->Dispose();
             ImSharpConfiguration.Logger.LogDebug("Teared down ImSharp context at 0x{Context:X}.", _context);
             _context = nint.Zero;
         }
