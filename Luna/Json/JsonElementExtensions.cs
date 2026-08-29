@@ -264,9 +264,18 @@ public static partial class JsonFunctions
 
                     value = null;
                     return false;
-                case JsonValueKind.String when T.TryParse(element.GetString(), null, out var v):
-                    value = v;
-                    return true;
+                case JsonValueKind.String:
+                {
+                    var text = element.GetString()!;
+                    if (T.TryParse(text, CultureInfo.InvariantCulture, out var v) || T.TryParse(text, CultureInfo.CurrentCulture, out v))
+                    {
+                        value = v;
+                        return true;
+                    }
+
+                    value = null;
+                    return false;
+                }
                 case JsonValueKind.Null:
                     value = null;
                     return allowNull;

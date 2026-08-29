@@ -120,10 +120,10 @@ public sealed partial class IpcObjectManager : IDisposable, IApiService
     }
 
 
-    [LoggerMessage(Microsoft.Extensions.Logging.LogLevel.Debug, "Provided IPC wrapper {Type} for {Owner} from {Caller}.")]
+    [LoggerMessage(Microsoft.Extensions.Logging.LogLevel.Trace, "Provided IPC wrapper {Type} for {Owner} from {Caller}.")]
     static partial void LogCreation(LunaLogger logger, string type, string owner, string caller);
 
-    [LoggerMessage(Microsoft.Extensions.Logging.LogLevel.Debug, "Relinquished IPC wrapper {Type} for {Owner}.")]
+    [LoggerMessage(Microsoft.Extensions.Logging.LogLevel.Trace, "Relinquished IPC wrapper {Type} for {Owner}.")]
     static partial void LogDisposal(LunaLogger logger, string type, string owner);
 
     [LoggerMessage(Microsoft.Extensions.Logging.LogLevel.Warning,
