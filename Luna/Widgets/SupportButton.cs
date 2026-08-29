@@ -21,8 +21,8 @@ public static class SupportButton
             .Push(ImGuiColor.ButtonHovered, LunaStyle.ReniColorHovered)
             .Push(ImGuiColor.ButtonActive,  LunaStyle.ReniColorActive);
 
-        Link(message, "Beginner's Guides"u8, "https://reniguide.info/", width,
-            "Open https://reniguide.info/\nImage and text based guides for most functionality of Penumbra made by Serenity.\n"u8
+        Link(message, "Beginner's Guides"u8, "https://reniguide.carrd.co/", width,
+            "Open https://reniguide.carrd.co/\nImage and text based guides for most functionality of Penumbra made by Serenity.\n"u8
           + "Not directly affiliated and potentially, but not usually out of date."u8);
     }
 

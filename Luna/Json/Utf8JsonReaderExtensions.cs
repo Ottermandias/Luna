@@ -1,4 +1,5 @@
 using System.Text.Json;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace Luna;
 
@@ -763,8 +764,13 @@ public static partial class JsonFunctions
 
             // Read the number as string and try to parse it.
             // TryReadUtf8String checks the token type itself.
-            if (reader.TryReadUtf8String(out var text) && TNumber.TryParse(text, null, out number))
-                return true;
+            if (reader.TryReadUtf8String(out var text))
+            {
+                if (TNumber.TryParse(text, CultureInfo.InvariantCulture, out number))
+                    return true;
+                if (TNumber.TryParse(text, CultureInfo.CurrentCulture, out number))
+                    return true;
+            }
 
             // All other cases are not valid numbers.
             number = @default;
@@ -847,7 +853,14 @@ public static partial class JsonFunctions
             // Read the number as string and try to parse it.
             // TryReadUtf8String checks the token type itself.
             if (reader.TryReadUtf8String(out var text))
-                return TNumber.Parse(text, null);
+            {
+                if (TNumber.TryParse(text, CultureInfo.InvariantCulture, out var number))
+                    return number;
+
+                return TNumber.Parse(text, CultureInfo.CurrentCulture);
+            }
+
+            return TNumber.Parse(text, null);
 
             throw new JsonException($"Invalid JSON token of type {reader.TokenType} could not be read as a number.");
         }

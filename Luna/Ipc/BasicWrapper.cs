@@ -376,6 +376,22 @@ public abstract class BasicWrapper<TSelf, TEnum>(IIdDataShareAdapter? adapter = 
     /// <inheritdoc />
     public void Dispose()
     {
+        if (HasAdapter)
+            try
+            {
+                foreach (var ((_, b), c) in DelegateMap)
+                    Invoke(b, c, true);
+            }
+            catch (AdapterMethodMissingException)
+            {
+                // Ignored
+            }
+            catch (ObjectDisposedException)
+            {
+                // Ignored
+            }
+
+
         DelegateMap.Clear();
         Adapter.Dispose();
         Adapter = BasicWrapper.EmptyAdapter;
