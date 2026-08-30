@@ -62,19 +62,7 @@ public sealed class DataAdapterGenerator : IIncrementalGenerator
             .Cast<MemberDeclarationSyntax>()
             .ToArray();
 
-        MemberDeclarationSyntax declaration = CreatePartialType(type, dispatchers);
-        for (var containing = type.ContainingType; containing is not null; containing = containing.ContainingType)
-            declaration = CreatePartialType(containing, [declaration]);
-
-        if (!type.ContainingNamespace.IsGlobalNamespace)
-            declaration = SyntaxFactory.FileScopedNamespaceDeclaration(GetNamespaceSyntax(type.ContainingNamespace))
-                .WithMembers(SyntaxFactory.SingletonList(declaration));
-
-        declaration = declaration.WithLeadingTrivia(SyntaxFactory.DefaultFileTrivia());
-
-        return SyntaxFactory.CompilationUnit()
-            .WithMembers(SyntaxFactory.SingletonList(declaration))
-            .Normalize();
+        return SyntaxExtensions.WrapInPartialType(type, dispatchers);
     }
 
     private static MethodDeclarationSyntax GenerateDispatcher(int arity, bool function, IEnumerable<DataAdapterMethodEntry> entries)
@@ -110,20 +98,6 @@ public sealed class DataAdapterGenerator : IIncrementalGenerator
         }
 
         return method;
-    }
-
-    private static TypeDeclarationSyntax CreatePartialType(INamedTypeSymbol type, IEnumerable<MemberDeclarationSyntax> members)
-    {
-        // The earlier validation only permits class types.
-        var declaration = SyntaxFactory.ClassDeclaration(type.Name.Identifier())
-            .WithModifiers(SyntaxFactory.TokenList(SyntaxFactory.Token(SyntaxKind.PartialKeyword)))
-            .WithMembers(SyntaxFactory.List(members));
-
-        if (type.TypeParameters.Length is not 0)
-            declaration = declaration.WithTypeParameterList(SyntaxFactory.TypeParameterList(
-                SyntaxFactory.SeparatedList(type.TypeParameters.Select(static p => SyntaxFactory.TypeParameter(p.Name.Identifier())))));
-
-        return declaration;
     }
 
     private static SwitchSectionSyntax GenerateSwitchSection(DataAdapterMethodEntry entry)
@@ -209,7 +183,6 @@ public sealed class DataAdapterGenerator : IIncrementalGenerator
             return SyntaxFactory.ExpressionStatement(SyntaxFactory.InvocationExpression(method.IdentifierName()));
         }
     }
-
 
     private static SwitchSectionSyntax GenerateDefaultSection(
         int arity,
@@ -347,22 +320,4 @@ public sealed class DataAdapterGenerator : IIncrementalGenerator
 
     private static LiteralExpressionSyntax IntLiteral(int value)
         => SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(value));
-
-    private static NameSyntax GetNamespaceSyntax(INamespaceSymbol ns)
-    {
-        var        names = GetNamespaceParts(ns);
-        NameSyntax name  = names[0].IdentifierName();
-        for (var i = 1; i < names.Count; ++i)
-            name = SyntaxFactory.QualifiedName(name, names[i].IdentifierName());
-        return name;
-
-        static IReadOnlyList<string> GetNamespaceParts(INamespaceSymbol ns)
-        {
-            var parts = new List<string>();
-            for (var current = ns; !current.IsGlobalNamespace; current = current.ContainingNamespace)
-                parts.Add(current.Name);
-            parts.Reverse();
-            return parts;
-        }
-    }
 }

@@ -87,14 +87,14 @@ public sealed partial class IpcObjectManager
 
         /// <summary> Check that a passed managed type matches the expected input type and convert it. </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        protected static TOut? CheckValue<T1, TOut>(int method, int numArguments, bool func, int argumentIndex, T1 arg)
-            where T1 : allows ref struct
+        protected static TOut? CheckValue<TIn, TOut>(int method, int numArguments, bool func, int argumentIndex, TIn arg)
+            where TIn : allows ref struct
             where TOut : allows ref struct
         {
             if (arg is null)
                 return default;
 
-            var obj = Unsafe.As<T1, object>(ref arg);
+            var obj = Unsafe.As<TIn, object>(ref arg);
             if (obj is not TOut ret)
                 throw new AdapterTypeMismatchException(method, numArguments, func, argumentIndex, obj.GetType());
 
