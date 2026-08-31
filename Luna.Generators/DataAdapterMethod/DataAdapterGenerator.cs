@@ -58,14 +58,14 @@ public sealed class DataAdapterGenerator : IIncrementalGenerator
         var dispatchers = entries.GroupBy(static e => (e.Arity, e.IsFunction))
             .OrderBy(static g => g.Key.Arity)
             .ThenBy(static g => g.Key.IsFunction)
-            .Select(static g => GenerateDispatcher(g.Key.Arity, g.Key.IsFunction, g.OrderBy(static m => m.Id)))
+            .Select(static g => GenerateDispatcher(g.Key.Arity, g.Key.IsFunction, g.OrderBy(static m => m.Id).ToList()))
             .Cast<MemberDeclarationSyntax>()
             .ToArray();
 
-        return SyntaxExtensions.WrapInPartialType(type, dispatchers);
+        return type.WrapInPartialType(dispatchers);
     }
 
-    private static MethodDeclarationSyntax GenerateDispatcher(int arity, bool function, IEnumerable<DataAdapterMethodEntry> entries)
+    private static MethodDeclarationSyntax GenerateDispatcher(int arity, bool function, IReadOnlyList<DataAdapterMethodEntry> entries)
     {
         var parameters = new ParameterSyntax[arity + (function ? 2 : 1)];
         parameters[0] = SyntaxFactory.Parameter(MethodParameter.Identifier())
@@ -77,15 +77,24 @@ public sealed class DataAdapterGenerator : IIncrementalGenerator
                 .WithType(SyntaxFactory.NullableType(ReturnType.IdentifierName()))
                 .WithModifiers(SyntaxFactory.TokenList(SyntaxFactory.Token(SyntaxKind.OutKeyword)));
 
-        var invokeAliveCheck = SyntaxFactory.ExpressionStatement(SyntaxFactory.InvocationExpression("CheckAlive".IdentifierName()));
-        var sections         = entries.Select(GenerateSwitchSection).Append(GenerateDefaultSection(arity, function));
+
+        var checkAliveSyntax = SyntaxFactory.ExpressionStatement(SyntaxFactory.InvocationExpression("CheckAlive".IdentifierName()));
+        var useGlobalCheck   = entries.All(e => !e.AlwaysAlive);
+
+        var sections = entries.Select(e => GenerateSwitchSection(e, useGlobalCheck ? null : checkAliveSyntax))
+            .Append(GenerateDefaultSection(arity, function));
+        var body = useGlobalCheck
+            ? SyntaxFactory.Block(checkAliveSyntax, SyntaxFactory.SwitchStatement(MethodParameter.IdentifierName())
+                .WithSections(SyntaxFactory.List(sections)))
+            : SyntaxFactory.Block(SyntaxFactory.SwitchStatement(MethodParameter.IdentifierName())
+                .WithSections(SyntaxFactory.List(sections)));
+
         var method = SyntaxFactory
             .MethodDeclaration(SyntaxFactory.PredefinedType(SyntaxFactory.Token(function ? SyntaxKind.BoolKeyword : SyntaxKind.VoidKeyword)),
                 (function ? "TryInvoke" : "Invoke").Identifier())
             .WithModifiers(SyntaxFactory.TokenList(SyntaxFactory.Token(SyntaxKind.PublicKeyword)))
             .WithParameterList(SyntaxFactory.ParameterList(SyntaxFactory.SeparatedList(parameters)))
-            .WithBody(SyntaxFactory.Block(invokeAliveCheck, SyntaxFactory.SwitchStatement(MethodParameter.IdentifierName())
-                .WithSections(SyntaxFactory.List(sections))));
+            .WithBody(body);
 
         if (parameters.Length > 1)
         {
@@ -100,9 +109,9 @@ public sealed class DataAdapterGenerator : IIncrementalGenerator
         return method;
     }
 
-    private static SwitchSectionSyntax GenerateSwitchSection(DataAdapterMethodEntry entry)
+    private static SwitchSectionSyntax GenerateSwitchSection(DataAdapterMethodEntry entry, ExpressionStatementSyntax? checkAliveSyntax)
     {
-        StatementSyntax[] statements;
+        IEnumerable<StatementSyntax> statements;
 
         if (entry.IsEvent)
         {
@@ -132,6 +141,9 @@ public sealed class DataAdapterGenerator : IIncrementalGenerator
                 SyntaxFactory.ReturnStatement(),
             ];
         }
+
+        if (checkAliveSyntax is not null && !entry.AlwaysAlive)
+            statements = [checkAliveSyntax, .. statements];
 
         return SyntaxFactory.SwitchSection()
             .WithLabels(SyntaxFactory.SingletonList<SwitchLabelSyntax>(

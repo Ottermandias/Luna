@@ -22,6 +22,12 @@ public static class BasicWrapper
     /// <summary> The constant value to use for the version method in method enums. </summary>
     public const int VersionMethod = -1;
 
+    /// <summary> The constant value to use fot the alive method in method enums. </summary>
+    public const int AliveMethod = -2;
+
+    /// <summary> The constant value to use for the disposed event subscription methods in method enums. </summary>
+    public const int DisposedEventMethod = -3;
+
     /// <inheritdoc cref="IBasicWrapper{TWrapper}.CreateWrapper"/>
     public static TWrapper? Create<TWrapper>(IIdDataShareAdapter? adapter) where TWrapper : IBasicWrapper<TWrapper>
         => TWrapper.CreateWrapper(adapter);
@@ -72,11 +78,18 @@ public abstract partial class BasicWrapper<TSelf, TEnum>(IIdDataShareAdapter? ad
 
     /// <summary> Get whether the wrapper currently wraps an actual adapter. Note that this adapter may still be already disposed. </summary>
     public bool HasAdapter
-        => Adapter != BasicWrapper.EmptyAdapter;
+        => Adapter != BasicWrapper.EmptyAdapter && Alive;
+
+    /// <summary> Get whether the referenced adapter has not been disposed yet.. </summary>
+    public virtual bool Alive
+        => Adapter.TryInvoke<bool>(BasicWrapper.AliveMethod, out var ret) && ret;
 
     /// <summary> Get the version of the referenced adapter. </summary>
     public virtual (int Major, int Minor) Version
         => Adapter.TryInvoke<(int Major, int Minor)>(BasicWrapper.VersionMethod, out var ret) ? ret : (0, 0);
+
+    /// <summary> Invoked when the referenced adapter is disposed. </summary>
+    public event Action? Disposed;
 
     protected abstract string IpcLabel { get; }
 
@@ -113,7 +126,11 @@ public abstract partial class BasicWrapper<TSelf, TEnum>(IIdDataShareAdapter? ad
             return;
 
         // Dispose the old adapter.
-        Adapter.Dispose();
+        if (HasAdapter)
+        {
+            Adapter.Invoke(BasicWrapper.DisposedEventMethod, OnAdapterDisposal, true);
+            Adapter.Dispose();
+        }
 
         // Assign the new adapter.
         Adapter = adapter;
@@ -121,8 +138,11 @@ public abstract partial class BasicWrapper<TSelf, TEnum>(IIdDataShareAdapter? ad
         // This works because the managed type check correctly identifies
         // the delegates as their actual action types.
         if (HasAdapter)
+        {
+            Adapter.Invoke(BasicWrapper.DisposedEventMethod, OnAdapterDisposal, false);
             foreach (var ((_, @event), subscriber) in DelegateMap)
                 Adapter.Invoke(*(int*)&@event, subscriber, false);
+        }
     }
 
     /// <inheritdoc cref="IIdDataShareAdapter.Invoke{T1,T2,T3,T4,T5,T6,T7,T8,T9}"/>
@@ -186,23 +206,31 @@ public abstract partial class BasicWrapper<TSelf, TEnum>(IIdDataShareAdapter? ad
     public void Dispose()
     {
         if (HasAdapter)
-            try
+        {
+            Adapter.Invoke(BasicWrapper.DisposedEventMethod, OnAdapterDisposal, true);
+            foreach (var ((_, b), c) in DelegateMap)
             {
-                foreach (var ((_, b), c) in DelegateMap)
+                try
+                {
                     Invoke(b, c, true);
+                }
+                catch (AdapterMethodMissingException)
+                {
+                    // Ignored
+                }
+                catch (ObjectDisposedException)
+                {
+                    // Ignored
+                }
             }
-            catch (AdapterMethodMissingException)
-            {
-                // Ignored
-            }
-            catch (ObjectDisposedException)
-            {
-                // Ignored
-            }
+        }
 
 
         DelegateMap.Clear();
         Adapter.Dispose();
         Adapter = BasicWrapper.EmptyAdapter;
     }
+
+    private void OnAdapterDisposal()
+        => Disposed?.Invoke();
 }

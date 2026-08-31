@@ -14,18 +14,32 @@ public sealed partial class IpcObjectManager
         /// <summary> The actual type name of this adapter. </summary>
         public string Type { get; }
 
-        /// <summary> Whether the adapter is still alive. </summary>
-        public bool Alive { get; }
-
         /// <summary> Get all events this adapter is subscribed to. </summary>
         public IEnumerable<string> EventSubscriptions { get; }
 
         /// <summary> The version of this adapter. </summary>
         /// <remarks>
-        ///   The implementation of this should use an <see cref="AdapterMethodAttribute"/> with the value <c>-1</c>
-        ///   unless the associated <see cref="BasicWrapper{TSelf,TEnum}"/> implements its <see cref="BasicWrapper{TSelf,TEnum}.Version"/> attribute differently.
+        ///   The implementation of this should use an <see cref="AdapterMethodAttribute"/> with the value <see cref="BasicWrapper.VersionMethod"/> (-1)
+        ///   unless the associated <see cref="BasicWrapper{TSelf,TEnum}"/> implements its <see cref="BasicWrapper{TSelf,TEnum}.Version"/> property differently.
+        ///   It is also recommended to use <see cref="AdapterMethodAttribute.AlwaysAlive"/> for this.
         /// </remarks>
         public (int Major, int Minor) Version { get; }
+
+        /// <summary> Whether the adapter is still alive. </summary>
+        /// <remarks>
+        ///   The implementation of this should use an <see cref="AdapterMethodAttribute"/> with the value <see cref="BasicWrapper.AliveMethod"/> (-2)
+        ///   unless the associated <see cref="BasicWrapper{TSelf,TEnum}"/> implements its <see cref="BasicWrapper{TSelf,TEnum}.Alive"/> property differently.
+        ///   It is also recommended to use <see cref="AdapterMethodAttribute.AlwaysAlive"/> for this.
+        /// </remarks>
+        public bool Alive { get; }
+
+        /// <summary> An event that is invoked when the adapter is being disposed. </summary>
+        /// <remarks>
+        ///   The implementation of this should use an <see cref="AdapterMethodAttribute"/> with the value <see cref="BasicWrapper.DisposedEventMethod"/> (-3)
+        ///   unless the associated <see cref="BasicWrapper{TSelf,TEnum}"/> implements its <see cref="BasicWrapper{TSelf,TEnum}.Disposed"/> event differently.
+        ///   It is also recommended to use <see cref="AdapterMethodAttribute.AlwaysAlive"/> for this.
+        /// </remarks>
+        public event Action Disposed;
     }
 
     /// <summary> Utility functions for data adapters. </summary>
@@ -47,16 +61,14 @@ public sealed partial class IpcObjectManager
         /// <summary> The actual type name of this adapter. </summary>
         public string Type { get; } = type;
 
-        /// <summary> Whether the adapter is still alive. </summary>
-        public bool Alive
-            => Parent is not null;
-
-        /// <summary> The version of this adapter. </summary>
-        /// <remarks>
-        ///   The implementation of this should use an <see cref="AdapterMethodAttribute"/> with the value <c>-1</c>
-        ///   unless the associated <see cref="BasicWrapper{TSelf,TEnum}"/> implements its <see cref="BasicWrapper{TSelf,TEnum}.Version"/> attribute differently.
-        /// </remarks>
+        /// <inheritdoc cref="IBasicAdapter.Version"/>
         public abstract (int Major, int Minor) Version { get; }
+
+        /// <inheritdoc cref="IBasicAdapter.Alive"/>
+        public abstract bool Alive { get; }
+
+        /// <summary> Invoke the <see cref="IBasicAdapter.Disposed"/> event. </summary>
+        protected abstract void InvokeDisposed();
 
         /// <summary> Check that a passed unmanaged type matches the expected input type and convert it. </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -122,23 +134,30 @@ public sealed partial class IpcObjectManager
         /// <inheritdoc/>
         public void Dispose()
         {
-            if (Parent is null)
+            if (!Alive)
                 return;
 
-            SubscribedEvents.Clear();
-            if (!Parent.IpcManager._disposed)
+            try
             {
-                lock (Parent.IpcManager._objects)
+                InvokeDisposed();
+                SubscribedEvents.Clear();
+                if (Parent?.IpcManager._disposed is false)
                 {
-                    Parent.IpcManager._objects.RemoveValue(Owner, (IBasicAdapter)this);
+                    lock (Parent.IpcManager._objects)
+                    {
+                        Parent.IpcManager._objects.RemoveValue(Owner, (IBasicAdapter)this);
+                    }
+
+                    LogDisposal(Parent.IpcManager._log, Type, Owner);
                 }
 
-                LogDisposal(Parent.IpcManager._log, Type, Owner);
+                DisposeInternal();
+                GC.SuppressFinalize(this);
             }
-
-            DisposeInternal();
-            GC.SuppressFinalize(this);
-            Parent = null;
+            finally
+            {
+                Parent = null;
+            }
         }
 
         /// <summary> Any additional cleanup the adapter needs to do. </summary>

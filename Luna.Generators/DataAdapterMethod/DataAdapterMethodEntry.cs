@@ -8,6 +8,7 @@ internal readonly struct DataAdapterMethodEntry(
     IMethodSymbol method,
     int id,
     bool disposeOnFailure,
+    bool alwaysAlive,
     string? subscriptionEvent,
     string? unsubscriptionEvent,
     INamedTypeSymbol? enumType,
@@ -35,6 +36,9 @@ internal readonly struct DataAdapterMethodEntry(
 
     public bool DisposeOnFailure
         => disposeOnFailure;
+
+    public bool AlwaysAlive
+        => alwaysAlive;
 
 
     internal static bool TryCreate(SourceProductionContext context, IMethodSymbol method, out DataAdapterMethodEntry entry)
@@ -81,8 +85,11 @@ internal readonly struct DataAdapterMethodEntry(
             return false;
         }
 
-        entry = new DataAdapterMethodEntry(method, id, attribute.GetNamedArgument("DisposeOnFailure") is true,
-            attribute.GetNamedArgument("SubscribeEvent") as string, attribute.GetNamedArgument("UnsubscribeEvent") as string,
+        entry = new DataAdapterMethodEntry(method, id,
+            attribute.GetNamedArgument("DisposeOnFailure") is true,
+            attribute.GetNamedArgument("AlwaysAlive") is true,
+            attribute.GetNamedArgument("SubscribeEvent") as string,
+            attribute.GetNamedArgument("UnsubscribeEvent") as string,
             enumType, enumMember);
         return true;
     }

@@ -28,6 +28,10 @@ internal static class AdapterMethodAttribute
             "Whether to dispose the created object if it is not assignable to the target type.",
             SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.BoolKeyword)));
 
+        var alwaysAlive = SyntaxFactory.CreateProperty("AlwaysAlive",
+            "Skip checking whether the adapter is still alive before invoking this method.",
+            SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.BoolKeyword)));
+
         var subscribeEvent = SyntaxFactory.CreateProperty("SubscribeEvent",
             "The name of an action to invoke when this event gets its first subscriber.",
             SyntaxFactory.NullableType(SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.StringKeyword))));
@@ -54,7 +58,7 @@ internal static class AdapterMethodAttribute
                 SyntaxFactory.AttributeList(SyntaxFactory.SingletonSeparatedList(generated)),
                 SyntaxFactory.AttributeList(SyntaxFactory.SingletonSeparatedList(usage)))
             .AddBaseListTypes(SyntaxFactory.SimpleBaseType(SyntaxFactory.ParseTypeName("global::System.Attribute")))
-            .AddMembers(ctor, methodIdProperty, disposeAfterFailure, subscribeEvent, unsubscribeEvent)
+            .AddMembers(ctor, methodIdProperty, disposeAfterFailure, alwaysAlive, subscribeEvent, unsubscribeEvent)
             .WithLeadingTrivia(comment);
 
         return SyntaxFactory.CompilationUnit().AddMembers(@namespace.AddMembers(attribute)).Normalize();
