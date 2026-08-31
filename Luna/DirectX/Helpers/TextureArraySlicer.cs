@@ -115,9 +115,7 @@ public sealed unsafe class TextureArraySlicer : IUiService, IDisposable
 
         /// <summary> Lengthens this object's time to live as if it was just created. </summary>
         public void Refresh()
-        {
-            _timeToLive = InitialTimeToLive;
-        }
+            => _timeToLive = InitialTimeToLive;
 
         /// <summary> Decreases the time to live of this object, and frees its resources if it has just expired. </summary>
         /// <returns> Whether this object is still fresh. </returns>
