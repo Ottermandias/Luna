@@ -145,7 +145,7 @@ public static class SpanExtensions
     /// <returns> The trimmed span. </returns>
     public static ReadOnlySpan<byte> TrimEnd(this ReadOnlySpan<byte> span)
     {
-        var end   = span.Length - 1;
+        var end = span.Length - 1;
         while (end >= 0 && char.IsWhiteSpace((char)span[end]))
             --end;
         return span[..(end + 1)];
