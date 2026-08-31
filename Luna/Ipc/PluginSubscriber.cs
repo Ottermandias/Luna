@@ -108,7 +108,8 @@ public abstract class PluginSubscriber : IDisposable
     protected virtual void InternalDispose()
     { }
 
-    private void OnPluginDispose()
+    /// <summary> Handle the connected plugin disposing. </summary>
+    protected void OnPluginDispose()
     {
         if (!Available)
             return;
