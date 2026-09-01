@@ -51,8 +51,8 @@ public sealed partial class IpcObjectManager : IDisposable, IApiService
     public void Dispose()
     {
         // Prevent the objects from logging and removing themselves from the set.
-        _disposed                             =  true;
         _pluginInterface.ActivePluginsChanged -= OnActivePluginsChanged;
+        _disposed                             =  true;
 
         // Dispose all remaining objects.
         lock (_objects)
