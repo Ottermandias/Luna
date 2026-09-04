@@ -1,5 +1,6 @@
 using Dalamud.Plugin;
 using Dalamud.Plugin.Ipc;
+using Luna.Generators;
 using Microsoft.Extensions.Logging;
 
 namespace Luna;
@@ -33,150 +34,15 @@ public abstract partial class ActionProviderBase : IDisposable
 }
 
 /// <summary> Specialized disposable Provider for Actions. </summary>
-public sealed class ActionProvider : ActionProviderBase
-{
-    /// <summary> Create an action provider for a given action and with a given label. </summary>
-    public ActionProvider(IDalamudPluginInterface pi, string label, Action action)
-    {
-        try
-        {
-            SetProvider(pi.GetIpcProvider<object?>(label)).RegisterAction(action);
-        }
-        catch (Exception e)
-        {
-            LogError(ImSharpConfiguration.Logger, e, label);
-        }
-    }
-}
-
-/// <inheritdoc cref="ActionProvider"/>
+[GenerateArities(8, IncludeZeroArity = true)]
 public sealed class ActionProvider<T1> : ActionProviderBase
 {
-    /// <inheritdoc cref="ActionProvider.ActionProvider(IDalamudPluginInterface,string,Action)"/>
+    /// <summary> Create an action provider for a given action and with a given label. </summary>
     public ActionProvider(IDalamudPluginInterface pi, string label, Action<T1> action)
     {
         try
         {
             SetProvider(pi.GetIpcProvider<T1, object?>(label)).RegisterAction(action);
-        }
-        catch (Exception e)
-        {
-            LogError(ImSharpConfiguration.Logger, e, label);
-        }
-    }
-}
-
-/// <inheritdoc cref="ActionProvider"/>
-public sealed class ActionProvider<T1, T2> : ActionProviderBase
-{
-    /// <inheritdoc cref="ActionProvider.ActionProvider(IDalamudPluginInterface,string,Action)"/>
-    public ActionProvider(IDalamudPluginInterface pi, string label, Action<T1, T2> action)
-    {
-        try
-        {
-            SetProvider(pi.GetIpcProvider<T1, T2, object?>(label)).RegisterAction(action);
-        }
-        catch (Exception e)
-        {
-            LogError(ImSharpConfiguration.Logger, e, label);
-        }
-    }
-}
-
-/// <inheritdoc cref="ActionProvider"/>
-public sealed class ActionProvider<T1, T2, T3> : ActionProviderBase
-{
-    /// <inheritdoc cref="ActionProvider.ActionProvider(IDalamudPluginInterface,string,Action)"/>
-    public ActionProvider(IDalamudPluginInterface pi, string label, Action<T1, T2, T3> action)
-    {
-        try
-        {
-            SetProvider(pi.GetIpcProvider<T1, T2, T3, object?>(label)).RegisterAction(action);
-        }
-        catch (Exception e)
-        {
-            LogError(ImSharpConfiguration.Logger, e, label);
-        }
-    }
-}
-
-/// <inheritdoc cref="ActionProvider"/>
-public sealed class ActionProvider<T1, T2, T3, T4> : ActionProviderBase
-{
-    /// <inheritdoc cref="ActionProvider.ActionProvider(IDalamudPluginInterface,string,Action)"/>
-    public ActionProvider(IDalamudPluginInterface pi, string label, Action<T1, T2, T3, T4> action)
-    {
-        try
-        {
-            SetProvider(pi.GetIpcProvider<T1, T2, T3, T4, object?>(label)).RegisterAction(action);
-        }
-        catch (Exception e)
-        {
-            LogError(ImSharpConfiguration.Logger, e, label);
-        }
-    }
-}
-
-/// <inheritdoc cref="ActionProvider"/>
-public sealed class ActionProvider<T1, T2, T3, T4, T5> : ActionProviderBase
-{
-    /// <inheritdoc cref="ActionProvider.ActionProvider(IDalamudPluginInterface,string,Action)"/>
-    public ActionProvider(IDalamudPluginInterface pi, string label, Action<T1, T2, T3, T4, T5> action)
-    {
-        try
-        {
-            SetProvider(pi.GetIpcProvider<T1, T2, T3, T4, T5, object?>(label)).RegisterAction(action);
-        }
-        catch (Exception e)
-        {
-            LogError(ImSharpConfiguration.Logger, e, label);
-        }
-    }
-}
-
-/// <inheritdoc cref="ActionProvider"/>
-public sealed class ActionProvider<T1, T2, T3, T4, T5, T6> : ActionProviderBase
-{
-    /// <inheritdoc cref="ActionProvider.ActionProvider(IDalamudPluginInterface,string,Action)"/>
-    public ActionProvider(IDalamudPluginInterface pi, string label, Action<T1, T2, T3, T4, T5, T6> action)
-    {
-        try
-        {
-            SetProvider(pi.GetIpcProvider<T1, T2, T3, T4, T5, T6, object?>(label)).RegisterAction(action);
-        }
-        catch (Exception e)
-        {
-            LogError(ImSharpConfiguration.Logger, e, label);
-        }
-    }
-}
-
-/// <inheritdoc cref="ActionProvider"/>
-public sealed class ActionProvider<T1, T2, T3, T4, T5, T6, T7> : ActionProviderBase
-{
-    /// <inheritdoc cref="ActionProvider.ActionProvider(IDalamudPluginInterface,string,Action)"/>
-    public ActionProvider(IDalamudPluginInterface pi, string label, Action<T1, T2, T3, T4, T5, T6, T7> action)
-    {
-        try
-        {
-            SetProvider(pi.GetIpcProvider<T1, T2, T3, T4, T5, T6, T7, object?>(label)).RegisterAction(action);
-        }
-        catch (Exception e)
-        {
-            LogError(ImSharpConfiguration.Logger, e, label);
-        }
-    }
-}
-
-/// <inheritdoc cref="ActionProvider"/>
-public sealed class ActionProvider<T1, T2, T3, T4, T5, T6, T7, T8> : ActionProviderBase
-{
-    /// <inheritdoc cref="ActionProvider.ActionProvider(IDalamudPluginInterface,string,Action)"/>
-    public ActionProvider(IDalamudPluginInterface pi, string label, Action<T1, T2, T3, T4, T5, T6, T7, T8> action)
-    {
-        try
-        {
-            SetProvider(pi.GetIpcProvider<T1, T2, T3, T4, T5, T6, T7, T8, object?>(label)).RegisterAction(action);
         }
         catch (Exception e)
         {

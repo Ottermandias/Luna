@@ -9,7 +9,7 @@ public sealed partial class IpcObjectManager
     public interface IBasicAdapter : IIdDataShareAdapter
     {
         /// <summary> The internal name of the plugin that requested this adapter. </summary>
-        public string Owner { get; }
+        public CallerPlugin Owner { get; }
 
         /// <summary> The actual type name of this adapter. </summary>
         public string Type { get; }
@@ -43,7 +43,7 @@ public sealed partial class IpcObjectManager
     }
 
     /// <summary> Utility functions for data adapters. </summary>
-    public abstract class BasicAdapter(IAdapterFactory parent, string owner, string type) : IDisposable
+    public abstract class BasicAdapter(IAdapterFactory parent, CallerPlugin owner, string type) : IDisposable
     {
         /// <summary> Display names of events we are subscribed to. </summary>
         protected readonly ConcurrentSet<string> SubscribedEvents = [];
@@ -55,8 +55,8 @@ public sealed partial class IpcObjectManager
         /// <summary> The factory that created this adapter. </summary>
         protected IAdapterFactory? Parent { get; private set; } = parent;
 
-        /// <summary> The internal name of the plugin that requested this adapter. </summary>
-        public string Owner { get; } = owner;
+        /// <summary> The plugin that requested this adapter. </summary>
+        public CallerPlugin Owner { get; } = owner;
 
         /// <summary> The actual type name of this adapter. </summary>
         public string Type { get; } = type;
@@ -148,7 +148,7 @@ public sealed partial class IpcObjectManager
                         Parent.IpcManager._objects.RemoveValue(Owner, (IBasicAdapter)this);
                     }
 
-                    LogDisposal(Parent.IpcManager._log, Type, Owner);
+                    LogDisposal(Parent.IpcManager._log, Type, Owner.InternalName);
                 }
 
                 DisposeInternal();

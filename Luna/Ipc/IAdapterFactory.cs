@@ -12,7 +12,7 @@ public interface IAdapterFactory
     /// <param name="owner"> The requesting plugin. </param>
     /// <param name="data"> Arbitrary data for adapters that refer to specific objects instead of singletons. </param>
     /// <returns> The adapter. </returns>
-    public IpcObjectManager.IBasicAdapter? CreateAdapter(string owner, object? data);
+    public IpcObjectManager.IBasicAdapter? CreateAdapter(CallerPlugin owner, object? data);
 }
 
 /// <summary> Extensions for <see cref="IAdapterFactory"/> implementations. </summary>
@@ -24,6 +24,6 @@ public static class IAdapterFactoryExtensions
     /// <param name="data"> Arbitrary data for adapters that refer to specific objects instead of singletons. </param>
     /// <param name="callerName"> The name of the calling function. </param>
     /// <returns> The created adapter. </returns>
-    public static IIdDataShareAdapter? Create(this IAdapterFactory factory, string owner, object? data = null,
+    public static IIdDataShareAdapter? Create(this IAdapterFactory factory, CallerPlugin owner, object? data = null,
         [CallerMemberName] string? callerName = null) => factory.IpcManager.Create(factory, owner, data, callerName);
 }

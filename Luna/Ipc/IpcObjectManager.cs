@@ -7,10 +7,10 @@ namespace Luna;
 /// <summary> A manager for data share adapters used for IPC communication across plugins. </summary>
 public sealed partial class IpcObjectManager : IDisposable, IApiService
 {
-    private readonly IDalamudPluginInterface              _pluginInterface;
-    private readonly LunaLogger                           _log;
-    private readonly SetDictionary<string, IBasicAdapter> _objects = [];
-    private          bool                                 _disposed;
+    private readonly IDalamudPluginInterface                    _pluginInterface;
+    private readonly LunaLogger                                 _log;
+    private readonly SetDictionary<CallerPlugin, IBasicAdapter> _objects = [];
+    private          bool                                       _disposed;
 
     /// <summary> A manager for data share adapters used for IPC communication across plugins. </summary>
     /// <param name="log"> A logger. </param>
@@ -30,7 +30,7 @@ public sealed partial class IpcObjectManager : IDisposable, IApiService
     /// <returns> The created adapter. </returns>
     /// <exception cref="ObjectDisposedException" />
     /// <remarks> Prefer to use <see cref="IAdapterFactoryExtensions.Create"/> on the <see cref="IAdapterFactory"/> directly. </remarks>
-    public IIdDataShareAdapter? Create(IAdapterFactory factory, string owner, object? data = null, [CallerMemberName] string? callerName = null)
+    public IIdDataShareAdapter? Create(IAdapterFactory factory, CallerPlugin owner, object? data = null, [CallerMemberName] string? callerName = null)
     {
         if (_disposed)
             throw new ObjectDisposedException(nameof(IpcObjectManager));
@@ -43,7 +43,7 @@ public sealed partial class IpcObjectManager : IDisposable, IApiService
             _objects.TryAdd(owner, adapter);
         }
 
-        LogCreation(_log, adapter.Type, adapter.Owner, callerName ?? "Unknown");
+        LogCreation(_log, adapter.Type, adapter.Owner.InternalName, callerName ?? "Unknown");
         return adapter;
     }
 
@@ -76,20 +76,33 @@ public sealed partial class IpcObjectManager : IDisposable, IApiService
 
         lock (_objects)
         {
+            // Set the disposed state to true to prevent objects from removing themselves again.
             _disposed = true;
-            foreach (var internalName in args.AffectedInternalNames)
+            try
             {
-                if (!_objects.Remove(internalName, out var objects))
-                    continue;
-
-                foreach (var @object in objects)
+                foreach (var internalName in args.AffectedInternalNames)
                 {
-                    @object.Dispose();
-                    LogStaleRemoval(_log, @object.Type, @object.Owner);
+                    if (!_objects.Remove(new CallerPlugin(string.Empty, internalName, Guid.Empty, new Version(0, 0), 0), out var objects))
+                        continue;
+
+                    foreach (var @object in objects)
+                    {
+                        try
+                        {
+                            @object.Dispose();
+                            LogStaleRemoval(_log, @object.Type, @object.Owner.InternalName);
+                        }
+                        catch (Exception ex)
+                        {
+                            LogRemovalFailure(_log, ex, @object.Type, @object.Owner.InternalName);
+                        }
+                    }
                 }
             }
-
-            _disposed = false;
+            finally
+            {
+                _disposed = false;
+            }
         }
     }
 
@@ -101,7 +114,7 @@ public sealed partial class IpcObjectManager : IDisposable, IApiService
             foreach (var (owner, objects) in _objects.Grouped)
             {
                 id.PushNext();
-                using var tree = Im.Tree.Node(owner);
+                using var tree = Im.Tree.Node(owner.DisplayName);
                 if (tree)
                     foreach (var adapter in objects)
                     {
@@ -129,4 +142,8 @@ public sealed partial class IpcObjectManager : IDisposable, IApiService
     [LoggerMessage(Microsoft.Extensions.Logging.LogLevel.Warning,
         "Removed stale IPC wrapper {Type} for {Owner} after it unloaded without relinquishing.")]
     static partial void LogStaleRemoval(LunaLogger logger, string type, string owner);
+
+    [LoggerMessage(Microsoft.Extensions.Logging.LogLevel.Error,
+        "Failed to remove stale IPC wrapper {Type} for {Owner} after it unloaded without relinquishing.")]
+    static partial void LogRemovalFailure(LunaLogger logger, Exception ex, string type, string owner);
 }

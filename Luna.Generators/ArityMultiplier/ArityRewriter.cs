@@ -47,7 +47,7 @@ internal sealed class ArityRewriter(int arity) : CSharpSyntaxRewriter
                 parameters.Add((ParameterSyntax)Visit(parameter));
         }
 
-        return parameters.Count is 0 ? null : node.WithParameters(SyntaxFactory.SeparatedList(parameters));
+        return node.WithParameters(SyntaxFactory.SeparatedList(parameters));
     }
 
     /// <summary> Converts generic type lists like Action{T1} to Action{T1, T2, ...}. </summary>
@@ -221,6 +221,15 @@ internal sealed class ArityRewriter(int arity) : CSharpSyntaxRewriter
             context.ReportDiagnostic(Diagnostic.Create(InvalidTemplate, method.Locations.FirstOrDefault(), method.ToDisplayString(), reason));
             return false;
         }
+    }
+
+    public static bool ValidateTemplate(SourceProductionContext context, INamedTypeSymbol type)
+    {
+        if (type.TypeParameters.Any(static p => p.Name is MainType))
+            return true;
+
+        context.ReportDiagnostic(Diagnostic.Create(InvalidTemplate, type.Locations.FirstOrDefault(), type.ToDisplayString(), $"it must have a type parameter named {MainType}"));
+        return false;
     }
 
     private static readonly DiagnosticDescriptor InvalidTemplate = new(
