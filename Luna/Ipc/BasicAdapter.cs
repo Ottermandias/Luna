@@ -42,8 +42,8 @@ public sealed partial class IpcObjectManager
         /// <inheritdoc cref="IIdDataShareAdapter.Version"/>
         public abstract Version Version { get; }
 
-        /// <inheritdoc cref="IIdDataShareAdapter.Disposed"/>
-        public event Action? Disposed;
+        /// <summary> Invoke the <see cref="IIdDataShareAdapter.Disposed"/> event. </summary>
+        protected abstract void InvokeDisposed();
 
         /// <summary> Check that a passed unmanaged type matches the expected input type and convert it. </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -114,7 +114,7 @@ public sealed partial class IpcObjectManager
 
             try
             {
-                Disposed?.Invoke();
+                InvokeDisposed();
                 SubscribedEvents.Clear();
                 if (Parent?.IpcManager._disposed is false)
                 {

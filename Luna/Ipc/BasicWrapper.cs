@@ -22,8 +22,8 @@ public static class BasicWrapper
     /// <summary> The constant value to use for the version method in method enums. </summary>
     public const int VersionMethod = -1;
 
-    /// <summary> The constant value to use fot the alive method in method enums. </summary>
-    public const int AliveMethod = -2;
+    /// <summary> The constant value to use for the IsDisposed method in method enums. </summary>
+    public const int IsDisposedMethod = -2;
 
     /// <summary> The constant value to use for the disposed event subscription methods in method enums. </summary>
     public const int DisposedEventMethod = -3;
@@ -70,6 +70,8 @@ public abstract partial class BasicWrapper<TSelf, TEnum>(IIdDataShareAdapter? ad
     where TSelf : BasicWrapper<TSelf, TEnum>, IBasicWrapper<TSelf>
     where TEnum : unmanaged, Enum
 {
+    private static readonly Version BaseVersion = new(0, 0);
+
     /// <summary> A delegate map for any events that need to be mapped. </summary>
     protected readonly ConcurrentDictionary<(Delegate Subscriber, TEnum Event), Delegate> DelegateMap = [];
 
@@ -78,15 +80,15 @@ public abstract partial class BasicWrapper<TSelf, TEnum>(IIdDataShareAdapter? ad
 
     /// <summary> Get whether the wrapper currently wraps an actual adapter. Note that this adapter may still be already disposed. </summary>
     public bool HasAdapter
-        => Adapter != BasicWrapper.EmptyAdapter && Alive;
+        => Adapter != BasicWrapper.EmptyAdapter && !IsDisposed;
 
     /// <summary> Get whether the referenced adapter has not been disposed yet.. </summary>
-    public virtual bool Alive
-        => Adapter.TryInvoke<bool>(BasicWrapper.AliveMethod, out var ret) && ret;
+    public virtual bool IsDisposed
+        => Adapter.TryInvoke<bool>(BasicWrapper.IsDisposedMethod, out var ret) && ret;
 
     /// <summary> Get the version of the referenced adapter. </summary>
-    public virtual (int Major, int Minor) Version
-        => Adapter.TryInvoke<(int Major, int Minor)>(BasicWrapper.VersionMethod, out var ret) ? ret : (0, 0);
+    public virtual Version Version
+        => Adapter.TryInvoke<Version>(BasicWrapper.VersionMethod, out var ret) ? ret! : BaseVersion;
 
     /// <summary> Invoked when the referenced adapter is disposed. </summary>
     public event Action? Disposed;
@@ -108,8 +110,8 @@ public abstract partial class BasicWrapper<TSelf, TEnum>(IIdDataShareAdapter? ad
         if (requiredMajorVersion is null)
             return true;
 
-        var (major, minor) = Version;
-        return major == requiredMajorVersion.Value && minor >= minimumMinorVersion;
+        var v = Version;
+        return v.Major == requiredMajorVersion.Value && v.Minor >= minimumMinorVersion;
     }
 
     /// <summary> Close the current connection. </summary>
