@@ -53,6 +53,9 @@ public readonly record struct CallerPlugin(string DisplayName, string InternalNa
             ret |= CallerPluginFlags.ThirdParty;
         return ret;
     }
+
+    public override string ToString()
+        => InternalName;
 }
 
 /// <summary> Additional information flags. </summary>
