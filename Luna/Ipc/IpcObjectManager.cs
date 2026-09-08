@@ -82,6 +82,7 @@ public sealed partial class IpcObjectManager : IDisposable, IApiService
             {
                 foreach (var internalName in args.AffectedInternalNames)
                 {
+                    // TODO 20260904 this does not work yet until we get more info from Dalamud in this event (notably, the GUID).
                     if (!_objects.Remove(new CallerPlugin(string.Empty, internalName, Guid.Empty, new Version(0, 0), 0), out var objects))
                         continue;
 
