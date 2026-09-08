@@ -1,5 +1,4 @@
 using Dalamud.Plugin.Ipc;
-using Luna.Generators;
 
 namespace Luna;
 
@@ -16,30 +15,6 @@ public sealed partial class IpcObjectManager
 
         /// <summary> Get all events this adapter is subscribed to. </summary>
         public IEnumerable<string> EventSubscriptions { get; }
-
-        /// <summary> The version of this adapter. </summary>
-        /// <remarks>
-        ///   The implementation of this should use an <see cref="AdapterMethodAttribute"/> with the value <see cref="BasicWrapper.VersionMethod"/> (-1)
-        ///   unless the associated <see cref="BasicWrapper{TSelf,TEnum}"/> implements its <see cref="BasicWrapper{TSelf,TEnum}.Version"/> property differently.
-        ///   It is also recommended to use <see cref="AdapterMethodAttribute.AlwaysAlive"/> for this.
-        /// </remarks>
-        public (int Major, int Minor) Version { get; }
-
-        /// <summary> Whether the adapter is still alive. </summary>
-        /// <remarks>
-        ///   The implementation of this should use an <see cref="AdapterMethodAttribute"/> with the value <see cref="BasicWrapper.AliveMethod"/> (-2)
-        ///   unless the associated <see cref="BasicWrapper{TSelf,TEnum}"/> implements its <see cref="BasicWrapper{TSelf,TEnum}.Alive"/> property differently.
-        ///   It is also recommended to use <see cref="AdapterMethodAttribute.AlwaysAlive"/> for this.
-        /// </remarks>
-        public bool Alive { get; }
-
-        /// <summary> An event that is invoked when the adapter is being disposed. </summary>
-        /// <remarks>
-        ///   The implementation of this should use an <see cref="AdapterMethodAttribute"/> with the value <see cref="BasicWrapper.DisposedEventMethod"/> (-3)
-        ///   unless the associated <see cref="BasicWrapper{TSelf,TEnum}"/> implements its <see cref="BasicWrapper{TSelf,TEnum}.Disposed"/> event differently.
-        ///   It is also recommended to use <see cref="AdapterMethodAttribute.AlwaysAlive"/> for this.
-        /// </remarks>
-        public event Action Disposed;
     }
 
     /// <summary> Utility functions for data adapters. </summary>
@@ -61,14 +36,14 @@ public sealed partial class IpcObjectManager
         /// <summary> The actual type name of this adapter. </summary>
         public string Type { get; } = type;
 
-        /// <inheritdoc cref="IBasicAdapter.Version"/>
-        public abstract (int Major, int Minor) Version { get; }
+        /// <inheritdoc cref="IIdDataShareAdapter.IsDisposed"/>
+        public abstract bool IsDisposed { get; }
 
-        /// <inheritdoc cref="IBasicAdapter.Alive"/>
-        public abstract bool Alive { get; }
+        /// <inheritdoc cref="IIdDataShareAdapter.Version"/>
+        public abstract Version Version { get; }
 
-        /// <summary> Invoke the <see cref="IBasicAdapter.Disposed"/> event. </summary>
-        protected abstract void InvokeDisposed();
+        /// <inheritdoc cref="IIdDataShareAdapter.Disposed"/>
+        public event Action? Disposed;
 
         /// <summary> Check that a passed unmanaged type matches the expected input type and convert it. </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -134,12 +109,12 @@ public sealed partial class IpcObjectManager
         /// <inheritdoc/>
         public void Dispose()
         {
-            if (!Alive)
+            if (IsDisposed)
                 return;
 
             try
             {
-                InvokeDisposed();
+                Disposed?.Invoke();
                 SubscribedEvents.Clear();
                 if (Parent?.IpcManager._disposed is false)
                 {
