@@ -86,7 +86,7 @@ public struct CaretButton
         var drawList = Im.Window.DrawList;
         var rect     = Rectangle.FromSize(startPos, Im.Item.Size);
         startPos += Im.Style.FramePadding;
-        drawList.Render.Arrow(startPos, colors.Caret, caret, Im.Style.GlobalScale);
+        drawList.Render.Arrow(startPos, colors.Caret, caret, 1);
         var textEnd = tooltipIconWidth > 0
             ? rect.Maximum.X - tooltipIconWidth - Im.Style.FramePadding.X - Im.Style.ItemInnerSpacing.X
             : rect.Maximum.X - Im.Style.FramePadding.X;
