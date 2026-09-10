@@ -137,8 +137,9 @@ public class Tutorial
         pos.X = diff < 0 ? Im.Window.Position.X : Math.Clamp(pos.X, Im.Window.Position.X, Im.Window.Position.X + diff);
 
         // Ensure the header line is visible with a button to go to next.
-        pos.Y = Math.Clamp(pos.Y, Im.Window.Position.Y + Im.Style.FrameHeightWithSpacing,
-            Im.Window.Position.Y + Im.Window.Height - Im.Style.FrameHeightWithSpacing);
+        var windowHeight = Im.Window.Height;
+        pos.Y = windowHeight >= 2 * Im.Style.FrameHeightWithSpacing ? Math.Clamp(pos.Y, Im.Window.Position.Y + Im.Style.FrameHeightWithSpacing,
+            Im.Window.Position.Y + Im.Window.Height - Im.Style.FrameHeightWithSpacing) : Im.Window.Position.Y + Im.Style.FrameHeightWithSpacing;
 
         Im.Window.SetNextPosition(pos);
         Im.Window.SetNextSize(size);
