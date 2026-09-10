@@ -58,11 +58,12 @@ public struct CaretButton
         var       open             = expanded ?? Im.State.Storage.GetBool(id);
         var       tooltipSpan      = tooltip.GetSpan(out var s) ? s : StringU8.Empty;
         var       tooltipIconWidth = !tooltipSpan.IsEmpty && !TooltipIcon.IsEmpty ? TooltipIcon.CalculateSize().X : 0;
+        var       textSize         = Im.Font.CalculateSize(visible, false);
         if (size.Y <= 0)
             size.Y = Im.Style.FrameHeight;
         if (size.X <= 0)
         {
-            size.X = 2 * Im.Style.FramePadding.X + Im.Style.TextHeight + Im.Font.CalculateSize(visible, false).X + Im.Style.ItemInnerSpacing.X;
+            size.X = 2 * Im.Style.FramePadding.X + Im.Style.TextHeight + textSize.X + Im.Style.ItemInnerSpacing.X;
             if (tooltipIconWidth > 0)
                 size.X += tooltipIconWidth + Im.Style.ItemInnerSpacing.X;
         }
@@ -80,9 +81,6 @@ public struct CaretButton
                 Im.State.Storage.SetBool(id, !open);
         }
 
-        if (!tooltipSpan.IsEmpty && Im.Item.Hovered())
-            Im.Tooltip.Set(tooltipSpan);
-
         var drawList = Im.Window.DrawList;
         var rect     = Rectangle.FromSize(startPos, Im.Item.Size);
         startPos += Im.Style.FramePadding;
@@ -94,7 +92,25 @@ public struct CaretButton
             new Vector2(textEnd, rect.Maximum.Y - Im.Style.FramePadding.Y));
         using (ImGuiColor.Text.Push(colors.Text))
         {
-            drawList.TextClipped(textRect, visible, null, new Vector2(TextAlignment, 0.5f));
+            drawList.TextClipped(textRect, visible, textSize, new Vector2(TextAlignment, 0.5f));
+        }
+
+        if ((textSize.X > textRect.Width || !tooltipSpan.IsEmpty) && Im.Item.Hovered())
+        {
+            using var tt = Im.Tooltip.Begin();
+            if (textSize.X > textRect.Width)
+            {
+                Im.Text(visible);
+                if (!tooltipSpan.IsEmpty)
+                {
+                    LunaStyle.DrawSeparator();
+                    Im.Text(tooltipSpan);
+                }
+            }
+            else
+            {
+                Im.Text(tooltipSpan);
+            }
         }
 
         if (tooltipIconWidth > 0)

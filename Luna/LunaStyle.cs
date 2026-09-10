@@ -120,6 +120,9 @@ public static partial class LunaStyle
     /// <summary> The icon that should be used for buttons that open further editing for an object. </summary>
     public static readonly AwesomeIcon EditIcon = FontAwesomeIcon.Edit;
 
+    /// <summary> The icon that should be used for buttons that open further editing for an object. </summary>
+    public static readonly AwesomeIcon ConfigIcon = FontAwesomeIcon.Cog;
+
     /// <summary> The icon that should be used for buttons that open an object in an external editor. </summary>
     public static readonly AwesomeIcon OpenExternalIcon = FontAwesomeIcon.FileExport;
 
