@@ -23,7 +23,7 @@ public abstract partial class BaseFuncSubscriber(string label)
     protected T GetSubscriber<T>() where T : class, ICallGateSubscriber
         => Subscriber as T ?? throw new IpcNotReadyError(FunctionLabel);
 
-    [LoggerMessage(Microsoft.Extensions.Logging.LogLevel.Error, "Error registering IPC Provider for {Label}")]
+    [LoggerMessage(Microsoft.Extensions.Logging.LogLevel.Error, "Error registering IPC Provider for {Label:l}")]
     protected static partial void LogError(ILogger logger, Exception ex, string label);
 }
 

@@ -21,7 +21,7 @@ public abstract partial class ActionProviderBase : IDisposable
         Provider = null;
     }
 
-    [LoggerMessage(Microsoft.Extensions.Logging.LogLevel.Error, "Error registering IPC Provider for {Label}")]
+    [LoggerMessage(Microsoft.Extensions.Logging.LogLevel.Error, "Error registering IPC Provider for {Label:l}")]
     protected static partial void LogError(ILogger logger, Exception ex, string label);
 
     /// <summary> Set the provider while returning it as its own type. </summary>

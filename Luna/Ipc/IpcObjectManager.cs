@@ -134,17 +134,17 @@ public sealed partial class IpcObjectManager : IDisposable, IApiService
     }
 
 
-    [LoggerMessage(Microsoft.Extensions.Logging.LogLevel.Trace, "Provided IPC wrapper {Type} for {Owner} from {Caller}.")]
+    [LoggerMessage(Microsoft.Extensions.Logging.LogLevel.Trace, "Provided IPC wrapper {Type:l} for {Owner:l} from {Caller:l}.")]
     static partial void LogCreation(LunaLogger logger, string type, string owner, string caller);
 
-    [LoggerMessage(Microsoft.Extensions.Logging.LogLevel.Trace, "Relinquished IPC wrapper {Type} for {Owner}.")]
+    [LoggerMessage(Microsoft.Extensions.Logging.LogLevel.Trace, "Relinquished IPC wrapper {Type:l} for {Owner:l}.")]
     static partial void LogDisposal(LunaLogger logger, string type, string owner);
 
     [LoggerMessage(Microsoft.Extensions.Logging.LogLevel.Warning,
-        "Removed stale IPC wrapper {Type} for {Owner} after it unloaded without relinquishing.")]
+        "Removed stale IPC wrapper {Type:l} for {Owner:l} after it unloaded without relinquishing.")]
     static partial void LogStaleRemoval(LunaLogger logger, string type, string owner);
 
     [LoggerMessage(Microsoft.Extensions.Logging.LogLevel.Error,
-        "Failed to remove stale IPC wrapper {Type} for {Owner} after it unloaded without relinquishing.")]
+        "Failed to remove stale IPC wrapper {Type:l} for {Owner:l} after it unloaded without relinquishing.")]
     static partial void LogRemovalFailure(LunaLogger logger, Exception ex, string type, string owner);
 }

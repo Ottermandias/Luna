@@ -100,10 +100,10 @@ public abstract partial class BaseEventSubscriber : IDisposable
             Unsubscribe(child);
     }
 
-    [LoggerMessage(Microsoft.Extensions.Logging.LogLevel.Error, "Error registering IPC Provider for {Label}")]
+    [LoggerMessage(Microsoft.Extensions.Logging.LogLevel.Error, "Error registering IPC Provider for {Label:l}")]
     protected static partial void LogRegisterError(ILogger logger, Exception ex, string label);
 
-    [LoggerMessage(Microsoft.Extensions.Logging.LogLevel.Error, "Exception thrown invoking IPC event {Label}")]
+    [LoggerMessage(Microsoft.Extensions.Logging.LogLevel.Error, "Exception thrown invoking IPC event {Label:l}")]
     protected static partial void LogInvokeError(ILogger logger, Exception ex, string label);
 }
 

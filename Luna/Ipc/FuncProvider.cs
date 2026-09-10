@@ -22,10 +22,10 @@ public abstract partial class BaseFuncProvider : IDisposable
         GC.SuppressFinalize(this);
     }
 
-    [LoggerMessage(Microsoft.Extensions.Logging.LogLevel.Error, "Error registering IPC Provider for {Label}")]
+    [LoggerMessage(Microsoft.Extensions.Logging.LogLevel.Error, "Error registering IPC Provider for {Label:l}")]
     protected static partial void LogError(ILogger logger, Exception ex, string label);
 
-    [LoggerMessage(Microsoft.Extensions.Logging.LogLevel.Error, "Unknown plugin executed {Label}")]
+    [LoggerMessage(Microsoft.Extensions.Logging.LogLevel.Error, "Unknown plugin executed {Label:l}")]
     protected static partial void LogUnknownExecution(ILogger logger, string label);
 
 

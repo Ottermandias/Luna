@@ -15,7 +15,7 @@ public abstract partial class BaseActionSubscriber
     public bool Valid
         => Subscriber is not null;
 
-    [LoggerMessage(Microsoft.Extensions.Logging.LogLevel.Error, "Error registering IPC Subscriber for {Label}")]
+    [LoggerMessage(Microsoft.Extensions.Logging.LogLevel.Error, "Error registering IPC Subscriber for {Label:l}")]
     protected static partial void LogError(ILogger logger, Exception ex, string label);
 }
 

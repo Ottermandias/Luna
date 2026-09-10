@@ -31,7 +31,7 @@ public abstract partial class BaseEventProvider : IDisposable
     /// <summary> Handle unsubscription if a <see cref="Action{Delegate}"/> was passed. </summary>
     protected abstract void UnsubscribeAction(Action<Delegate> unsubscriber);
 
-    [LoggerMessage(Microsoft.Extensions.Logging.LogLevel.Error, "Error registering IPC Provider for {Label}")]
+    [LoggerMessage(Microsoft.Extensions.Logging.LogLevel.Error, "Error registering IPC Provider for {Label:l}")]
     protected static partial void LogRegisterError(ILogger logger, Exception ex, string label);
 
     [LoggerMessage(Microsoft.Extensions.Logging.LogLevel.Error, "Exception thrown on IPC event")]
