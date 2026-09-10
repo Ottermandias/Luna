@@ -60,15 +60,34 @@ public static partial class JsonFunctions
         [MethodImpl(ImSharpConfiguration.Inl)]
         public void WriteIfNotNaN<T>(ReadOnlySpan<byte> property, T value) where T : IFloatingPoint<T>
         {
-            if (T.IsNaN(value))
-                return;
+            if (!T.IsNaN(value))
+                j.WriteFloatSecurely(property, value);
+        }
 
-            if (typeof(T) == typeof(float))
-                j.WriteNumber(property, Unsafe.As<T, float>(ref value));
-            else if (typeof(T) == typeof(double))
-                j.WriteNumber(property, Unsafe.As<T, double>(ref value));
+        /// <summary> Write floating point numbers securely, supporting named literals for infinity and NaN. </summary>
+        /// <param name="property"> The property name. </param>
+        /// <param name="value"> The value. </param>
+        [MethodImpl(ImSharpConfiguration.Inl)]
+        public void WriteFloatSecurely<T>(ReadOnlySpan<byte> property, T value) where T : IFloatingPoint<T>
+        {
+            if (T.IsFinite(value))
+            {
+                if (typeof(T) == typeof(float))
+                    j.WriteNumber(property, Unsafe.As<T, float>(ref value));
+                else if (typeof(T) == typeof(double))
+                    j.WriteNumber(property, Unsafe.As<T, double>(ref value));
+                else
+                    throw new ArgumentException($"The type {typeof(T)} is not supported for {nameof(WriteIfNotNaN)}.");
+            }
             else
-                throw new ArgumentException($"The type {typeof(T)} is not supported for {nameof(WriteIfNotNaN)}.");
+            {
+                if (T.IsPositiveInfinity(value))
+                    j.WriteStringValue("Infinity"u8);
+                else if (T.IsNaN(value))
+                    j.WriteStringValue("NaN"u8);
+                else
+                    j.WriteStringValue("-Infinity"u8);
+            }
         }
 
         /// <inheritdoc cref="WriteIfNot(Utf8JsonWriter,ReadOnlySpan{byte},float,float)"/>

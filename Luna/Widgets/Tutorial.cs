@@ -132,7 +132,7 @@ public class Tutorial
         using var font = Im.Font.PushDefault();
 
         // Prevent the window from opening outside the screen.
-        var size = new Vector2(350 * Im.Style.GlobalScale, 0);
+        var size = ImEx.ScaledVectorX(350);
         var diff = Im.Window.Width - size.X;
         pos.X = diff < 0 ? Im.Window.Position.X : Math.Clamp(pos.X, Im.Window.Position.X, Im.Window.Position.X + diff);
 
