@@ -53,7 +53,7 @@ public sealed class NotCondition<TContext>(ICondition<TContext> condition) : ICo
     /// <inheritdoc/>
     public ICondition<TContext>? EditConditions(Func<ICondition<TContext>, ICondition<TContext>?> method)
     {
-        if (method(Condition) is { } change)
+        if (Condition.EditConditions(method) is { } change)
         {
             Condition = change;
             return method(this) ?? this;
