@@ -82,11 +82,11 @@ public static partial class JsonFunctions
             else
             {
                 if (T.IsPositiveInfinity(value))
-                    j.WriteStringValue("Infinity"u8);
+                    j.WriteString(property, "Infinity"u8);
                 else if (T.IsNaN(value))
-                    j.WriteStringValue("NaN"u8);
+                    j.WriteString(property, "NaN"u8);
                 else
-                    j.WriteStringValue("-Infinity"u8);
+                    j.WriteString(property, "-Infinity"u8);
             }
         }
 
