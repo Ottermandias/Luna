@@ -18,7 +18,7 @@ internal static class GenerateAritiesAttribute
         var comment =
             "/// <summary> Mark a generic method to be duplicated up to <paramref cref=\"maximumArity\"/> times. </summary>"
                 .Comment();
-        var usage = SyntaxFactory.AttributeUsage(AttributeTargets.Method, AttributeTargets.Class, AttributeTargets.Struct);
+        var usage = SyntaxFactory.AttributeUsage(AttributeTargets.Method, AttributeTargets.Class, AttributeTargets.Struct, AttributeTargets.Delegate);
 
         var arityParameter = SyntaxFactory.CreateProperty(ArityMember,
             "The maximum arity up to which copies of this method are generated.",

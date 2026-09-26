@@ -1,6 +1,11 @@
+using Luna.Generators;
+
 namespace Luna;
 
-public static class EnumerableExtensions
+[GenerateArities(9, IncludeZeroArity = true)]
+public delegate bool TryFunc<in T1, TRet>(T1 a1, out TRet? ret);
+
+public static partial class EnumerableExtensions
 {
     /// <summary> Remove an added index from an indexed enumerable. </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
@@ -84,6 +89,7 @@ public static class EnumerableExtensions
     /// <param name="enumerable"> The input objects. </param>
     /// <param name="filterMap"> A function that transforms the input objects into the output objects and also returns a bool whether the output is valid. </param>
     /// <returns> An enumeration of the filtered output objects. </returns>
+    [OverloadResolutionPriority(50)]
     public static IEnumerable<TOut> SelectWhere<TIn, TOut>(this IEnumerable<TIn> enumerable, Func<TIn, (bool, TOut?)> filterMap)
     {
         foreach (var obj in enumerable)
@@ -91,6 +97,22 @@ public static class EnumerableExtensions
             var (valid, transform) = filterMap(obj);
             if (valid)
                 yield return transform!;
+        }
+    }
+
+    /// <summary> Transform an enumerable while filtering it at the same time. </summary>
+    /// <typeparam name="TIn"> The type of the input objects. </typeparam>
+    /// <typeparam name="TOut"> The type of the transformed objects. </typeparam>
+    /// <param name="enumerable"> The input objects. </param>
+    /// <param name="filterMap"> A function that transforms the input objects into the output objects and returns a bool whether the output is valid. </param>
+    /// <returns> An enumeration of the filtered output objects. </returns>
+    [OverloadResolutionPriority(100)]
+    public static IEnumerable<TOut?> SelectWhere<TIn, TOut>(this IEnumerable<TIn> enumerable, TryFunc<TIn, TOut> filterMap)
+    {
+        foreach (var obj in enumerable)
+        {
+            if (filterMap(obj, out var ret))
+                yield return ret;
         }
     }
 
