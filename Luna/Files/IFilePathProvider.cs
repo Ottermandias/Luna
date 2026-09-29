@@ -5,7 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 namespace Luna;
 
 /// <summary> The base class to provide file paths for different type of configuration or data files. </summary>
-public abstract class BaseFilePathProvider(IDalamudPluginInterface pluginInterface) : IService
+public abstract class BaseFilePathProvider(IDalamudPluginInterface pluginInterface) : IScopedService
 {
     /// <summary> The directory containing the game's data. </summary>
     public readonly string GameDataDirectory = pluginInterface.GetRequiredService<IDataManager>().GameData.DataPath.FullName;

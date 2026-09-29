@@ -7,7 +7,7 @@ namespace Luna;
 /// <param name="name"> The name of the event for logging. </param>
 /// <param name="log"> The logger to use. </param>
 /// <param name="comparer"> An optional comparer to compare priorities. Set to <see cref="Comparer{TPriority}"/> if null. </param>
-public abstract class EventBase<TPriority>(string name, ILogger log, IComparer<TPriority>? comparer = null) : IDisposable, IService
+public abstract class EventBase<TPriority>(string name, ILogger log, IComparer<TPriority>? comparer = null) : IDisposable, IScopedService
 {
     /// <summary> The name of the event. </summary>
     public readonly string Name = name;
@@ -140,7 +140,7 @@ public abstract class EventBase<TPriority>(string name, ILogger log, IComparer<T
 /// <param name="name"> The name of the event for logging. </param>
 /// <param name="log"> The logger to use. </param>
 /// <param name="comparer"> An optional comparer to compare priorities. Set to <see cref="Comparer{TPriority}"/> if null. </param>
-public abstract class EventBase<TArguments, TPriority>(string name, ILogger log, IComparer<TPriority>? comparer = null) : IDisposable, IService
+public abstract class EventBase<TArguments, TPriority>(string name, ILogger log, IComparer<TPriority>? comparer = null) : IDisposable, IScopedService
     where TArguments : allows ref struct
 {
     /// <summary> The name of the event. </summary>

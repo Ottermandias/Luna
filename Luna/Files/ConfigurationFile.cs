@@ -9,7 +9,7 @@ namespace Luna;
 /// <param name="messager"> The file name provider this file uses. </param>
 /// <param name="saveDelay"> An optional delay for saving this file. If this is null, a minute is used. </param>
 public abstract class ConfigurationFile<TProvider>(BaseSaveService<TProvider> saveService, MessageService messager, TimeSpan? saveDelay = null)
-    : ISavable<TProvider>, IService
+    : ISavable<TProvider>, IScopedService
     where TProvider : BaseFilePathProvider
 {
     /// <summary> The save service this file uses. </summary>

@@ -3,7 +3,7 @@ using Microsoft.Extensions.Logging;
 namespace Luna;
 
 /// <summary> A class to handle transparent Windows compression schemes. </summary>
-public sealed class FileCompactor(ILogger logger) : IDisposable, IService
+public sealed class FileCompactor(ILogger logger) : IDisposable, ISingletonService
 {
     public readonly bool CanCompact = !Dalamud.Utility.Util.IsWine();
 

@@ -1,11 +1,17 @@
 namespace Luna;
 
-/// <summary> A general service interface to be collected by the <see cref="ServiceManager"/>. </summary>
-[UsedImplicitly(ImplicitUseTargetFlags.Itself | ImplicitUseTargetFlags.WithInheritors)]
 public interface IService;
 
+/// <summary> A general service interface to be collected by the <see cref="ServiceManager"/>. </summary>
+[UsedImplicitly(ImplicitUseTargetFlags.Itself | ImplicitUseTargetFlags.WithInheritors)]
+public interface ISingletonService : IService;
+
+/// <summary> A general service interface to be collected by the <see cref="ServiceManager"/>. </summary>
+[UsedImplicitly(ImplicitUseTargetFlags.Itself | ImplicitUseTargetFlags.WithInheritors)]
+public interface IScopedService : IService;
+
 /// <summary> A service type specific for precomputing data, generally from the game, that loads on startup and is shared via IPC, with some statistics. </summary>
-public interface IDataContainer : IService
+public interface IDataContainer : ISingletonService
 {
     /// <summary> The name of the service for sharing, logging and displaying statistics. </summary>
     public string Name { get; }
@@ -21,7 +27,7 @@ public interface IDataContainer : IService
 }
 
 /// <summary> An asynchronously initializing service. </summary>
-public interface IAsyncService : IService
+public interface IAsyncService
 {
     /// <summary> An awaiter for this service that finishes when all initialization steps have finished. </summary>
     public Task Awaiter { get; }
@@ -48,12 +54,10 @@ public interface IHookService : IAwaitedService
 public interface IAsyncDataContainer : IDataContainer, IAsyncService;
 
 /// <summary> A marker for API specific services. </summary>
-public interface IApiService : IService;
+public interface IApiService : IScopedService;
 
 /// <summary> A marker for UI specific services. </summary>
-public interface IUiService : IService;
+public interface IUiService : IScopedService;
 
-/// <summary> A marker for implementations of <see cref="IService"/> that should not be registered to a service provider. </summary>
+/// <summary> A marker for implementations of <see cref="ISingletonService"/> that should not be registered to a service provider. </summary>
 public interface IConstructedService : IService;
-
-

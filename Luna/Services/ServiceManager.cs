@@ -8,17 +8,37 @@ namespace Luna;
 
 /// <summary> A service manager that handles some additional things like Dalamud services for Dependency Injection. </summary>
 /// <remarks> Call <see cref="EnsureRequiredServices"/> when finished setting up to create the service provider. </remarks>
-public class ServiceManager : IDisposable
+public class ServiceManager : IDisposable, IAsyncDisposable
 {
-    private readonly MainLogger           _logger;
-    private readonly ServiceCollection    _collection   = [];
-    private readonly HashSet<IDisposable> _ownedObjects = [];
+    private static readonly Type ServiceType     = typeof(IService);
+    private static readonly Type ScopedType      = typeof(IScopedService);
+    private static readonly Type SingletonType   = typeof(ISingletonService);
+    private static readonly Type ConstructedType = typeof(IConstructedService);
+    private static readonly Type RequiredType    = typeof(IRequiredService);
+
+    private readonly MainLogger        _logger;
+    private readonly ServiceCollection _collection   = [];
+    private readonly HashSet<object>   _ownedObjects = [];
 
     /// <summary> Keeps track of the time required to launch all services. </summary>
     public readonly StartTimeTracker Timers = new();
 
     /// <summary> The base service provider after setup. </summary>
-    public ServiceProvider? Provider { get; private set; }
+    private ServiceProvider? _provider;
+
+    /// <summary> Whether a provider was constructed. </summary>
+    public bool HasProvider
+        => _provider is not null;
+
+    /// <summary> The current scope, if any. </summary>
+    private AsyncServiceScope? _scope;
+
+    /// <summary> Whether we are currently within a scope. </summary>
+    public bool InScope
+        => _scope is not null;
+
+    private IServiceProvider? Provider
+        => _scope?.ServiceProvider ?? _provider;
 
     /// <summary> Create a service manager. </summary>
     /// <param name="logger"> The logger to use. </param>
@@ -37,20 +57,48 @@ public class ServiceManager : IDisposable
             _collection.AddSingleton(WindowSystem.Factory(name));
     }
 
+    /// <summary> Enter a new scope. This only supports entering a single scope, which has to be exited before entering another one. </summary>
+    public void EnterScope()
+    {
+        lock (this)
+        {
+            if (!HasProvider)
+                throw new Exception("No service provider was constructed.");
+            if (InScope)
+                throw new Exception("This service manager does not support nested scopes.");
+
+            _scope = _provider!.CreateAsyncScope();
+        }
+    }
+
+    /// <summary> Exit an existing scope. </summary>
+    public ValueTask ExitScope()
+    {
+        lock (this)
+        {
+            if (!InScope)
+                throw new Exception("No scope was entered.");
+
+            var ret = _scope!.Value.DisposeAsync();
+            _scope = null;
+            return ret;
+        }
+    }
+
     /// <summary> Get all services that implement a specific interface or class. </summary>
     /// <typeparam name="T"> The interface or class to implement. </typeparam>
     /// <returns> An enumeration of all services that can be assigned to objects of type <typeparamref name="T"/>. </returns>
     public IEnumerable<T> GetServicesImplementing<T>()
     {
-        if (Provider is null)
+        if (_provider is null)
             yield break;
 
         var type = typeof(T);
         foreach (var typeDescriptor in _collection)
         {
-            if (typeDescriptor.Lifetime is ServiceLifetime.Singleton
+            if (typeDescriptor.Lifetime is ServiceLifetime.Singleton or ServiceLifetime.Scoped
              && typeDescriptor.ServiceType.IsAssignableTo(type))
-                yield return (T)Provider.GetRequiredService(typeDescriptor.ServiceType);
+                yield return (T)Provider!.GetRequiredService(typeDescriptor.ServiceType);
         }
     }
 
@@ -60,29 +108,39 @@ public class ServiceManager : IDisposable
     public T GetService<T>() where T : class
         => Provider!.GetRequiredService<T>();
 
+    /// <summary> Get a service of specific type. </summary>
+    /// <param name="type"> The type of service to get. </param>
+    /// <returns> The service, if available. If not, it will throw. </returns>
+    public object GetService(Type type)
+        => Provider!.GetRequiredService(type);
+
+
     /// <summary> Create the provider and ensure that all services implementing <see cref="IRequiredService"/> that have been registered are created. </summary>
-    public void EnsureRequiredServices()
+    public void EnsureRequiredServices(CancellationToken cancel)
     {
         BuildProvider();
         foreach (var service in _collection)
         {
-            if (service.ServiceType.IsAssignableTo(typeof(IRequiredService)))
-                try
-                {
-                    Provider!.GetRequiredService(service.ServiceType);
-                }
-                catch (Exception e)
-                {
-                    _logger.Fatal($"Could not instantiate required service {service.ServiceType}:\n{e}");
-                    throw;
-                }
+            cancel.ThrowIfCancellationRequested();
+            if (!service.ServiceType.IsAssignableTo(RequiredType))
+                continue;
+
+            try
+            {
+                Provider!.GetRequiredService(service.ServiceType);
+            }
+            catch (Exception e)
+            {
+                _logger.Fatal($"Could not instantiate required service {service.ServiceType}:\n{e}");
+                throw;
+            }
         }
     }
 
     /// <summary> Create the provider. </summary>
     public void BuildProvider()
     {
-        Provider ??= _collection.BuildServiceProvider(new ServiceProviderOptions
+        _provider ??= _collection.BuildServiceProvider(new ServiceProviderOptions
         {
             ValidateOnBuild = true,
             ValidateScopes  = false,
@@ -94,7 +152,14 @@ public class ServiceManager : IDisposable
     /// <returns> This object to chain calls. </returns>
     /// <remarks> Singletons are objects that are only instantiated once. This needs to be called before <see cref="EnsureRequiredServices"/>. </remarks>
     public ServiceManager AddSingleton<T>()
-        => AddSingleton(typeof(T));
+        => AddService(typeof(T), false);
+
+    /// <summary> Add a specific type as a scoped service to the collection. </summary>
+    /// <typeparam name="T"> The type to add. </typeparam>
+    /// <returns> This object to chain calls. </returns>
+    /// <remarks> Scoped services are objects that are only instantiated once per scope, and disposed when the scope is disposed. This needs to be called before <see cref="EnsureRequiredServices"/>. </remarks>
+    public ServiceManager AddScoped<T>()
+        => AddService(typeof(T), true);
 
     /// <summary> Add an open generic type singleton to the collection. </summary>
     /// <param name="queryType"> The type of the objects queried from the service provider. </param>
@@ -128,28 +193,14 @@ public class ServiceManager : IDisposable
     /// <param name="assembly"> The assembly to fetch the services from. </param>
     public void AddIServices(Assembly assembly)
     {
-        var iType       = typeof(IService);
-        var excludeType = typeof(IConstructedService);
-        foreach (var type in assembly.ExportedTypes.Where(t => t is { IsInterface: false, IsAbstract: false } && iType.IsAssignableFrom(t)))
+        foreach (var type in assembly.ExportedTypes.Where(t
+                     => t is { IsInterface: false, IsAbstract: false } && ServiceType.IsAssignableFrom(t)))
         {
-            if (excludeType.IsAssignableFrom(type))
+            if (ConstructedType.IsAssignableFrom(type))
                 continue;
 
             if (_collection.All(t => t.ServiceType != type))
-                AddSingleton(type);
-        }
-    }
-
-    /// <summary> Add all services from an assembly implementing <see cref="TInterface"/> and that are neither interfaces nor abstract to the collection. </summary>
-    /// <typeparam name="TInterface"> The interface to check for. </typeparam>
-    /// <param name="assembly"> The assembly to fetch the services from. </param>
-    public void AddIServices<TInterface>(Assembly assembly)
-    {
-        var iType = typeof(TInterface);
-        foreach (var type in assembly.ExportedTypes.Where(t => t is { IsInterface: false, IsAbstract: false } && iType.IsAssignableFrom(t)))
-        {
-            if (_collection.All(t => t.ServiceType != type))
-                AddSingleton(type);
+                AddService(type, ScopedType.IsAssignableFrom(type));
         }
     }
 
@@ -169,8 +220,9 @@ public class ServiceManager : IDisposable
     public ServiceManager AddExistingService<T>(T service, bool takeOwnership = false) where T : class
     {
         _collection.AddSingleton(service);
-        if (takeOwnership && service is IDisposable disposable)
-            _ownedObjects.Add(disposable);
+        if (takeOwnership && service is IDisposable or IAsyncDisposable)
+            _ownedObjects.Add(service);
+
         return this;
     }
 
@@ -178,18 +230,51 @@ public class ServiceManager : IDisposable
     public void Dispose()
     {
         _logger.Debug("Disposing all services.");
-        Provider?.Dispose();
+        _scope?.Dispose();
+        _provider?.Dispose();
         foreach (var disposable in _ownedObjects)
-            disposable.Dispose();
+        {
+            switch (disposable)
+            {
+                case IDisposable d:       d.Dispose(); break;
+                case IAsyncDisposable ad: ad.DisposeAsync().AsTask().GetAwaiter().GetResult(); break;
+            }
+        }
+
         _ownedObjects.Clear();
+        _provider = null;
+        _scope    = null;
+        _logger.Debug("Disposed all services.");
+        GC.SuppressFinalize(this);
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        _logger.Debug("Disposing all services.");
+        if (_scope is { } scope)
+            await scope.DisposeAsync().ConfigureAwait(false);
+
+        if (_provider is not null)
+            await _provider.DisposeAsync().ConfigureAwait(false);
+
+        await Task.WhenAll(_ownedObjects.OfType<IAsyncDisposable>().Select(o => o.DisposeAsync().AsTask())).ConfigureAwait(false);
+        foreach (var disposable in _ownedObjects.Where(o => o is not IAsyncDisposable))
+            (disposable as IDisposable)?.Dispose();
+        _ownedObjects.Clear();
+        _provider = null;
+        _scope    = null;
         _logger.Debug("Disposed all services.");
         GC.SuppressFinalize(this);
     }
 
     /// <summary> Wrapper for adding singletons with some custom logging and timing. </summary>
-    private ServiceManager AddSingleton(Type type)
+    private ServiceManager AddService(Type type, bool @scoped)
     {
-        _collection.AddSingleton(type, Func);
+        CheckService(type, @scoped);
+        if (@scoped)
+            _collection.AddScoped(type, Func);
+        else
+            _collection.AddSingleton(type, Func);
         return this;
 
         object Func(IServiceProvider p)
@@ -249,5 +334,32 @@ public class ServiceManager : IDisposable
                 _ownedObjects.Add(disposableInterface);
             return service;
         }
+    }
+
+    [Conditional("DEBUG")]
+    private void CheckService(Type type, bool @scoped)
+    {
+        if (!type.IsAssignableTo(ServiceType))
+            return;
+
+        var constructed = type.IsAssignableTo(ConstructedType);
+        if (constructed)
+            throw new Exception($"{type.Name} implements {ConstructedType.Name} but is being registered in the service manager.");
+
+        var shouldBeScoped = type.IsAssignableTo(ScopedType);
+        if (shouldBeScoped != scoped)
+            throw new Exception($"{type.Name} implements {ScopedType.Name} but is being registered as a singleton.");
+
+        var count = (scoped ? 1 : 0)
+          + (type.IsAssignableTo(SingletonType) ? 1 : 0)
+          + (constructed ? 1 : 0);
+        _ = count switch
+        {
+            1 => true,
+            0 => throw new Exception(
+                $"{type.Name} implements {ServiceType.Name} but neither of {ScopedType.Name}, {SingletonType.Name}, or {ConstructedType.Name}."),
+            _ => throw new Exception(
+                $"{type.Name} implements multiple of {ScopedType.Name}, {SingletonType.Name}, {ConstructedType.Name}."),
+        };
     }
 }

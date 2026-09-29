@@ -4,15 +4,18 @@ using Dalamud.Plugin.Services;
 namespace Luna;
 
 /// <summary> A utility to asynchronously create hooks, and dispose of them. </summary>
-public sealed class HookManager(IGameInteropProvider provider, ISigScanner sigScanner) : IDisposable, IService
+public sealed class HookManager(IGameInteropProvider provider, ISigScanner sigScanner) : IDisposable, IScopedService
 {
-    public readonly  IGameInteropProvider                                                    Provider   = provider;
-    public readonly  ISigScanner                                                             SigScanner = sigScanner;
-    private readonly CancellationTokenSource                                                 _cancel    = new();
-    private readonly ConcurrentDictionary<string, (IDalamudHook?, long, Exception?, string)> _hooks     = [];
-    private          Task?                                                                   _currentTask;
-    private          bool                                                                    _disposed;
-    public           bool                                                                    HasExceptions { get; private set; }
+    public readonly  IGameInteropProvider                    Provider   = provider;
+    public readonly  ISigScanner                             SigScanner = sigScanner;
+    private readonly CancellationTokenSource                 _cancel    = new();
+    private readonly ConcurrentDictionary<string, IHookData> _hooks     = [];
+    private          Task?                                   _currentTask;
+    private          bool                                    _disposed;
+    public           bool                                    HasExceptions { get; private set; }
+
+    /// <summary> Invoked whenever a new hook is added, removed, replaced, enabled or disabled. </summary>
+    public event Action<string>? HookStateChanged;
 
     /// <summary> Log all exceptions that occured while creating hooks. </summary>
     /// <param name="log"> The logger to log to. </param>
@@ -38,11 +41,8 @@ public sealed class HookManager(IGameInteropProvider provider, ISigScanner sigSc
     }
 
     /// <summary> Get the data of all currently hooked methods. </summary>
-    public IEnumerable<(string Name, nint Address, long Time, Type Delegate)> Diagnostics
-        => _disposed
-            ? []
-            : _hooks.Select(kvp => (kvp.Key, kvp.Value.Item1?.Address ?? nint.Zero, kvp.Value.Item2,
-                kvp.Value.Item1?.GetType().GenericTypeArguments[0] ?? typeof(void)));
+    public IEnumerable<IHookData> Hooks
+        => _hooks.Values;
 
     /// <summary> Create a hook for a given address. </summary>
     public Task<Hook<T>?> CreateHook<T>(string name, nint address, T detour, bool enable = false) where T : Delegate
@@ -125,13 +125,13 @@ public sealed class HookManager(IGameInteropProvider provider, ISigScanner sigSc
             if (!_hooks.TryRemove(name, out var oldHook))
                 return null;
 
-            var enabled = oldHook.Item1?.IsEnabled ?? false;
-            oldHook.Item1?.Dispose();
-            var newHook = oldHook.Item1 is null ? null : Provider.HookFromAddress(oldHook.Item1.Address, detour);
+            var enabled = oldHook.Hook?.IsEnabled ?? false;
+            oldHook.Hook?.Dispose();
+            var newHook = oldHook.Hook is null ? null : Provider.HookFromAddress(oldHook.Hook.Address, detour);
             if (enabled)
                 newHook?.Enable();
             _cancel.Token.ThrowIfCancellationRequested();
-            AddHook(name, newHook, timer, null, oldHook.Item4);
+            AddHook(name, newHook, timer, null, oldHook.Signature);
             return newHook;
         }
     }
@@ -148,7 +148,8 @@ public sealed class HookManager(IGameInteropProvider provider, ISigScanner sigSc
             if (!_hooks.TryRemove(name, out var hook))
                 return false;
 
-            hook.Item1?.Dispose();
+            hook.Hook?.Dispose();
+            HookStateChanged?.Invoke(name);
             return true;
         }
     }
@@ -182,24 +183,29 @@ public sealed class HookManager(IGameInteropProvider provider, ISigScanner sigSc
         if (_disposed)
             return;
 
-
         lock (_hooks)
         {
             _cancel.Cancel();
             _currentTask?.Wait();
             _disposed = true;
             foreach (var (_, hook) in _hooks)
-                hook.Item1?.Dispose();
+                hook.Hook?.Dispose();
             _hooks.Clear();
             _currentTask = null;
         }
     }
 
     /// <summary> Add the hook and throw on failure. </summary>
-    private void AddHook(string name, IDalamudHook? hook, Stopwatch timer, Exception? ex, string sig)
+    private void AddHook<T>(string name, Hook<T>? hook, Stopwatch timer, Exception? ex, string sig) where T : Delegate
     {
         HasExceptions |= ex is not null;
-        if (!_hooks.TryAdd(name, (hook, timer.ElapsedMilliseconds, ex, sig)))
+        if (!_hooks.TryAdd(name, new HookData<T>(this, name, hook, timer.ElapsedMilliseconds, ex, sig)))
             throw new Exception($"A hook with the name of {name} already exists.");
+
+        HookStateChanged?.Invoke(name);
     }
+
+    /// <summary> Invoke hook state changed. </summary>
+    internal void InvokeHookStateChanged(string name)
+        => HookStateChanged?.Invoke(name);
 }

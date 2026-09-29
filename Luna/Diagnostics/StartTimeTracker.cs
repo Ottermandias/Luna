@@ -1,7 +1,7 @@
 namespace Luna;
 
 /// <summary> A utility to track the initialization time of services or objects. </summary>
-public class StartTimeTracker : IService
+public class StartTimeTracker : IScopedService
 {
     /// <summary> The internally used timer. </summary>
     private class TimerTuple : Stopwatch

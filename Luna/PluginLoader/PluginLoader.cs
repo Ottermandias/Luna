@@ -355,7 +355,7 @@ public abstract class PluginLoader<TPlugin> : IPluginLoader, IAsyncDalamudPlugin
             // Create the service manager as given by the plugin definition.
             // We require it to not have a provider since we add Self to the services and build them afterward.
             var ret = TPlugin.CreateServiceManager(pluginInterface, log);
-            if (ret.Provider is not null)
+            if (ret.HasProvider)
                 throw new ArgumentException(
                     $"The service manager created by {nameof(TPlugin.CreateServiceManager)} should not have built a provider.");
 

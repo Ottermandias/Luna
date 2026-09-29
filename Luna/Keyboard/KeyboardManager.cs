@@ -4,7 +4,7 @@ using Dalamud.Plugin.Services;
 namespace Luna;
 
 /// <summary> A helper service for keyboard interaction between ImGui and the FFXIV key state. </summary>
-public sealed class KeyboardManager : IService, IDisposable
+public sealed class KeyboardManager : ISingletonService, IDisposable
 {
     private readonly IFramework                         _framework;
     private readonly IKeyState                          _keyState;
