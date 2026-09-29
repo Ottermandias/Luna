@@ -68,7 +68,7 @@ public sealed class FileSystemSeparatorCache : IFileSystemNodeCache
     public void Draw(FileSystemCache cache, IFileSystemNode node, bool startsLine)
     {
         DrawLine(cache, node.Depth, Color, node.Parent?.LineColor ?? ColorParameter.Default);
-        Im.InvisibleButton(Name.Utf8, Im.ContentRegion.Available with { Y = Im.Style.TextHeight });
+        Im.InvisibleButton(Name.Utf8, Im.ContentRegion.Width(Im.Style.TextHeight));
 
         if (cache.Parent.SeparatorContext.Count is 0)
             return;
