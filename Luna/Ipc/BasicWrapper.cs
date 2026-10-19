@@ -30,15 +30,6 @@ public interface IBasicWrapper<out TSelf> : IDisposable
 /// <summary> A wrapper to keep the <see cref="IBasicWrapper{T}.CreateWrapper"/> method somewhat hidden from consumers. </summary>
 public static class BasicWrapper
 {
-    /// <summary> The constant value to use for the version method in method enums. </summary>
-    public const int VersionMethod = -1;
-
-    /// <summary> The constant value to use for the IsDisposed method in method enums. </summary>
-    public const int IsDisposedMethod = -2;
-
-    /// <summary> The constant value to use for the disposed event subscription methods in method enums. </summary>
-    public const int DisposedEventMethod = -3;
-
     /// <inheritdoc cref="IBasicWrapper{TWrapper}.CreateWrapper"/>
     public static TWrapper? Create<TWrapper>(IIdDataShareAdapter? adapter) where TWrapper : IBasicWrapper<TWrapper>
         => TWrapper.CreateWrapper(adapter);
@@ -73,10 +64,7 @@ public static class BasicWrapper
 /// <summary> A base class for wrappers for a specific method ID enumeration type (assumed to be based on <see cref="int"/>). </summary>
 /// <param name="adapter"> An initial adapter to connect to. </param>
 /// <typeparam name="TSelf"> The own type for creation. </typeparam>
-/// <typeparam name="TEnum">
-///   The method enum. This should have a '<see cref="Version"/>' method with the value <see cref="BasicWrapper.VersionMethod"/>
-///   or the wrapper should override the <see cref="Version"/> attribute with some other implementation.
-/// </typeparam>
+/// <typeparam name="TEnum"> The method enum. </typeparam>
 public abstract partial class BasicWrapper<TSelf, TEnum>(IIdDataShareAdapter? adapter = null) : IDisposable
     where TSelf : BasicWrapper<TSelf, TEnum>, IBasicWrapper<TSelf>
     where TEnum : unmanaged, Enum
@@ -94,16 +82,17 @@ public abstract partial class BasicWrapper<TSelf, TEnum>(IIdDataShareAdapter? ad
         => Adapter != BasicWrapper.EmptyAdapter && !IsDisposed;
 
     /// <summary> Get whether the referenced adapter has not been disposed yet.. </summary>
-    public virtual bool IsDisposed
-        => Adapter.TryInvoke<bool>(BasicWrapper.IsDisposedMethod, out var ret) && ret;
+    public bool IsDisposed
+        => Adapter.IsDisposed;
 
     /// <summary> Get the version of the referenced adapter. </summary>
-    public virtual Version Version
-        => Adapter.TryInvoke<Version>(BasicWrapper.VersionMethod, out var ret) ? ret! : BaseVersion;
+    public Version Version
+        => Adapter.Version ?? BaseVersion;
 
     /// <summary> Invoked when the referenced adapter is disposed. </summary>
     public event Action? Disposed;
 
+    /// <summary> The IPC Label. </summary>
     protected abstract string IpcLabel { get; }
 
     /// <summary> Connect the wrapper to an adapter newly requested via IPC. </summary>
@@ -146,7 +135,7 @@ public abstract partial class BasicWrapper<TSelf, TEnum>(IIdDataShareAdapter? ad
         // Dispose the old adapter.
         if (HasAdapter)
         {
-            Adapter.Invoke(BasicWrapper.DisposedEventMethod, OnAdapterDisposal, true);
+            Adapter.Disposed -= OnAdapterDisposal;
             Adapter.Dispose();
         }
 
@@ -157,7 +146,7 @@ public abstract partial class BasicWrapper<TSelf, TEnum>(IIdDataShareAdapter? ad
         // the delegates as their actual action types.
         if (HasAdapter)
         {
-            Adapter.Invoke(BasicWrapper.DisposedEventMethod, OnAdapterDisposal, false);
+            Adapter.Disposed += OnAdapterDisposal;
             foreach (var ((_, @event), subscriber) in DelegateMap)
                 Adapter.Invoke(*(int*)&@event, subscriber, false);
         }
@@ -225,7 +214,7 @@ public abstract partial class BasicWrapper<TSelf, TEnum>(IIdDataShareAdapter? ad
     {
         if (HasAdapter)
         {
-            Adapter.Invoke(BasicWrapper.DisposedEventMethod, OnAdapterDisposal, true);
+            Adapter.Disposed -= OnAdapterDisposal;
             foreach (var ((_, b), c) in DelegateMap)
             {
                 try
