@@ -4,6 +4,17 @@ using Luna.Generators;
 
 namespace Luna;
 
+public sealed class AdapterVersionMismatchException(string adapterName, Version? actualVersion, int requiredMajor, int minimumMinor = 0)
+    : Exception(
+        $"{adapterName} initialization failed: Version {requiredMajor}.{minimumMinor}+ required, but adapter is {actualVersion?.Major ?? 0}.{actualVersion?.Minor ?? 0}.")
+{
+    public readonly string AdapterName   = adapterName;
+    public readonly int    ActualMajor   = actualVersion?.Major ?? 0;
+    public readonly int    ActualMinor   = actualVersion?.Minor ?? 0;
+    public readonly int    RequiredMajor = requiredMajor;
+    public readonly int    MinimumMinor  = minimumMinor;
+}
+
 /// <summary> A basic interface for wrappers that needs to be implemented in addition to <see cref="BasicWrapper{TSelf,TEnum}"/> for creation. </summary>
 public interface IBasicWrapper<out TSelf> : IDisposable
     where TSelf : IBasicWrapper<TSelf>
@@ -113,6 +124,11 @@ public abstract partial class BasicWrapper<TSelf, TEnum>(IIdDataShareAdapter? ad
         var v = Version;
         return v.Major == requiredMajorVersion.Value && v.Minor >= minimumMinorVersion;
     }
+
+    /// <summary> Throw an adapter version mismatch exception. </summary>
+    [DoesNotReturn]
+    public void ThrowAdapterVersionMismatch(int requiredMajorVersion, int minimumMinorVersion = 0)
+        => throw new AdapterVersionMismatchException(Adapter.GetType().Name, Version, requiredMajorVersion, minimumMinorVersion);
 
     /// <summary> Close the current connection. </summary>
     public void Disconnect()

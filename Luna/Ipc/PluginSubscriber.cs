@@ -44,6 +44,9 @@ public abstract class PluginSubscriber : IDisposable
     /// <summary> The establishing time of the current connection. </summary>
     public DateTime AttachTime { get; private set; }
 
+    /// <summary> The exception thrown during initialization that prevented proper initialization. </summary>
+    public Exception? InitializationFailure { get; private set; }
+
     /// <summary> Additional actions to take when a connection is established and the plugin fulfills the required version checks. </summary>
     protected abstract void PluginInitialized();
 
@@ -128,6 +131,7 @@ public abstract class PluginSubscriber : IDisposable
 
     private void OnPluginLoad()
     {
+        InitializationFailure = null;
         try
         {
             OnPluginDispose();
@@ -139,6 +143,7 @@ public abstract class PluginSubscriber : IDisposable
         }
         catch (Exception e)
         {
+            InitializationFailure = e;
             OnPluginDispose();
             Log.Debug($"Could not attach to {PluginName}:\n{e}");
         }
