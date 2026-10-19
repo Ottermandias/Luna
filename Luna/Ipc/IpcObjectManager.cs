@@ -7,10 +7,11 @@ namespace Luna;
 /// <summary> A manager for data share adapters used for IPC communication across plugins. </summary>
 public sealed partial class IpcObjectManager : IDisposable, IApiService
 {
-    private readonly IDalamudPluginInterface                    _pluginInterface;
-    private readonly LunaLogger                                 _log;
-    private readonly SetDictionary<CallerPlugin, IBasicAdapter> _objects = [];
-    private          bool                                       _disposed;
+    private readonly IDalamudPluginInterface                                  _pluginInterface;
+    private readonly LunaLogger                                               _log;
+    private readonly SetDictionary<CallerPlugin, IBasicAdapter>               _objects    = [];
+    private readonly Dictionary<(string AdapterType, string Owner), DateTime> _logManager = [];
+    private          bool                                                     _disposed;
 
     /// <summary> A manager for data share adapters used for IPC communication across plugins. </summary>
     /// <param name="log"> A logger. </param>
@@ -30,7 +31,8 @@ public sealed partial class IpcObjectManager : IDisposable, IApiService
     /// <returns> The created adapter. </returns>
     /// <exception cref="ObjectDisposedException" />
     /// <remarks> Prefer to use <see cref="IAdapterFactoryExtensions.Create"/> on the <see cref="IAdapterFactory"/> directly. </remarks>
-    public IIdDataShareAdapter? Create(IAdapterFactory factory, CallerPlugin owner, object? data = null, [CallerMemberName] string? callerName = null)
+    public IIdDataShareAdapter? Create(IAdapterFactory factory, CallerPlugin owner, object? data = null,
+        [CallerMemberName] string? callerName = null)
     {
         if (_disposed)
             throw new ObjectDisposedException(nameof(IpcObjectManager));
@@ -41,9 +43,9 @@ public sealed partial class IpcObjectManager : IDisposable, IApiService
         lock (_objects)
         {
             _objects.TryAdd(owner, adapter);
+            LogCreation(adapter.Type, adapter.Owner.InternalName, callerName ?? "Unknown");
         }
 
-        LogCreation(_log, adapter.Type, adapter.Owner.InternalName, callerName ?? "Unknown");
         return adapter;
     }
 
@@ -72,7 +74,6 @@ public sealed partial class IpcObjectManager : IDisposable, IApiService
 
         if (args.Kind is PluginListInvalidationKind.Loaded)
             return;
-
 
         lock (_objects)
         {
@@ -133,6 +134,30 @@ public sealed partial class IpcObjectManager : IDisposable, IApiService
         }
     }
 
+    private void LogCreation(string type, string owner, string caller)
+    {
+        ref var value = ref CollectionsMarshal.GetValueRefOrAddDefault(_logManager, (type, owner), out _);
+        var     now   = DateTime.UtcNow;
+        if (value <= now)
+        {
+            value = now.AddMinutes(1);
+            LogCreation(_log, type, owner, caller);
+        }
+    }
+
+    public void LogDisposal(string type, string owner)
+    {
+        lock (_objects)
+        {
+            ref var value = ref CollectionsMarshal.GetValueRefOrAddDefault(_logManager, (type, owner), out _);
+            var     now   = DateTime.UtcNow;
+            if (value <= now)
+            {
+                value = now.AddMinutes(1);
+                LogDisposal(_log, type, owner);
+            }
+        }
+    }
 
     [LoggerMessage(Microsoft.Extensions.Logging.LogLevel.Trace, "Provided IPC wrapper {Type:l} for {Owner:l} from {Caller:l}.")]
     static partial void LogCreation(LunaLogger logger, string type, string owner, string caller);
