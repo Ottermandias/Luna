@@ -173,7 +173,7 @@ public abstract class BaseButton<T>
     public virtual bool DrawButton(Vector2 size, in T data)
     {
         PreDraw(data);
-        var ret = ImEx.Button(Label(data), disabled: !Enabled(data), size: size);
+        var ret = Button(size, data);
         if (HasTooltip && Im.Item.Hovered(HoveredFlags.AllowWhenDisabled))
         {
             using var style = Im.Style.PushDefault();
@@ -194,7 +194,7 @@ public abstract class BaseButton<T>
     public virtual bool DrawMenuItem(in T data)
     {
         PreDraw(data);
-        var ret = Im.Menu.Item(Label(data), enabled: Enabled(data));
+        var ret = MenuItem(data);
         if (HasTooltip && Im.Item.Hovered(HoveredFlags.AllowWhenDisabled))
         {
             using var style = Im.Style.PushDefault();
@@ -208,4 +208,12 @@ public abstract class BaseButton<T>
 
         return ret;
     }
+
+    /// <summary> Draw the actual menu item component. </summary>
+    protected virtual bool MenuItem(in T data)
+        => Im.Menu.Item(Label(data), enabled: Enabled(data));
+
+    /// <summary> Draw the actual button component. </summary>
+    protected virtual bool Button(Vector2 size, in T data)
+        => ImEx.Button(Label(data), disabled: !Enabled(data), size: size);
 }
