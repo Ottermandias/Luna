@@ -425,30 +425,11 @@ public abstract class FileSystemCache<TData> : FileSystemCache
             JumpToNode.SetTarget(null!);
         }
 
-        if (DraggedNode is not null && Parent.AllowDragAutoScroll)
-            DragAutoScroll();
+        if (DraggedNode is not null)
+            Im.DragDrop.AutoScroll(-1f, Parent.DragDropAutoScrollMargin);
 
         TreeLine.Draw(VisibleNodes, LineColor, AlternatingLineColor);
     }
-
-    /// <summary> Scroll the window when a dragged node is near the top or bottom edge. </summary>
-    private static void DragAutoScroll()
-    {
-        if (!Im.Window.Hovered())
-            return;
-
-        var edge   = 24 * Im.Style.GlobalScale;
-        var localY = Im.Io.MousePosition.Y - Im.Window.Position.Y;
-        var height = Im.Window.Size.Y;
-
-        if (localY < edge)
-            Im.Scroll.Y -= DragAutoScrollSpeed * (1 - localY / edge) * Im.Io.DeltaTime;
-        else if (localY > height - edge)
-            Im.Scroll.Y += DragAutoScrollSpeed * (1 - (height - localY) / edge) * Im.Io.DeltaTime;
-    }
-
-    /// <summary> Pixels per second to scroll at when the dragged node sits right on the edge. </summary>
-    private const float DragAutoScrollSpeed = 600f;
 
     public override void Update()
     {
