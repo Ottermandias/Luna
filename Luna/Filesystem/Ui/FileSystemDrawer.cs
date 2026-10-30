@@ -47,6 +47,9 @@ public abstract class FileSystemDrawer : IPanel
     /// <summary> Whether this file system drawer allows drag and drop operations. </summary>
     public bool AllowDragAndDrop { get; set; } = true;
 
+    /// <summary> Whether dragging a node near the top or bottom edge of the drawer scrolls it. </summary>
+    public bool AllowDragAutoScroll { get; set; } = true;
+
     /// <summary> The sort mode used to order nodes in the drawer. </summary>
     public ISortMode SortMode
     {
