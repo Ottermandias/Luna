@@ -425,7 +425,7 @@ public abstract class FileSystemCache<TData> : FileSystemCache
             JumpToNode.SetTarget(null!);
         }
 
-        if (DraggedNode is not null)
+        if (DraggedNode is not null && Parent.AllowDragAutoScroll)
             DragAutoScroll();
 
         TreeLine.Draw(VisibleNodes, LineColor, AlternatingLineColor);
