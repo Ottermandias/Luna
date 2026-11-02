@@ -2,3 +2,7 @@
 	path = ImSharp
 	url = git@github.com:Ottermandias/ImSharp.git
 	branch = gc1.88
+[submodule "Luna.Targa"]
+	path = Luna.Targa
+	url = git@github.com:Ottermandias/Luna.Targa.git
+	branch = main

@@ -28,6 +28,11 @@
     </PropertyGroup>
 
     <ItemGroup>
+        <Compile Include="..\Luna.Targa\Luna.Targa.Tests\**\*.cs" Link="Targa/%(RecursiveDir)%(FileName)%(Extension)" />
+        <Compile Remove="..\Luna.Targa\Luna.Targa.Tests\obj\**\*.cs" />
+    </ItemGroup>
+
+    <ItemGroup>
         <ProjectReference Include="..\Luna\Luna.csproj" />
         <ProjectReference Include="..\Luna.Generators\Luna.Generators.csproj" />
         <ProjectReference Include="..\Luna.Generators\Luna.Generators.csproj" OutputItemType="Analyzer"

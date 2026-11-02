@@ -40,6 +40,11 @@
     </ItemGroup>
 
     <ItemGroup>
+        <Compile Include="..\Luna.Targa\Luna.Targa\**\*.cs" Link="Targa/%(RecursiveDir)%(FileName)%(Extension)" />
+        <Compile Remove="..\Luna.Targa\Luna.Targa\obj\**\*.cs" />
+    </ItemGroup>
+
+    <ItemGroup>
         <None Include="..\ImSharp\ImSharp\Resources\include\*.hlsli" Link="Resources/include/%(FileName)%(Extension)" />
         <None Include="..\ImSharp\ImSharp\Resources\*.hlsl" Link="Resources/%(FileName)%(Extension)" />
         <EmbeddedResource Include="..\ImSharp\ImSharp\Resources\*.dxbc" Link="Resources/%(FileName)%(Extension)" />
