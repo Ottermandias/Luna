@@ -13,6 +13,10 @@ public sealed class CreateSubFolderButton(BaseFileSystem fileSystem) : BaseButto
         => Im.Popup.Open($"CSF{folder.Identifier.Value}");
 
     /// <inheritdoc/>
+    protected override bool MenuItem(in IFileSystemFolder data)
+        => Im.Selectable(Label(data), false, SelectableFlags.NoAutoClosePopups);
+
+    /// <inheritdoc/>
     public override bool HasTooltip
         => true;
 
@@ -24,7 +28,7 @@ public sealed class CreateSubFolderButton(BaseFileSystem fileSystem) : BaseButto
     protected override void PostDraw(in IFileSystemFolder parentFolder)
     {
         // Handle the actual popup.
-        if (!InputPopup.OpenName($"CSF{parentFolder.Identifier.Value}", "Enter Subfolder Name..."u8, out var newName))
+        if (!InputPopup.Open($"CSF{parentFolder.Identifier.Value}", StringU8.Empty, out var newName, "Enter Subfolder Name..."u8))
             return;
 
         try

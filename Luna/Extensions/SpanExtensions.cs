@@ -41,6 +41,74 @@ public static class SpanExtensions
     public static int IndexOf<T>(this Span<T> array, T needle) where T : IEquatable<T>
         => ((ReadOnlySpan<T>)array).IndexOf(needle);
 
+    /// <summary> Check whether a span contains all passed needles at least once. </summary>
+    /// <param name="needle1"> The first value checked. </param>
+    /// <param name="needle2"> The second value checked. </param>
+    /// <returns> True if the span contains both values. </returns>
+    public static bool Contains<T>(this ReadOnlySpan<T> array, T needle1, T needle2) where T : IEquatable<T>
+    {
+        if (needle1.Equals(needle2))
+            return array.Contains(needle1);
+
+        var found1 = false;
+        var found2 = false;
+        foreach (ref readonly var t in array)
+        {
+            if (needle1.Equals(t))
+            {
+                found1 = true;
+                if (found2)
+                    return true;
+            }
+            else if (needle2.Equals(t))
+            {
+                found2 = true;
+                if (found1)
+                    return true;
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary> Check whether a span contains all passed needles at least once after a selector. </summary>
+    /// <param name="predicate1"> The first predicate checked. </param>
+    /// <param name="predicate2"> The second predicate checked. </param>
+    /// <returns> True if the span contains both values. </returns>
+    public static bool Any<T>(this ReadOnlySpan<T> array, Predicate<T> predicate1, Predicate<T> predicate2)
+    {
+        if (ReferenceEquals(predicate1, predicate2))
+        {
+            foreach (ref readonly var value in array)
+            {
+                if (predicate1(value))
+                    return true;
+            }
+
+            return false;
+        }
+
+        var found1 = false;
+        var found2 = false;
+        foreach (ref readonly var value in array)
+        {
+            if (predicate1(value))
+            {
+                found1 = true;
+                if (found2)
+                    return true;
+            }
+            else if (predicate2(value))
+            {
+                found2 = true;
+                if (found1)
+                    return true;
+            }
+        }
+
+        return false;
+    }
+
     /// <summary> Write a byte span as a list of hexadecimal bytes separated by spaces. </summary>
     public static string WriteHexBytes(this ReadOnlySpan<byte> bytes)
     {

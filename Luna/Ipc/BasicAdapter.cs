@@ -123,7 +123,7 @@ public sealed partial class IpcObjectManager
                         Parent.IpcManager._objects.RemoveValue(Owner, (IBasicAdapter)this);
                     }
 
-                    LogDisposal(Parent.IpcManager._log, Type, Owner.InternalName);
+                    Parent.IpcManager.LogDisposal(Type, Owner.InternalName);
                 }
 
                 DisposeInternal();

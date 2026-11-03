@@ -173,7 +173,9 @@ public sealed class ColorCache<TColorId, TColorData> : IDisposable
         foreach (var color in DalamudColor.Values)
         {
             var value = color.Value;
-            _dalamud[(int)color] = (value, value);
+            _dalamud[(int)color]                               = (value, value);
+            ImSharpConfiguration.Colors.ActiveFilterBackground = DalamudColor.AttentionBackground.Value;
+            ImSharpConfiguration.Colors.ActiveFilterBorder     = DalamudColor.AttentionForeground.Value;
         }
 
         _lunaDirty = false;
