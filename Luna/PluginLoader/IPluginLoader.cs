@@ -66,7 +66,7 @@ public interface IPluginLoader
         catch (Exception ex)
         {
             log.Error($"Could not fetch plugin version:\n{ex}");
-            return new Version(1, 1, 1, 1);
+            return new Version(0, 0, 0, 0);
         }
     }
 
