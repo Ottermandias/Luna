@@ -31,6 +31,10 @@ public abstract class PluginLoader<TPlugin> : IPluginLoader, IAsyncDalamudPlugin
     /// <inheritdoc cref="IPluginLoader.CommitHash"/>
     public readonly string CommitHash;
 
+    /// <inheritdoc cref="IPluginLoader.GameVersion"/>
+    public string GameVersion
+        => (field ??= IPluginLoader.FetchGameVersion()!) ?? "Unknown";
+
     /// <summary> The intermediary plugin during the validation and plugin launch steps, or when either of those fail. </summary>
     public IIntermediaryPlugin<TPlugin>? IntermediaryPlugin { get; private set; }
 
@@ -59,6 +63,7 @@ public abstract class PluginLoader<TPlugin> : IPluginLoader, IAsyncDalamudPlugin
         Source          = IPluginLoader.FetchSource(PluginInterface);
         Version         = IPluginLoader.FetchVersion<TPlugin>(PluginInterface, Log, Source);
         CommitHash      = IPluginLoader.FetchHash<TPlugin>();
+        GameVersion     = IPluginLoader.FetchGameVersion();
         Services        = CreateManager(this, PluginInterface, Log, Source, Version);
     }
 
