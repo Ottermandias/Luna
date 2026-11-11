@@ -2,12 +2,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Luna;
 
-/// <summary> The base class for a parameterless custom event type that supports subscriber priorities and per-delegate exception checking. </summary>
-/// <typeparam name="TPriority"> The type of the priority to assign the event subscribers. </typeparam>
-/// <param name="name"> The name of the event for logging. </param>
-/// <param name="log"> The logger to use. </param>
-/// <param name="comparer"> An optional comparer to compare priorities. Set to <see cref="Comparer{TPriority}"/> if null. </param>
-public abstract class EventBase<TPriority>(string name, ILogger log, IComparer<TPriority>? comparer = null) : IDisposable, IScopedService
+public class EventBase(string name, ILogger log)
 {
     /// <summary> The name of the event. </summary>
     public readonly string Name = name;
@@ -15,16 +10,116 @@ public abstract class EventBase<TPriority>(string name, ILogger log, IComparer<T
     /// <summary> The logger the event uses. </summary>
     protected readonly ILogger Log = log;
 
-    /// <summary> The list containing the delegates to invoke, ordered by their priority. </summary>
-    protected readonly SortedListAdapter<(Action Subscriber, TPriority Priority)> Event = new([],
-        new PriorityComparer(comparer ?? Comparer<TPriority>.Default));
-
     /// <summary> The lock to assure thread-safety. </summary>
-    protected readonly ReaderWriterLockSlim Lock = new(LockRecursionPolicy.SupportsRecursion);
+    protected readonly Lock Lock = new();
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private protected void Unsubscribe<T, TPriority>(ref (T Subscriber, TPriority Priority)[] subscribers, T subscriber)
+        where T : Delegate
+    {
+        lock (Lock)
+        {
+            var old = subscribers;
+            var idx = old.IndexOf(subscriber, static (p, s) => p.Subscriber == s);
+            if (idx < 0)
+                return;
+
+            var updated = old.Without(idx);
+            Volatile.Write(ref subscribers, updated);
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private protected void Subscribe<T, TPriority>(ref (T Subscriber, TPriority Priority)[] subscribers, T subscriber, TPriority priority,
+        IComparer<TPriority> comparer)
+        where T : Delegate
+    {
+        lock (Lock)
+        {
+            var old     = subscribers;
+            var updated = InsertSorted(old, subscriber, priority, comparer);
+            Volatile.Write(ref subscribers, updated);
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private protected void Clear<T>(ref T[] subscribers)
+    {
+        lock (Lock)
+        {
+            Volatile.Write(ref subscribers, []);
+        }
+    }
+
+    private protected static (T Subscriber, TPriority Priority)[] InsertSorted<T, TPriority>((T Subscriber, TPriority Priority)[] old,
+        T subscriber,
+        TPriority priority, IComparer<TPriority> comparer) where T : Delegate
+    {
+        // Find an existing subscription.
+        var existing = old.IndexOf(subscriber, static (v, in s) => v.Subscriber == s);
+
+        // Nothing to change.
+        if (existing >= 0 && comparer.Compare(old[existing].Priority, priority) is 0)
+            return old;
+
+        // Create the new array.
+        var length  = old.Length + (existing < 0 ? 1 : 0);
+        var updated = new (T Subscriber, TPriority Priority)[length];
+
+        // Find insertion position, ignoring the existing subscription.
+        var insert = 0;
+        for (var i = 0; i < old.Length; ++i)
+        {
+            if (i == existing)
+                continue;
+
+            if (comparer.Compare(old[i].Priority, priority) < 0)
+                break;
+
+            ++insert;
+        }
+
+        // Copy entries into the new array, skipping the old subscription.
+        if (existing < 0)
+        {
+            old.AsSpan(0, insert).CopyTo(updated);
+            old.AsSpan(insert).CopyTo(updated.AsSpan(insert + 1));
+        }
+        else if (existing < insert)
+        {
+            old.AsSpan(0,            existing).CopyTo(updated);
+            old.AsSpan(existing + 1, insert - existing).CopyTo(updated.AsSpan(existing));
+            old.AsSpan(insert + 1).CopyTo(updated.AsSpan(insert + 1));
+        }
+        else
+        {
+            old.AsSpan(0,      insert).CopyTo(updated);
+            old.AsSpan(insert, existing - insert).CopyTo(updated.AsSpan(insert + 1));
+            old.AsSpan(existing + 1).CopyTo(updated.AsSpan(existing + 1));
+        }
+
+        updated[insert] = (subscriber, priority);
+        return updated;
+    }
+}
+
+/// <summary> The base class for a parameterless custom event type that supports subscriber priorities and per-delegate exception checking. </summary>
+/// <typeparam name="TPriority"> The type of the priority to assign the event subscribers. </typeparam>
+/// <param name="name"> The name of the event for logging. </param>
+/// <param name="log"> The logger to use. </param>
+/// <param name="comparer"> An optional comparer to compare priorities. Set to <see cref="Comparer{TPriority}"/> if null. </param>
+public abstract class EventBase<TPriority>(string name, ILogger log, IComparer<TPriority>? comparer = null)
+    : EventBase(name, log), IDisposable, IScopedService
+{
+    /// <summary> The comparer to use for the priority values. </summary>
+    protected readonly IComparer<TPriority> Comparer = comparer ?? Comparer<TPriority>.Default;
+
+    /// <summary> The list containing the delegates to invoke, ordered by their priority. </summary>
+    private (Action Subscriber, TPriority Priority)[] _subscribers = [];
 
     /// <summary> Whether the event has any subscribers. </summary>
     public bool HasSubscribers
-        => Event.Count > 0;
+        => Volatile.Read(ref _subscribers).Length > 0;
 
     /// <inheritdoc/>
     public void Dispose()
@@ -36,102 +131,36 @@ public abstract class EventBase<TPriority>(string name, ILogger log, IComparer<T
     /// <summary> Custom disposal function if necessary. </summary>
     /// <param name="disposing"> Whether the disposal is invoked by finalizer or manual call of Dispose. </param>
     protected virtual void Dispose(bool disposing)
-    {
-        Lock.EnterWriteLock();
-        Event.Clear();
-        Lock.ExitWriteLock();
-        Lock.Dispose();
-    }
+        => Clear(ref _subscribers);
 
     /// <summary> Add a new subscriber to the event. </summary>
     /// <param name="subscriber"> The subscriber to add. If a delegate comparing equal to this is already subscribed to the event, it will be moved according to the new priority, but not added in duplicate. </param>
     /// <param name="priority"> The priority used to order the subscribers of this event. </param>
     public virtual void Subscribe(Action subscriber, TPriority priority)
-    {
-        Lock.EnterWriteLock();
-        try
-        {
-            var idx  = Event.List.IndexOf(p => p.Subscriber.Equals(subscriber));
-            var pair = (subscriber, priority);
-            if (idx >= 0)
-            {
-                if (Event.Comparer.Compare(Event[idx], pair) is 0)
-                    return;
-
-                Event.RemoveAt(idx);
-            }
-
-            Event.Add((subscriber, priority));
-        }
-        finally
-        {
-            Lock.ExitWriteLock();
-        }
-    }
+        => Subscribe(ref _subscribers, subscriber, priority, Comparer);
 
     /// <summary> Remove an existing subscriber from the event. </summary>
     /// <param name="subscriber"> The subscriber to remove. The first delegate found that compares equal to this is removed. If none is found, nothing is done. </param>
     public virtual void Unsubscribe(Action subscriber)
-    {
-        Lock.EnterWriteLock();
-        try
-        {
-            var idx = Event.List.IndexOf(p => p.Subscriber.Equals(subscriber));
-            if (idx < 0)
-                return;
-
-            Event.RemoveAt(idx);
-        }
-        finally
-        {
-            Lock.ExitWriteLock();
-        }
-    }
-
-    /// <summary> Enumerate the subscribers within a lock. </summary>
-    protected virtual IEnumerable<Action> Enumerate()
-    {
-        // The lock is upgradeable so that a subscriber can remove itself from the list or add another subscriber.
-        Lock.EnterUpgradeableReadLock();
-        try
-        {
-            for (var i = Event.Count - 1; i >= 0; --i)
-                yield return Event[i].Subscriber;
-        }
-        finally
-        {
-            Lock.ExitUpgradeableReadLock();
-        }
-    }
+        => Unsubscribe(ref _subscribers, subscriber);
 
     /// <summary> Invoke the event for all subscribers in order of priority. </summary>
-    /// <remarks> This will not throw, as any exceptions will be caught subscriber-specific. </remarks>
+    /// <remarks> Exceptions thrown by subscribers are logged and do not prevent subsequent subscribers from being invoked. </remarks>
     public virtual void Invoke()
     {
-        foreach (var action in Enumerate())
+        var delegates = Volatile.Read(ref _subscribers);
+        foreach (var action in delegates)
         {
             try
             {
-                action.Invoke();
+                action.Subscriber.Invoke();
             }
             catch (Exception ex)
             {
                 Log.LogError(ex, "[{Event:l}] Exception thrown during invocation.", Name);
-                throw;
             }
         }
     }
-
-    /// <summary> Convert a priority-comparer to a pair-comparer. </summary>
-    private readonly struct PriorityComparer(IComparer<TPriority> comparer) : IComparer<(Action, TPriority)>
-    {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public int Compare((Action, TPriority) x, (Action, TPriority) y)
-            => comparer.Compare(x.Item2, y.Item2);
-    }
-
-    ~EventBase()
-        => Dispose(false);
 }
 
 /// <summary> The base class for a custom event type that supports subscriber priorities and per-delegate exception checking. </summary>
@@ -140,25 +169,19 @@ public abstract class EventBase<TPriority>(string name, ILogger log, IComparer<T
 /// <param name="name"> The name of the event for logging. </param>
 /// <param name="log"> The logger to use. </param>
 /// <param name="comparer"> An optional comparer to compare priorities. Set to <see cref="Comparer{TPriority}"/> if null. </param>
-public abstract class EventBase<TArguments, TPriority>(string name, ILogger log, IComparer<TPriority>? comparer = null) : IDisposable, IScopedService
+public abstract class EventBase<TArguments, TPriority>(string name, ILogger log, IComparer<TPriority>? comparer = null)
+    : EventBase(name, log), IDisposable, IScopedService
     where TArguments : allows ref struct
 {
-    /// <summary> The name of the event. </summary>
-    public readonly string Name = name;
-
-    /// <summary> The logger the event uses. </summary>
-    protected readonly ILogger Log = log;
+    /// <summary> The comparer to use for the priority values. </summary>
+    protected readonly IComparer<TPriority> Comparer = comparer ?? Comparer<TPriority>.Default;
 
     /// <summary> The list containing the delegates to invoke, ordered by their priority. </summary>
-    protected readonly SortedListAdapter<(InAction<TArguments> Subscriber, TPriority Priority)> Event = new([],
-        new PriorityComparer(comparer ?? Comparer<TPriority>.Default));
-
-    /// <summary> The lock to assure thread-safety. </summary>
-    protected readonly ReaderWriterLockSlim Lock = new(LockRecursionPolicy.SupportsRecursion);
+    private (InAction<TArguments> Subscriber, TPriority Priority)[] _subscribers = [];
 
     /// <summary> Whether the event has any subscribers. </summary>
     public bool HasSubscribers
-        => Event.Count > 0;
+        => Volatile.Read(ref _subscribers).Length > 0;
 
     /// <inheritdoc/>
     public void Dispose()
@@ -170,105 +193,38 @@ public abstract class EventBase<TArguments, TPriority>(string name, ILogger log,
     /// <summary> Custom disposal function if necessary. </summary>
     /// <param name="disposing"> Whether the disposal is invoked by finalizer or manual call of Dispose. </param>
     protected virtual void Dispose(bool disposing)
-    {
-        Lock.EnterWriteLock();
-        Event.Clear();
-        Lock.ExitWriteLock();
-        Lock.Dispose();
-    }
+        => Clear(ref _subscribers);
 
     /// <summary> Add a new subscriber to the event. </summary>
     /// <param name="subscriber"> The subscriber to add. If a delegate comparing equal to this is already subscribed to the event, it will be moved according to the new priority, but not added in duplicate. </param>
     /// <param name="priority"> The priority used to order the subscribers of this event. </param>
     public virtual void Subscribe(InAction<TArguments> subscriber, TPriority priority)
-    {
-        Lock.EnterWriteLock();
-        try
-        {
-            var idx  = Event.List.IndexOf(p => p.Subscriber == subscriber);
-            var pair = (subscriber, priority);
-            if (idx >= 0)
-            {
-                if (Event.Comparer.Compare(Event[idx], pair) is 0)
-                    return;
-
-                Event.RemoveAt(idx);
-            }
-
-            Event.Add((subscriber, priority));
-        }
-        finally
-        {
-            Lock.ExitWriteLock();
-        }
-    }
+        => Subscribe(ref _subscribers, subscriber, priority, Comparer);
 
     /// <summary> Remove an existing subscriber from the event. </summary>
     /// <param name="subscriber"> The subscriber to remove. The first delegate found that compares equal to this is removed. If none is found, nothing is done. </param>
     public virtual void Unsubscribe(InAction<TArguments> subscriber)
-    {
-        Lock.EnterWriteLock();
-        try
-        {
-            var idx = Event.List.IndexOf(p => p.Subscriber == subscriber);
-            if (idx < 0)
-                return;
-
-            Event.RemoveAt(idx);
-        }
-        finally
-        {
-            Lock.ExitWriteLock();
-        }
-    }
-
-    /// <summary> Enumerate the subscribers within a lock. </summary>
-    protected virtual IEnumerable<InAction<TArguments>> Enumerate()
-    {
-        // The lock is upgradeable so that a subscriber can remove itself from the list or add another subscriber.
-        Lock.EnterUpgradeableReadLock();
-        try
-        {
-            for (var i = Event.Count - 1; i >= 0; --i)
-                yield return Event[i].Subscriber;
-        }
-        finally
-        {
-            Lock.ExitUpgradeableReadLock();
-        }
-    }
+        => Unsubscribe(ref _subscribers, subscriber);
 
     /// <summary> Invoke the event for all subscribers in order of priority. </summary>
     /// <param name="arguments"> The arguments to pass to the subscribers. </param>
-    /// <remarks> This will not throw, as any exceptions will be caught subscriber-specific. </remarks>
+    /// <remarks> Exceptions thrown by subscribers are logged and do not prevent subsequent subscribers from being invoked. </remarks>
     public virtual void Invoke(in TArguments arguments)
     {
-        foreach (var action in Enumerate())
+        var delegates = Volatile.Read(ref _subscribers);
+        foreach (var action in delegates)
         {
             try
             {
-                action.Invoke(arguments);
+                action.Subscriber.Invoke(arguments);
             }
             catch (Exception ex)
             {
-                Log.LogError(ex, "[{Event}] Exception thrown during invocation.", Name);
-                throw;
+                Log.LogError(ex, "[{Event:l}] Exception thrown during invocation.", Name);
             }
         }
     }
-
-    /// <summary> Convert a priority-comparer to a pair-comparer. </summary>
-    private readonly struct PriorityComparer(IComparer<TPriority> comparer) : IComparer<(InAction<TArguments>, TPriority)>
-    {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public int Compare((InAction<TArguments>, TPriority) x, (InAction<TArguments>, TPriority) y)
-            => comparer.Compare(x.Item2, y.Item2);
-    }
-
-    ~EventBase()
-        => Dispose(false);
 }
 
 /// <summary> The arguments passed to an event. </summary>
-
 public delegate void InAction<TArguments>(in TArguments arguments) where TArguments : allows ref struct;
