@@ -19,4 +19,23 @@ public static class ArrayExtensions
             return ret;
         }
     }
+
+    extension<T>(T[] array)
+    {
+        /// <summary> Create a new array from an existing one while leaving one entry out. </summary>
+        /// <param name="index"> The index of the entry to leave out. </param>
+        /// <returns> A shallow copy of the existing array with the entry left out. </returns>
+        [MethodImpl(ImSharpConfiguration.OptInl)]
+        public T[] Without(int index)
+        {
+            ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual((uint)index, (uint)array.Length, nameof(index));
+            if (array.Length is 1)
+                return [];
+
+            var ret = new T[array.Length - 1];
+            array.AsSpan(0, index).CopyTo(ret);
+            array.AsSpan(index + 1).CopyTo(ret.AsSpan(index));
+            return ret;
+        }
+    }
 }
