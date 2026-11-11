@@ -149,11 +149,11 @@ public abstract class EventBase<TPriority>(string name, ILogger log, IComparer<T
     public virtual void Invoke()
     {
         var delegates = Volatile.Read(ref _subscribers);
-        foreach (var action in delegates)
+        foreach (var (subscriber, _) in delegates)
         {
             try
             {
-                action.Subscriber.Invoke();
+                subscriber.Invoke();
             }
             catch (Exception ex)
             {
@@ -212,11 +212,11 @@ public abstract class EventBase<TArguments, TPriority>(string name, ILogger log,
     public virtual void Invoke(in TArguments arguments)
     {
         var delegates = Volatile.Read(ref _subscribers);
-        foreach (var action in delegates)
+        foreach (var (subscriber, _) in delegates)
         {
             try
             {
-                action.Subscriber.Invoke(arguments);
+                subscriber.Invoke(arguments);
             }
             catch (Exception ex)
             {
