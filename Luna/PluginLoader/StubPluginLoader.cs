@@ -21,6 +21,7 @@ public sealed class StubPluginLoader<TPlugin> : IPluginLoader
         Source          = IPluginLoader.FetchSource(pluginInterface);
         Version         = IPluginLoader.FetchVersion<TPlugin>(pluginInterface, log, Source);
         CommitHash      = IPluginLoader.FetchHash<TPlugin>();
+        GameVersion     = IPluginLoader.FetchGameVersion() ?? "Unknown";
     }
 
     /// <inheritdoc/>
@@ -46,6 +47,9 @@ public sealed class StubPluginLoader<TPlugin> : IPluginLoader
     public Version Version { get; }
 
     /// <inheritdoc/>
+    public string GameVersion { get; }
+
+    /// <inheritdoc/>
     public string CommitHash { get; }
 
     /// <inheritdoc/>
@@ -55,4 +59,7 @@ public sealed class StubPluginLoader<TPlugin> : IPluginLoader
     /// <inheritdoc/>
     public bool HasPlugin
         => true;
+
+    public string GetWindowLabel(string? fixedLabel)
+        => fixedLabel is null ? PluginName : $"{PluginName}###{fixedLabel}";
 }

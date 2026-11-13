@@ -4,7 +4,7 @@ namespace Luna;
 
 /// <summary> A base class for fast setup of basic hooks. </summary>
 /// <typeparam name="T"> The delegate type for the hook. </typeparam>
-public abstract class FastHook<T> : IHookService, IDisposable where T : Delegate
+public abstract class FastHook<T> : IScopedService, IHookService, IDisposable where T : Delegate
 {
     /// <summary> The task to launch to obtain the hook, that will also ultimately contain the hook. </summary>
     protected Task<Hook<T>?> Task { get; init; } = null!;

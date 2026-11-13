@@ -8,7 +8,7 @@ using Microsoft.Extensions.Logging;
 namespace Luna;
 
 /// <summary> A helper class for sharing a single <see cref="ImSharpContext"/> across multiple instances of ImSharp or Luna through Dalamud IPC. </summary>
-public sealed unsafe class ImSharpDalamudContext : IRequiredService, IDisposable
+public sealed unsafe class ImSharpDalamudContext : ISingletonService, IRequiredService, IDisposable
 {
     public static Im.Native.ImFont* AwesomeFont { get; private set; } = null;
 

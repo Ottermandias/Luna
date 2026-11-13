@@ -5,7 +5,7 @@ namespace Luna;
 
 /// <summary> A wrapper class for IPC with Dynamis, a developer utility plugin. </summary>
 /// <remarks> This can be used to better display debug information. </remarks>
-public class DynamisIpc : IDisposable, IService
+public class DynamisIpc : IDisposable, ISingletonService
 {
     private readonly IDalamudPluginInterface _pluginInterface;
     private readonly LunaLogger              _log;

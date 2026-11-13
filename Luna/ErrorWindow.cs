@@ -1,34 +1,31 @@
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface.Windowing;
 using Dalamud.Plugin;
-using Dalamud.Plugin.Services;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace Luna;
 
 /// <summary> A window that specifically is used to display failures to load and check for updates. </summary>
 public class ErrorWindow : Window, IDisposable
 {
-    private readonly   ImSharpDalamudContext   _context;
     private readonly   string                  _name;
     private readonly   WindowSystem            _system;
     private readonly   Task<PluginUpdate?>     _updateCheck;
     protected readonly IDalamudPluginInterface PluginInterface;
 
     /// <summary> Create a new error window that will also create its own window system and subscribe to drawing. </summary>
-    /// <param name="pi"> The plugin interface. </param>
+    /// <param name="pluginInterface"> The plugin interface. </param>
     /// <param name="log"> The logger to use. </param>
     /// <param name="label"> The label for the window itself. </param>
     /// <param name="name"> The name of the plugin and window system. </param>
-    public ErrorWindow(IDalamudPluginInterface pi, LunaLogger log, string label, string name)
+    /// <param name="context"> Ensure the ImSharp context is created. </param>
+    public ErrorWindow(IDalamudPluginInterface pluginInterface, LunaLogger log, string label, string name, ImSharpDalamudContext context)
         : base(label)
     {
-        PluginInterface = pi;
-        _context = new ImSharpDalamudContext(PluginInterface, PluginInterface.UiBuilder, PluginInterface.GetRequiredService<IFramework>(), log);
-        _name = name;
-        _system = WindowSystem.Create(pi.UiBuilder, name, false);
+        _name           = name;
+        PluginInterface = pluginInterface;
+        _system         = WindowSystem.Create(PluginInterface.UiBuilder, name, false);
         _system.AddWindow(this);
-        _updateCheck    = pi.CheckForUpdateAsync();
+        _updateCheck    = PluginInterface.CheckForUpdateAsync();
         IsOpen          = true;
         SizeConstraints = new WindowSizeConstraints { MinimumSize = new Vector2(640, 480) };
     }
@@ -47,10 +44,7 @@ public class ErrorWindow : Window, IDisposable
             return;
         }
 
-        using (ImGuiColor.Text.Push(LunaStyle.ErrorForeground))
-        {
-            Im.TextWrapped($"Error initializing {_name}. Further information can be found in /xllog.");
-        }
+        DrawFailure();
 
         LunaStyle.DrawSeparator();
 
@@ -69,15 +63,20 @@ public class ErrorWindow : Window, IDisposable
 #endif
     }
 
+    /// <summary> Draw the message and interaction options for the error. </summary>
+    protected virtual void DrawFailure()
+    {
+        using (ImGuiColor.Text.Push(LunaStyle.ErrorForeground))
+        {
+            Im.TextWrapped($"Error initializing {_name}. Further information can be found in /xllog.");
+        }
+    }
+
     /// <summary> Draw additional debug utilities in the error window only when compiled in debug mode.</summary>
     protected virtual void DrawDebugUtilities()
     { }
 
     /// <inheritdoc/>
     public void Dispose()
-    {
-        _system.Dispose();
-        _updateCheck.Dispose();
-        _context.Dispose();
-    }
+        => _system.Dispose();
 }

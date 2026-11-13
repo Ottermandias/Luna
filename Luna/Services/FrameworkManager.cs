@@ -3,7 +3,7 @@ using Dalamud.Plugin.Services;
 namespace Luna;
 
 /// <summary> Manage certain actions to only occur on framework updates. </summary>
-public sealed class FrameworkManager : IDisposable, IService
+public sealed class FrameworkManager : IDisposable, IScopedService
 {
     /// <summary> The game's framework service. </summary>
     public readonly IFramework Framework;

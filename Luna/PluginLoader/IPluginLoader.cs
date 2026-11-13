@@ -1,5 +1,6 @@
 using System.Reflection;
 using Dalamud.Plugin;
+using FFXIVClientStructs.FFXIV.Client.System.Framework;
 
 namespace Luna;
 
@@ -7,32 +8,38 @@ namespace Luna;
 public interface IPluginLoader
 {
     /// <summary> The plugin interface passed by Dalamud. </summary>
-    public IDalamudPluginInterface PluginInterface       { get; }
+    public IDalamudPluginInterface PluginInterface { get; }
 
     /// <summary> The main logger. </summary>
-    public MainLogger              Log                   { get; }
+    public MainLogger Log { get; }
 
     /// <summary> The service manager. </summary>
-    public ServiceManager          Services              { get; }
+    public ServiceManager Services { get; }
 
     /// <summary> The source of the plugin. </summary>
-    public PluginLoadSource        Source                { get; }
+    public PluginLoadSource Source { get; }
 
     /// <summary> The name of the plugin. </summary>
-    public string                  PluginName            { get; }
+    public string PluginName { get; }
 
     /// <summary> The version of the plugin manifest or assembly. </summary>
-    public Version                 Version               { get; }
+    public Version Version { get; }
+
+    /// <summary> The current version of the game. If the game's framework has not yet been loaded, this returns "Unknown". </summary>
+    public string GameVersion { get; }
 
     /// <summary> The commit hash of the plugin, if available. </summary>
     /// <remarks> The commit hash is obtained by querying the custom assembly attribute <see cref="AssemblyInformationalVersionAttribute"/>'s <see cref="AssemblyInformationalVersionAttribute.InformationalVersion"/>, if available. </remarks>
-    public string                  CommitHash            { get; }
+    public string CommitHash { get; }
 
     /// <summary> Whether the loader is in the intermediary plugin state and waits for user input on that. </summary>
-    public bool                    HasIntermediaryPlugin { get; }
+    public bool HasIntermediaryPlugin { get; }
 
     /// <summary> Whether the loader successfully loaded the main plugin. </summary>
-    public bool                    HasPlugin             { get; }
+    public bool HasPlugin { get; }
+
+    /// <summary> Obtain a label for the main window that includes the version but uses a static ID. </summary>
+    public string GetWindowLabel(string? fixedLabel);
 
     /// <summary> Obtain the load source of a plugin as passed by Dalamud. </summary>
     /// <param name="pluginInterface"> The plugin interface passed by Dalamud. </param>
@@ -44,6 +51,14 @@ public interface IPluginLoader
             : pluginInterface.IsTesting
                 ? PluginLoadSource.Testing
                 : PluginLoadSource.Normal;
+
+    /// <summary> Obtain the current version of the game. Returns null if the game's framework is not yet created. </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static unsafe string? FetchGameVersion()
+    {
+        var framework = Framework.Instance();
+        return framework is null ? null : framework->GameVersionString;
+    }
 
     /// <summary> Obtain the version of a plugin using its manifest for regularly installed plugins or its assembly version for developer plugins. </summary>
     /// <typeparam name="TPlugin"> The plugin definition. Only used for the assembly for developer plugins. </typeparam>
@@ -66,7 +81,7 @@ public interface IPluginLoader
         catch (Exception ex)
         {
             log.Error($"Could not fetch plugin version:\n{ex}");
-            return new Version(1, 1, 1, 1);
+            return new Version(0, 0, 0, 0);
         }
     }
 

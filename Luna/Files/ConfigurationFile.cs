@@ -9,7 +9,7 @@ namespace Luna;
 /// <param name="messager"> The file name provider this file uses. </param>
 /// <param name="saveDelay"> An optional delay for saving this file. If this is null, a minute is used. </param>
 public abstract class ConfigurationFile<TProvider>(BaseSaveService<TProvider> saveService, MessageService messager, TimeSpan? saveDelay = null)
-    : ISavable<TProvider>, IService
+    : ISavable<TProvider>, IScopedService
     where TProvider : BaseFilePathProvider
 {
     /// <summary> The save service this file uses. </summary>
@@ -26,6 +26,8 @@ public abstract class ConfigurationFile<TProvider>(BaseSaveService<TProvider> sa
 
     /// <summary> The current version of this file in the program. </summary>
     public abstract int CurrentVersion { get; }
+
+    private bool _isLoading;
 
     /// <summary> The function that writes this file's specific data to the JSON stream. </summary>
     /// <param name="j"> The JSON writer. </param>
@@ -44,7 +46,10 @@ public abstract class ConfigurationFile<TProvider>(BaseSaveService<TProvider> sa
 
     /// <summary> Save this file using the stored delay. </summary>
     public virtual void Save()
-        => SaveService.DelaySave(this, SaveDelay);
+    {
+        if(!_isLoading)
+            SaveService.DelaySave(this, SaveDelay);
+    }
 
     /// <summary> Save this file with common data, indentation and using <see cref="AddData"/>. </summary>
     /// <param name="stream"> The stream to write to.</param>
@@ -68,11 +73,12 @@ public abstract class ConfigurationFile<TProvider>(BaseSaveService<TProvider> sa
 
         try
         {
+            _isLoading = true;
             Messager.Log.Debug($"Reading {logName}...");
             var document = IJsonParsable.ReadJson<ParsableJsonDocument>(SaveService, fileName).Document.RootElement;
             LoadedTimestamp = document.PropertyOrDefault("Timestamp"u8, DateTimeOffset.UnixEpoch);
             LoadedVersion   = document.PropertyOrDefault("Version"u8,   -1);
-            if (LoadedVersion is - 1)
+            if (LoadedVersion is -1)
                 throw new Exception("No version provided.");
 
             if (LoadedVersion != CurrentVersion && HandleVersionMigration(logName, document, LoadedVersion))
@@ -84,6 +90,10 @@ public abstract class ConfigurationFile<TProvider>(BaseSaveService<TProvider> sa
         {
             Messager.NotificationMessage(ex, $"Error reading {logName}, reverting to default.",
                 $"Error reading {logName}", NotificationType.Error);
+        }
+        finally
+        {
+            _isLoading = false;
         }
     }
 
