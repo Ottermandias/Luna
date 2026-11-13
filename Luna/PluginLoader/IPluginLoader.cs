@@ -38,6 +38,9 @@ public interface IPluginLoader
     /// <summary> Whether the loader successfully loaded the main plugin. </summary>
     public bool HasPlugin { get; }
 
+    /// <summary> Obtain a label for the main window that includes the version but uses a static ID. </summary>
+    public string GetWindowLabel(string? fixedLabel);
+
     /// <summary> Obtain the load source of a plugin as passed by Dalamud. </summary>
     /// <param name="pluginInterface"> The plugin interface passed by Dalamud. </param>
     /// <returns> The load source. </returns>

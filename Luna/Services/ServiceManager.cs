@@ -54,7 +54,7 @@ public class ServiceManager : IDisposable, IAsyncDisposable
         _collection.AddSingleton(_logger);
         _collection.AddSingleton(this);
         if (name is not null)
-            _collection.AddSingleton(WindowSystem.Factory(name));
+            _collection.AddScoped(WindowSystem.Factory(name));
     }
 
     /// <summary> Enter a new scope. This only supports entering a single scope, which has to be exited before entering another one. </summary>
@@ -184,6 +184,23 @@ public class ServiceManager : IDisposable, IAsyncDisposable
         T Func(IServiceProvider p)
         {
             _logger.Verbose($"Constructing Service {typeof(T).Name} with custom factory function.");
+            using var timer = Timers.Measure(typeof(T).Name);
+            return factory(p);
+        }
+    }
+
+    /// <summary> Add a specific type as a scoped service to the collection but so that it is constructed via factory method. </summary>
+    /// <param name="factory"> The function that gets invoked to create this type. </param>
+    /// <typeparam name="T"> The type to add. </typeparam>
+    /// <returns> This object to chain calls. </returns>
+    public ServiceManager AddScoped<T>(Func<IServiceProvider, T> factory) where T : class
+    {
+        _collection.AddScoped(Func);
+        return this;
+
+        T Func(IServiceProvider p)
+        {
+            _logger.Verbose($"Constructing scoped Service {typeof(T).Name} with custom factory function.");
             using var timer = Timers.Measure(typeof(T).Name);
             return factory(p);
         }

@@ -44,10 +44,7 @@ public class ErrorWindow : Window, IDisposable
             return;
         }
 
-        using (ImGuiColor.Text.Push(LunaStyle.ErrorForeground))
-        {
-            Im.TextWrapped($"Error initializing {_name}. Further information can be found in /xllog.");
-        }
+        DrawFailure();
 
         LunaStyle.DrawSeparator();
 
@@ -66,14 +63,20 @@ public class ErrorWindow : Window, IDisposable
 #endif
     }
 
+    /// <summary> Draw the message and interaction options for the error. </summary>
+    protected virtual void DrawFailure()
+    {
+        using (ImGuiColor.Text.Push(LunaStyle.ErrorForeground))
+        {
+            Im.TextWrapped($"Error initializing {_name}. Further information can be found in /xllog.");
+        }
+    }
+
     /// <summary> Draw additional debug utilities in the error window only when compiled in debug mode.</summary>
     protected virtual void DrawDebugUtilities()
     { }
 
     /// <inheritdoc/>
     public void Dispose()
-    {
-        _system.Dispose();
-        _updateCheck.Dispose();
-    }
+        => _system.Dispose();
 }

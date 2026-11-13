@@ -53,6 +53,14 @@ public abstract class PluginLoader<TPlugin> : IPluginLoader, IAsyncDalamudPlugin
     public string PluginName
         => Log.PluginName;
 
+    /// <inheritdoc/>
+    public string GetWindowLabel(string? fixedLabel)
+        => Version.Equals(0, 0, 0, 0)
+            ? $"{PluginName}###{fixedLabel ?? PluginName}"
+            : Version.Equals(9, 0, 0, 1)
+                ? $"{PluginName} (Dev)###{fixedLabel ?? PluginName}"
+                : $"{PluginName} v{Version}###{fixedLabel ?? PluginName}";
+
     /// <summary> Initialize the plugin loader. </summary>
     /// <param name="pluginInterface"> The plugin interface passed by Dalamud. </param>
     /// <param name="pluginName"> The custom name of the plugin. If null, the internal name will be used. </param>
@@ -220,29 +228,26 @@ public abstract class PluginLoader<TPlugin> : IPluginLoader, IAsyncDalamudPlugin
         catch (Exception ex)
         {
             Log.Error($"Plugin Initialization failed during {stage.String} stage:\n{ex}");
+
+            if (Plugin is not null)
+                try
+                {
+                    await Plugin.DisposeAsync().ConfigureAwait(false);
+                }
+                catch (Exception ex2)
+                {
+                    Log.Error($"Failed to dispose plugin after failure to initialize:\n{ex2}");
+                }
+                finally
+                {
+                    Plugin = null;
+                }
+
             var handling = PluginInitializationFailure.FailureHandling.Rethrow;
-            try
-            {
-                if (IntermediaryPlugin is not null)
-                    handling = await IntermediaryPlugin.OnPluginInitializationFailedAsync(new PluginInitializationFailure(stage, ex), cancel)
-                        .ConfigureAwait(false);
-            }
-            finally
-            {
-                if (Plugin is not null)
-                    try
-                    {
-                        await Plugin.DisposeAsync().ConfigureAwait(false);
-                    }
-                    catch (Exception ex2)
-                    {
-                        Log.Error($"Failed to dispose plugin after failure to initialize:\n{ex2}");
-                    }
-                    finally
-                    {
-                        Plugin = null;
-                    }
-            }
+            if (IntermediaryPlugin is not null)
+                handling = await IntermediaryPlugin.OnPluginInitializationFailedAsync(new PluginInitializationFailure(stage, ex), cancel)
+                    .ConfigureAwait(false);
+
 
             if (handling is PluginInitializationFailure.FailureHandling.Rethrow)
                 throw;

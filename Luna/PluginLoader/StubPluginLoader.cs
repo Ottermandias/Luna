@@ -59,4 +59,7 @@ public sealed class StubPluginLoader<TPlugin> : IPluginLoader
     /// <inheritdoc/>
     public bool HasPlugin
         => true;
+
+    public string GetWindowLabel(string? fixedLabel)
+        => fixedLabel is null ? PluginName : $"{PluginName}###{fixedLabel}";
 }
