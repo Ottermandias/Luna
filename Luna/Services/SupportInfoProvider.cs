@@ -142,14 +142,43 @@ public class SupportInfoProvider(IPluginLoader pluginLoader)
     /// <summary> Add a property and its value to the current section. Starts a default section if no section is open. </summary>
     /// <param name="property"> The name of the property. </param>
     /// <param name="value"> The value of the property. </param>
+    /// <param name="defaultValue"> The default value of the property. If the value is the same as the default, it will not be added. </param>
+    /// <param name="countAlignment"> Whether the name of this property contributes to the desired alignment or not. </param>
+    protected void AddPropertyIfNot(string property, string value, string defaultValue, bool countAlignment = true)
+    {
+        if (defaultValue == value)
+            return;
+
+        if (_currentSection is null)
+            StartSection(string.Empty, 0);
+        _currentSection!.Properties.Add((property, value));
+        if (countAlignment && _alignment <= property.Length)
+            _alignment = property.Length + 1; // +1 for the :
+    }
+
+    /// <summary> Add a property and its value to the current section. Starts a default section if no section is open. </summary>
+    /// <param name="property"> The name of the property. </param>
+    /// <param name="value"> The value of the property. </param>
     /// <param name="countAlignment"> Whether the name of this property contributes to the desired alignment or not. </param>
     protected void AddProperty<T>(string property, T? value, bool countAlignment = true)
         => AddProperty(property, value?.ToString() ?? "NULL", countAlignment);
 
+    /// <summary> Add a property and its value to the current section. Starts a default section if no section is open. </summary>
+    /// <param name="property"> The name of the property. </param>
+    /// <param name="value"> The value of the property. </param>
+    /// <param name="defaultValue"> The default value of the property. If the value is the same as the default, it will not be added. </param>
+    /// <param name="countAlignment"> Whether the name of this property contributes to the desired alignment or not. </param>
+    protected void AddPropertyIfNot<T>(string property, T? value, T? defaultValue, bool countAlignment = true)
+    {
+        if (!EqualityComparer<T>.Default.Equals(value, defaultValue))
+            AddProperty(property, value?.ToString() ?? "NULL", countAlignment);
+    }
+
     /// <summary> Obtain and add all relevant plugins and add them to a 'Plugins' section with priority 100. </summary>
     protected void GatherRelevantPlugins(IReadOnlySet<CallerPlugin>? callers = null)
     {
-        var installedPlugins = PluginLoader.PluginInterface.InstalledPlugins.GroupBy(p => p.InternalName)
+        var installedPlugins = PluginLoader.PluginInterface.InstalledPlugins
+            .GroupBy(p => p.InternalName)
             .ToDictionary(g => g.Key, g =>
             {
                 var item = g.OrderByDescending(p => p.IsLoaded).ThenByDescending(p => p.Version).First();
@@ -158,7 +187,7 @@ public class SupportInfoProvider(IPluginLoader pluginLoader)
 
         callers ??= new HashSet<CallerPlugin>();
         StartSection("Plugins", 100);
-        foreach (var plugin in callers.OrderBy(p => p.DisplayName).ThenBy(p => p.Version))
+        foreach (var plugin in callers.OrderBy(p => p.DisplayName, StringComparer.OrdinalIgnoreCase).ThenBy(p => p.Version))
             AddProperty(plugin.DisplayName, $"{plugin.Version} (IPC)", false);
 
         foreach (var plugin in RelevantPlugins)
@@ -190,10 +219,10 @@ public class SupportInfoProvider(IPluginLoader pluginLoader)
             }
         }
 
-        variableNames.Sort();
+        variableNames.Sort(StringComparer.Ordinal);
 
         var pos = variableNames.IndexOf("LC_ALL");
-        if (pos > 0) // If it's == 0, we're going to do a no-op.
+        if (pos > 0) // If it equals 0, we're going to do a no-op.
         {
             variableNames.RemoveAt(pos);
             variableNames.Insert(0, "LC_ALL");
